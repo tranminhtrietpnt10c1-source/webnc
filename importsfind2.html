@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý Nhập sản phẩm - Feane Restaurant</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <style>
+        :root {
+            --primary-color: #ffbe33;
+            --secondary-color: #222831;
+            --light-color: #ffffff;
+            --dark-color: #121618;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+            overflow-x: hidden;
+        }
+        
+        .sidebar {
+            min-height: 100vh;
+            background-color: var(--secondary-color);
+            color: var(--light-color);
+            transition: all 0.3s;
+            position: fixed;
+            z-index: 100;
+            width: 250px;
+        }
+        
+        .sidebar .nav-link {
+            color: rgba(255, 255, 255, 0.8);
+            padding: 0.75rem 1rem;
+            margin: 0.25rem 0;
+            border-radius: 0.25rem;
+            transition: all 0.2s;
+        }
+        
+        .sidebar .nav-link:hover, 
+        .sidebar .nav-link.active {
+            background-color: var(--primary-color);
+            color: var(--dark-color);
+        }
+        
+        .sidebar .nav-link i {
+            width: 20px;
+            margin-right: 10px;
+        }
+        
+        .main-content {
+            margin-left: 250px;
+            padding: 20px;
+            transition: all 0.3s;
+        }
+        
+        .navbar-custom {
+            background-color: var(--light-color);
+            box-shadow: 0 2px 4px rgba(0,0,0,.1);
+        }
+        
+        .card-custom {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,.1);
+            transition: transform 0.3s;
+        }
+        
+        .card-custom:hover {
+            transform: translateY(-5px);
+        }
+        
+        .stat-card {
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .stat-card i {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+        }
+        
+        .bg-primary-custom {
+            background-color: var(--primary-color);
+            color: var(--dark-color);
+        }
+        
+        .bg-secondary-custom {
+            background-color: var(--secondary-color);
+            color: var(--light-color);
+        }
+        
+        .table-responsive {
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .table th {
+            background-color: var(--secondary-color);
+            color: var(--light-color);
+        }
+        
+        .btn-custom {
+            background-color: var(--primary-color);
+            color: var(--dark-color);
+            border: none;
+            border-radius: 5px;
+            padding: 8px 15px;
+            transition: all 0.3s;
+        }
+        
+        .btn-custom:hover {
+            background-color: #e6a500;
+            transform: translateY(-2px);
+        }
+        
+        .toggle-sidebar {
+            display: none;
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 70px;
+                text-align: center;
+            }
+            
+            .sidebar .nav-link span {
+                display: none;
+            }
+            
+            .sidebar .nav-link i {
+                margin-right: 0;
+            }
+            
+            .main-content {
+                margin-left: 70px;
+            }
+            
+            .toggle-sidebar {
+                display: block;
+            }
+        }
+        
+        .dashboard-stats .col-md-3 {
+            margin-bottom: 20px;
+        }
+        
+        .alert-warning-custom {
+            background-color: #fff3cd;
+            border-color: #ffeaa7;
+            color: #856404;
+        }
+        
+        .badge-status-new {
+            background-color: #17a2b8;
+        }
+        
+        .badge-status-processing {
+            background-color: #ffc107;
+            color: #212529;
+        }
+        
+        .badge-status-shipped {
+            background-color: #28a745;
+        }
+        
+        .badge-status-cancelled {
+            background-color: #dc3545;
+        }
+        
+        .search-box {
+            position: relative;
+        }
+        
+        .search-box input {
+            padding-right: 40px;
+        }
+        
+        .search-box i {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #6c757d;
+            cursor: pointer;
+        }
+        
+        .action-buttons .btn {
+            margin-right: 5px;
+        }
+        
+        .badge-status-pending {
+            background-color: #6c757d;
+        }
+        
+        .badge-status-completed {
+            background-color: #28a745;
+        }
+        
+        /* CSS cho phần tìm kiếm theo ngày */
+        .date-search-box {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .date-search-box .form-control {
+            flex: 1;
+        }
+        
+        @media (max-width: 768px) {
+            .date-search-box {
+                flex-direction: column;
+            }
+        }
+        
+        /* CSS cho phần lọc trạng thái */
+        .status-filter {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .status-btn {
+            padding: 8px 16px;
+            background-color: #e9ecef;
+            color: #495057;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: all 0.3s;
+        }
+
+        .status-btn:hover, .status-btn.active {
+            background-color: var(--primary-color);
+            color: var(--dark-color);
+        }
+    </style>
+</head>
+<body>
+    <!-- Trang quản trị -->
+    <div id="admin-page">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="p-3">
+                <h4 class="text-center mb-4"><i class="fas fa-utensils"></i> Feane Admin</h4>
+            </div>
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a class="nav-link" href="admin.html">
+                        <i class="fas fa-tachometer-alt"></i> <span>Dashboard</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="users.html">
+                        <i class="fas fa-users"></i> <span>Quản lý người dùng</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="categories.html">
+                        <i class="fas fa-tags"></i> <span>Loại sản phẩm</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="products.html">
+                        <i class="fas fa-hamburger"></i> <span>Sản phẩm</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link active" href="imports.html">
+                        <i class="fas fa-arrow-down"></i> <span>Nhập sản phẩm</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="pricing.html">
+                        <i class="fas fa-dollar-sign"></i> <span>Giá bán</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="orders.html">
+                        <i class="fas fa-shopping-cart"></i> <span>Đơn hàng</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="inventory.html">
+                        <i class="fas fa-boxes"></i> <span>Tồn kho</span>
+                    </a>
+                </li>
+                <li class="nav-item mt-4">
+                    <a class="nav-link" href="adminlogin.html" id="logout-btn">
+                        <i class="fas fa-sign-out-alt"></i> <span>Đăng xuất</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Top Navbar -->
+            <nav class="navbar navbar-expand-lg navbar-custom mb-4">
+                <div class="container-fluid">
+                    <button class="btn toggle-sidebar" id="toggle-sidebar">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <div class="d-flex align-items-center">
+                        <span class="navbar-text me-3">
+                            Xin chào, <strong>Admin</strong>
+                        </span>
+                        <div class="dropdown">
+                            <button class="btn" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-user-circle fa-lg"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton">
+                                <li><a class="dropdown-item" href="profile.html"><i class="fas fa-user me-2"></i> Hồ sơ</a></li>
+                                <li><a class="dropdown-item" href="settings.html"><i class="fas fa-cog me-2"></i> Cài đặt</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="adminlogin.html" id="nav-logout-btn"><i class="fas fa-sign-out-alt me-2"></i> Đăng xuất</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+
+            <!-- Import Management Content -->
+            <div id="imports-page" class="page-content">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2>Quản lý Nhập sản phẩm</h2>
+                    <a href="imports.html" class="btn btn-custom">
+                        <i class=""></i>Quay lại
+                    </a>
+                </div>
+                
+                <!-- Thanh lọc trạng thái -->
+                
+                
+                <!-- Search and Filter -->
+                <div class="card card-custom mb-4">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="search-box">
+                                    <input type="text" class="form-control" id="searchInput" placeholder="Tìm kiếm phiếu nhập...">
+                                    <i class="fas fa-search" id="searchIcon"></i>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="date-search-box">
+    <input type="date" class="form-control" id="dateSearchInput" placeholder="Tìm kiếm theo ngày...">
+    <button class="btn btn-custom" id="dateSearchIcon">
+        <i class="fas fa-search"></i>
+    </button>
+</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Import List -->
+                <div class="card card-custom">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Kết quả tìm kiếm phiếu nhập theo ngày</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Mã phiếu</th>
+                                        <th>Tên sản phẩm</th>
+                                        <th>Ngày nhập</th>
+                                        <th>Số sản phẩm</th>
+                                        <th>Tổng số lượng</th>
+                                        <th>Tổng giá trị</th>
+                                        <th>Trạng thái</th>
+                                        <th>Thao tác</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                     <tr>
+                                        <td><a href="importsdetail.html">#PN-003</a></td>
+                                        <td>Pasta rau củ,Khoai tây chiên</td>
+                                        <td>18/05/2023</td>
+                                        <td>2</td>
+                                        <td>85</td>
+                                        <td>2,250,000 VND</td>
+                                        <td><span class="badge badge-status-pending">Chờ xử lý</span></td>
+                                        <td>
+                                            <div class="action-buttons">
+                                                 
+                                                
+                                                <a href="importsxoa.html" class="btn btn-sm btn-danger">
+                                                    <i class="fas fa-trash"></i>
+                                                </a>
+                                                <a href="importsedit.html" class="btn btn-sm btn-warning">
+            <i class="fas fa-edit"></i>
+        </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    
+                                    
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Custom JS -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Xử lý toggle sidebar trên mobile
+            document.getElementById('toggle-sidebar').addEventListener('click', function() {
+                const sidebar = document.querySelector('.sidebar');
+                const mainContent = document.querySelector('.main-content');
+                
+                if (sidebar.style.width === '70px' || sidebar.style.width === '') {
+                    sidebar.style.width = '250px';
+                    mainContent.style.marginLeft = '250px';
+                    
+                    // Hiển thị text trong sidebar
+                    const navTexts = document.querySelectorAll('.sidebar .nav-link span');
+                    navTexts.forEach(text => text.style.display = 'inline');
+                } else {
+                    sidebar.style.width = '70px';
+                    mainContent.style.marginLeft = '70px';
+                    
+                    // Ẩn text trong sidebar
+                    const navTexts = document.querySelectorAll('.sidebar .nav-link span');
+                    navTexts.forEach(text => text.style.display = 'none');
+                }
+            });
+
+            // Lấy các phần tử tìm kiếm
+            const searchInput = document.getElementById('searchInput');
+            const searchIcon = document.getElementById('searchIcon');
+            const dateSearchInput = document.getElementById('dateSearchInput');
+            const dateSearchIcon = document.getElementById('dateSearchIcon');
+
+            // Hàm thực hiện tìm kiếm phiếu nhập
+            function performSearch() {
+                const searchTerm = searchInput.value.trim();
+                // Luôn chuyển hướng đến importsfind.html, có hoặc không có từ khóa
+                if (searchTerm) {
+                    window.location.href = `importsfind.html?search=${encodeURIComponent(searchTerm)}`;
+                } else {
+                    window.location.href = 'importsfind.html';
+                }
+            }
+
+            // Hàm thực hiện tìm kiếm theo ngày
+            function performDateSearch() {
+                const dateValue = dateSearchInput.value;
+                // Luôn chuyển hướng đến importsfind.html, có hoặc không có ngày
+                if (dateValue) {
+                    window.location.href = `importsfind.html?date=${encodeURIComponent(dateValue)}`;
+                } else {
+                    window.location.href = 'importsfind.html';
+                }
+            }
+            // Hàm thực hiện tìm kiếm theo ngày
+function performDateSearch() {
+    const dateValue = dateSearchInput.value;
+    // Luôn chuyển hướng đến importsfind2.html, có hoặc không có ngày
+    if (dateValue) {
+        window.location.href = `importsfind2.html?date=${encodeURIComponent(dateValue)}`;
+    } else {
+        window.location.href = 'importsfind2.html';
+    }
+}
+
+// Sự kiện khi nhấn Enter trong ô tìm kiếm theo ngày
+dateSearchInput.addEventListener('keypress', function(event) {
+    if (event.key === 'Enter') {
+        performDateSearch();
+    }
+});
+
+// Sự kiện khi click vào nút tìm kiếm theo ngày
+dateSearchIcon.addEventListener('click', function() {
+    performDateSearch();
+});
+
+// Sự kiện khi thay đổi giá trị trong ô tìm kiếm theo ngày (chọn ngày xong)
+dateSearchInput.addEventListener('change', function() {
+    performDateSearch();
+});
+
+            // Sự kiện khi nhấn Enter trong ô tìm kiếm phiếu nhập
+            searchInput.addEventListener('keypress', function(event) {
+                if (event.key === 'Enter') {
+                    performSearch();
+                }
+            });
+
+            // Sự kiện khi click vào biểu tượng kính lúp tìm kiếm phiếu nhập
+            searchIcon.addEventListener('click', function() {
+                performSearch();
+            });
+
+            // Sự kiện khi nhấn Enter trong ô tìm kiếm theo ngày
+            dateSearchInput.addEventListener('keypress', function(event) {
+                if (event.key === 'Enter') {
+                    performDateSearch();
+                }
+            });
+
+            // Sự kiện khi click vào nút tìm kiếm theo ngày
+            dateSearchIcon.addEventListener('click', function() {
+                performDateSearch();
+            });
+
+            // Sự kiện khi thay đổi giá trị trong ô tìm kiếm theo ngày (chọn ngày xong)
+            dateSearchInput.addEventListener('change', function() {
+                performDateSearch();
+            });
+        });
+    </script>
+</body>
+</html>

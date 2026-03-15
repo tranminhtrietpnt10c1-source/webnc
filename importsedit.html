@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sửa Phiếu Nhập Hàng - Feane Restaurant</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #ffbe33;
+            --secondary-color: #222831;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+        }
+        
+        .card-custom {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,.1);
+        }
+        
+        .btn-custom {
+            background-color: var(--primary-color);
+            color: #121618;
+            border: none;
+            border-radius: 5px;
+            padding: 8px 15px;
+            transition: all 0.3s;
+        }
+        
+        .btn-custom:hover {
+            background-color: #e6a500;
+            transform: translateY(-2px);
+        }
+        
+        .product-item {
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 15px;
+            background-color: #f8f9fa;
+        }
+        
+        .total-section {
+            background-color: #e9ecef;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="fas fa-edit me-2"></i>Sửa Phiếu Nhập Hàng</h2>
+            <a href="imports.html" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Quay lại
+            </a>
+        </div>
+        
+        <div class="card card-custom">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">Thông tin phiếu nhập</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Mã phiếu nhập</label>
+                        <input type="text" class="form-control" id="importCode" value="#PN-003" readonly>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Ngày nhập</label>
+                        <input type="date" class="form-control" id="importDate" value="2023-05-18">
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <label class="form-label">Ghi chú</label>
+                        <textarea class="form-control" id="importNote" rows="3" placeholder="Nhập ghi chú (nếu có)">Nhập hàng định kỳ tháng 5</textarea>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5>Chi tiết phiếu nhập</h5>
+                    
+                </div>
+                
+                <!-- Danh sách sản phẩm -->
+                <div id="productList">
+                    <div class="product-item">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <label class="form-label">Sản phẩm</label>
+                                <select class="form-select">
+                                    <option value="">-- Chọn sản phẩm --</option>
+                                    <option value="PD01">Burger gà chiên</option>
+                                    <option value="PD04">Pizza hải sản</option>
+                                    <option value="PD05">Pizza phô mai</option>
+                                    <option value="PD06">Pizza ba vị</option>
+                                    <option value="PD07" selected>Pasta rau củ</option>
+                                    <option value="PD08">Pasta phô mai</option>
+                                    <option value="PD09">Pasta hải sản</option>
+                                    <option value="PD10">Khoai tây chiên</option>
+                                    <option value="PD11">Khoai tây chiên phô mai</option>
+                                    <option value="PD02">Burger bò</option>
+                                    <option value="PD03">Burger ức gà</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">Số lượng</label>
+                                <input type="number" class="form-control" value="35" min="1">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Giá nhập (VND)</label>
+                                <input type="number" class="form-control" value="50000" min="0">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">Thành tiền</label>
+                                <input type="text" class="form-control" value="1,750,000 VND" readonly>
+                            </div>
+                            <div class="col-md-1">
+                                <label class="form-label">&nbsp;</label>
+                                <button type="button" class="btn btn-danger btn-sm w-100">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="product-item">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <label class="form-label">Sản phẩm</label>
+                                <select class="form-select">
+                                    <option value="">-- Chọn sản phẩm --</option>
+                                    <option value="PD01">Burger gà chiên</option>
+                                    <option value="PD04">Pizza hải sản</option>
+                                    <option value="PD05">Pizza phô mai</option>
+                                    <option value="PD06">Pizza ba vị</option>
+                                    <option value="PD07">Pasta rau củ</option>
+                                    <option value="PD08">Pasta phô mai</option>
+                                    <option value="PD09">Pasta hải sản</option>
+                                    <option value="PD10" selected>Khoai tây chiên</option>
+                                    <option value="PD11">Khoai tây chiên phô mai</option>
+                                    <option value="PD02">Burger bò</option>
+                                    <option value="PD03">Burger ức gà</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">Số lượng</label>
+                                <input type="number" class="form-control" value="40" min="1">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Giá nhập (VND)</label>
+                                <input type="number" class="form-control" value="20000" min="0">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">Thành tiền</label>
+                                <input type="text" class="form-control" value="800,000 VND" readonly>
+                            </div>
+                            <div class="col-md-1">
+                                <label class="form-label">&nbsp;</label>
+                                <button type="button" class="btn btn-danger btn-sm w-100">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Tổng cộng -->
+                <div class="total-section">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-2">
+                                <strong>Tổng số lượng: <span id="totalQuantity">85</span></strong>
+                            </div>
+                            <div class="mb-2">
+                                <strong>Tổng giá trị: <span id="totalValue">2,250,000 VND</span></strong>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-2">
+                                <strong>Số sản phẩm: <span id="productCount">2</span></strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Nút hành động -->
+                <div class="d-flex justify-content-between mt-4">
+    <div>
+        <a href="importscomplete.html" class="btn btn-success" onclick="">
+            <i class="fas fa-check me-2"></i>Hoàn thành phiếu nhập
+        </a>
+        
+    </div>
+    <a href="importspending.html" class="btn btn-danger" onclick="">
+        <i class="fas fa-times me-2"></i>Hủy bỏ
+    </a>
+</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Thêm sản phẩm mới
+            document.getElementById('addProductBtn').addEventListener('click', function() {
+                const productList = document.getElementById('productList');
+                const newProduct = document.createElement('div');
+                newProduct.className = 'product-item';
+                newProduct.innerHTML = `
+                    <div class="row">
+                        <div class="col-md-4">
+                            <label class="form-label">Sản phẩm</label>
+                            <select class="form-select">
+                                <option value="">-- Chọn sản phẩm --</option>
+                                <option value="PD01">Burger gà chiên</option>
+                                <option value="PD04">Pizza hải sản</option>
+                                <option value="PD07">Pasta rau củ</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Số lượng</label>
+                            <input type="number" class="form-control" value="1" min="1">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Giá nhập (VND)</label>
+                            <input type="number" class="form-control" value="0" min="0">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Thành tiền</label>
+                            <input type="text" class="form-control" value="0 VND" readonly>
+                        </div>
+                        <div class="col-md-1">
+                            <label class="form-label">&nbsp;</label>
+                            <button type="button" class="btn btn-danger btn-sm w-100">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                productList.appendChild(newProduct);
+                
+                // Thêm sự kiện xóa cho nút mới
+                newProduct.querySelector('.btn-danger').addEventListener('click', function() {
+                    newProduct.remove();
+                    calculateTotals();
+                });
+                
+                // Thêm sự kiện tính toán cho các input mới
+                const inputs = newProduct.querySelectorAll('input, select');
+                inputs.forEach(input => {
+                    input.addEventListener('change', calculateTotals);
+                });
+            });
+            
+            // Xóa sản phẩm
+            document.querySelectorAll('.product-item .btn-danger').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    this.closest('.product-item').remove();
+                    calculateTotals();
+                });
+            });
+            
+            // Tính toán tổng
+            function calculateTotals() {
+                let totalQuantity = 0;
+                let totalValue = 0;
+                let productCount = 0;
+                
+                document.querySelectorAll('.product-item').forEach(item => {
+                    const quantity = parseInt(item.querySelector('input[type="number"]:nth-child(2)').value) || 0;
+                    const price = parseInt(item.querySelector('input[type="number"]:nth-child(3)').value) || 0;
+                    const amount = quantity * price;
+                    
+                    // Cập nhật thành tiền
+                    item.querySelector('input[readonly]').value = amount.toLocaleString() + ' VND';
+                    
+                    totalQuantity += quantity;
+                    totalValue += amount;
+                    productCount++;
+                });
+                
+                document.getElementById('totalQuantity').textContent = totalQuantity;
+                document.getElementById('totalValue').textContent = totalValue.toLocaleString() + ' VND';
+                document.getElementById('productCount').textContent = productCount;
+            }
+            
+            // Thêm sự kiện tính toán cho các input hiện có
+            document.querySelectorAll('.product-item input, .product-item select').forEach(input => {
+                input.addEventListener('change', calculateTotals);
+            });
+            
+            // Hoàn thành phiếu nhập
+            document.getElementById('completeBtn').addEventListener('click', function() {
+                if (confirm('Bạn có chắc chắn muốn hoàn thành phiếu nhập này? Sau khi hoàn thành, bạn không thể sửa phiếu nhập này nữa.')) {
+                    alert('Phiếu nhập đã được hoàn thành thành công!');
+                    window.location.href = 'imports.html';
+                }
+            });
+            
+            // Lưu thay đổi
+            document.getElementById('saveBtn').addEventListener('click', function() {
+                if (confirm('Bạn có chắc chắn muốn lưu các thay đổi?')) {
+                    alert('Thay đổi đã được lưu thành công!');
+                    window.location.href = 'imports.html';
+                }
+            });
+            
+            // Hủy bỏ
+            document.getElementById('cancelBtn').addEventListener('click', function() {
+                if (confirm('Bạn có chắc chắn muốn hủy bỏ các thay đổi?')) {
+                    window.location.href = 'imports.html';
+                }
+            });
+        });
+    </script>
+</body>
+</html>

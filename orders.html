@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý Đơn hàng - Feane Restaurant</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <style>
+        :root {
+            --primary-color: #ffbe33;
+            --secondary-color: #222831;
+            --light-color: #ffffff;
+            --dark-color: #121618;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+            overflow-x: hidden;
+        }
+        
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 250px;
+            height: 100vh;
+            background-color: var(--secondary-color);
+            color: var(--light-color);
+            z-index: 100;
+            padding: 20px 0;
+        }
+        
+        .sidebar .nav-link {
+            color: rgba(255, 255, 255, 0.8);
+            padding: 0.75rem 1rem;
+            margin: 0.25rem 0;
+            border-radius: 0.25rem;
+            transition: all 0.2s;
+        }
+        
+        .sidebar .nav-link:hover, 
+        .sidebar .nav-link.active {
+            background-color: var(--primary-color);
+            color: var(--dark-color);
+        }
+        
+        .sidebar .nav-link i {
+            width: 20px;
+            margin-right: 10px;
+        }
+        
+        .main-content {
+            margin-left: 250px;
+            padding: 20px;
+            transition: all 0.3s;
+        }
+        
+        .navbar-custom {
+            background-color: var(--light-color);
+            box-shadow: 0 2px 4px rgba(0,0,0,.1);
+        }
+        
+        .card-custom {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,.1);
+            transition: transform 0.3s;
+        }
+        
+        .card-custom:hover {
+            transform: translateY(-5px);
+        }
+        
+        .stat-card {
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .stat-card i {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+        }
+        
+        .bg-primary-custom {
+            background-color: var(--primary-color);
+            color: var(--dark-color);
+        }
+        
+        .bg-secondary-custom {
+            background-color: var(--secondary-color);
+            color: var(--light-color);
+        }
+        
+        .table-responsive {
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .table th {
+            background-color: var(--secondary-color);
+            color: var(--light-color);
+        }
+        
+        .btn-custom {
+            background-color: var(--primary-color);
+            color: var(--dark-color);
+            border: none;
+            border-radius: 5px;
+            padding: 8px 15px;
+            transition: all 0.3s;
+        }
+        
+        .btn-custom:hover {
+            background-color: #e6a500;
+            transform: translateY(-2px);
+        }
+        
+        .toggle-sidebar {
+            display: none;
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 70px;
+                text-align: center;
+            }
+            
+            .sidebar .nav-link span {
+                display: none;
+            }
+            
+            .sidebar .nav-link i {
+                margin-right: 0;
+            }
+            
+            .main-content {
+                margin-left: 70px;
+            }
+            
+            .toggle-sidebar {
+                display: block;
+            }
+        }
+        
+        .dashboard-stats .col-md-3 {
+            margin-bottom: 20px;
+        }
+        
+        .alert-warning-custom {
+            background-color: #fff3cd;
+            border-color: #ffeaa7;
+            color: #856404;
+        }
+        
+        .badge-status-new {
+            background-color: #17a2b8;
+        }
+        
+        .badge-status-processing {
+            background-color: #ffc107;
+            color: #212529;
+        }
+        
+        .badge-status-shipped {
+            background-color: #28a745;
+        }
+        
+        .badge-status-cancelled {
+            background-color: #dc3545;
+        }
+        
+        .search-box {
+            position: relative;
+        }
+        
+        .search-box input {
+            padding-right: 40px;
+        }
+        
+        .search-box i {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #6c757d;
+        }
+        
+        .action-buttons .btn {
+            margin-right: 5px;
+        }
+
+        /* Thêm các style từ orders.html */
+        .filter-section {
+            background-color: var(--primary-color);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .filter-section h3 {
+            margin-bottom: 20px;
+            color: var(--dark-color);
+        }
+        
+        .order-link {
+            color: var(--secondary-color);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+        
+        .order-link:hover {
+            color: var(--primary-color);
+            text-decoration: underline;
+        }
+        
+        .customer-link {
+            color: var(--secondary-color);
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        
+        .customer-link:hover {
+            color: var(--primary-color);
+        }
+    </style>
+</head>
+<body>
+    <!-- Trang quản trị -->
+    <div id="admin-page">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="p-3">
+                <h4 class="text-center mb-4"><i class="fas fa-utensils"></i> Feane Admin</h4>
+            </div>
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a class="nav-link" href="admin.html">
+                        <i class="fas fa-tachometer-alt"></i> <span>Dashboard</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="users.html">
+                        <i class="fas fa-users"></i> <span>Quản lý người dùng</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="categories.html">
+                        <i class="fas fa-tags"></i> <span>Loại sản phẩm</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="products.html">
+                        <i class="fas fa-hamburger"></i> <span>Sản phẩm</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="imports.html">
+                        <i class="fas fa-arrow-down"></i> <span>Nhập sản phẩm</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="pricing.html">
+                        <i class="fas fa-dollar-sign"></i> <span>Giá bán</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link active" href="orders.html">
+                        <i class="fas fa-shopping-cart"></i> <span>Đơn hàng</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="inventory.html">
+                        <i class="fas fa-boxes"></i> <span>Tồn kho</span>
+                    </a>
+                </li>
+                <li class="nav-item mt-4">
+                    <a class="nav-link" href="adminlogin.html" id="logout-btn">
+                        <i class="fas fa-sign-out-alt"></i> <span>Đăng xuất</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Top Navbar -->
+            <nav class="navbar navbar-expand-lg navbar-custom mb-4">
+                <div class="container-fluid">
+                    <button class="btn toggle-sidebar" id="toggle-sidebar">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <div class="d-flex align-items-center">
+                        <span class="navbar-text me-3">
+                            Xin chào, <strong>Admin</strong>
+                        </span>
+                        <div class="dropdown">
+                            <button class="btn" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-user-circle fa-lg"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton">
+                                <li><a class="dropdown-item" href="profile.html"><i class="fas fa-user me-2"></i> Hồ sơ</a></li>
+                                <li><a class="dropdown-item" href="settings.html"><i class="fas fa-cog me-2"></i> Cài đặt</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="index.html"><i class="fas fa-sign-out-alt me-2"></i> Về trang chủ</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+
+            <!-- Page Content -->
+            <div id="order-management-page" class="page-content">
+                <h2 class="mb-4">Quản lý Đơn hàng</h2>
+                
+                <!-- Filter Section -->
+                <div class="filter-section">
+                    <h3><i class="fas fa-filter me-2"></i>Bộ lọc đơn hàng</h3>
+                    <form id="order-filter-form">
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="start-date" class="form-label">Ngày bắt đầu</label>
+                                <input type="date" class="form-control" id="start-date" name="start-date">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="end-date" class="form-label">Ngày kết thúc</label>
+                                <input type="date" class="form-control" id="end-date" name="end-date">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="status-filter" class="form-label">Tình trạng</label>
+                                <select class="form-select" id="status-filter" name="status">
+                                    <option value="">-- Tất cả --</option>
+                                    <option value="new">Mới đặt</option>
+                                    <option value="processing">Đang xử lý</option>
+                                    <option value="shipped">Đã giao</option>
+                                    <option value="cancelled">Hủy</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-12">
+                                <button type="submit" class="btn btn-dark">
+                                    <i class="fas fa-search me-2"></i>Tìm kiếm
+                                </button>
+                                <button type="reset" class="btn btn-outline-dark ms-2">
+                                    <i class="fas fa-undo me-2"></i>Đặt lại
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- Statistics Cards -->
+                <div class="row dashboard-stats mb-4">
+                    <div class="col-md-3">
+                        <a href="orders.html?status=new" style="text-decoration: none; display: block;">
+                            <div class="card card-custom bg-primary-custom">
+                                <div class="card-body stat-card">
+                                    <i class="fas fa-shopping-cart"></i>
+                                    <h3 id="new-orders">15</h3>
+                                    <p>Đơn hàng mới</p>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="orders.html?status=processing" style="text-decoration: none; display: block;">
+                            <div class="card card-custom" style="background-color: #ffc107; color: #212529;">
+                                <div class="card-body stat-card">
+                                    <i class="fas fa-cog"></i>
+                                    <h3 id="processing-orders">12</h3>
+                                    <p>Đang xử lý</p>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="orders.html?status=shipped" style="text-decoration: none; display: block;">
+                            <div class="card card-custom" style="background-color: #28a745; color: white;">
+                                <div class="card-body stat-card">
+                                    <i class="fas fa-truck"></i>
+                                    <h3 id="shipped-orders">24</h3>
+                                    <p>Đã giao</p>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="orders.html?status=cancelled" style="text-decoration: none; display: block;">
+                            <div class="card card-custom" style="background-color: #dc3545; color: white;">
+                                <div class="card-body stat-card">
+                                    <i class="fas fa-times-circle"></i>
+                                    <h3 id="cancelled-orders">9</h3>
+                                    <p>Đã hủy</p>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Orders Table -->
+                <div class="card card-custom">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">Danh sách đơn hàng</h5>
+                        <div class="search-box">
+                            <div class="input-group">
+                                <input type="text" class="form-control" placeholder="Tìm kiếm đơn hàng..." id="search-order">
+                                <button class="btn btn-outline-secondary" type="button" id="search-order-btn">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Mã đơn</th>
+                                        <th>Khách hàng</th>
+                                        <th>Ngày đặt</th>
+                                        <th>Tổng tiền</th>
+                                        <th>Trạng thái</th>
+                                        <th>Thao tác</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="orders-table-body">
+                                    <!-- Dữ liệu sẽ được tải động dựa trên bộ lọc -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <!-- Pagination -->
+                        <nav aria-label="Page navigation">
+                            <ul class="pagination justify-content-center mt-4" id="pagination-container">
+                                <!-- Phân trang sẽ được tạo động ở đây -->
+                            </ul>
+                        </nav>
+                    </div>
+                </div>
+                
+                <!-- Best Selling Products -->
+                <div class="row mt-4">
+                    <div class="col-md-4">
+                        <div class="card card-custom">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">Sản phẩm bán chạy</h5>
+                            </div>
+                            <div class="card-body">
+                                <ul class="list-group list-group-flush">
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        Pizza Hải Sản
+                                        <span class="badge bg-primary rounded-pill">156</span>
+                                    </li>
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        Burger Bò Phô Mai
+                                        <span class="badge bg-primary rounded-pill">142</span>
+                                    </li>
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        Mỳ Ý Sốt Bò Bằm
+                                        <span class="badge bg-primary rounded-pill">128</span>
+                                    </li>
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        Khoai Tây Chiên
+                                        <span class="badge bg-primary rounded-pill">115</span>
+                                    </li>
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        Gà Rán Giòn
+                                        <span class="badge bg-primary rounded-pill">98</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-8">
+                        <div class="card card-custom">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">Đơn hàng gần đây</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Mã đơn</th>
+                                                <th>Khách hàng</th>
+                                                <th>Ngày đặt</th>
+                                                <th>Tổng tiền</th>
+                                                <th>Trạng thái</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="recent-orders-body">
+                                            <!-- Dữ liệu sẽ được tải động -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Custom JS -->
+    <script>
+        // Biến toàn cục
+        let currentPage = 1;
+        const itemsPerPage = 5;
+        let filteredOrders = [];
+        let totalPages = 1;
+        let searchTerm = '';
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Xử lý toggle sidebar trên mobile
+            document.getElementById('toggle-sidebar').addEventListener('click', function() {
+                const sidebar = document.querySelector('.sidebar');
+                const mainContent = document.querySelector('.main-content');
+                
+                if (sidebar.style.width === '70px' || sidebar.style.width === '') {
+                    sidebar.style.width = '250px';
+                    mainContent.style.marginLeft = '250px';
+                    
+                    // Hiển thị text trong sidebar
+                    const navTexts = document.querySelectorAll('.sidebar .nav-link span');
+                    navTexts.forEach(text => text.style.display = 'inline');
+                } else {
+                    sidebar.style.width = '70px';
+                    mainContent.style.marginLeft = '70px';
+                    
+                    // Ẩn text trong sidebar
+                    const navTexts = document.querySelectorAll('.sidebar .nav-link span');
+                    navTexts.forEach(text => text.style.display = 'none');
+                }
+            });
+            
+            // Xử lý form lọc đơn hàng
+            document.getElementById('order-filter-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const startDate = document.getElementById('start-date').value;
+                const endDate = document.getElementById('end-date').value;
+                const status = document.getElementById('status-filter').value;
+                
+                // Tạo URL với các tham số lọc
+                let url = 'orders.html?';
+                let params = [];
+                
+                if (startDate) params.push(`start-date=${startDate}`);
+                if (endDate) params.push(`end-date=${endDate}`);
+                if (status) params.push(`status=${status}`);
+                
+                url += params.join('&');
+                
+                // Chuyển hướng đến trang với bộ lọc
+                window.location.href = url;
+            });
+            
+            // Xử lý nút tìm kiếm đơn hàng
+            document.getElementById('search-order-btn').addEventListener('click', function() {
+                searchTerm = document.getElementById('search-order').value;
+                if (searchTerm) {
+                    // Lọc dữ liệu và cập nhật giao diện
+                    filterOrdersBySearch(searchTerm);
+                } else {
+                    // Nếu không có từ khóa tìm kiếm, hiển thị tất cả đơn hàng
+                    loadOrdersFromURL();
+                }
+            });
+            
+            // Xử lý nhấn Enter trong ô tìm kiếm
+            document.getElementById('search-order').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    document.getElementById('search-order-btn').click();
+                }
+            });
+            
+            // Xử lý nút đặt lại
+            document.querySelector('button[type="reset"]').addEventListener('click', function() {
+                searchTerm = '';
+                document.getElementById('search-order').value = '';
+                window.location.href = 'orders.html';
+            });
+            
+            // Tải dữ liệu đơn hàng dựa trên URL parameters
+            loadOrdersFromURL();
+        });
+        
+        // Hàm tải dữ liệu đơn hàng dựa trên URL parameters
+        function loadOrdersFromURL() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const status = urlParams.get('status');
+            const startDate = urlParams.get('start-date');
+            const endDate = urlParams.get('end-date');
+            searchTerm = urlParams.get('search') || '';
+            
+            // Đặt giá trị cho ô tìm kiếm
+            document.getElementById('search-order').value = searchTerm;
+            
+            // Dữ liệu mẫu - đã thêm nhiều đơn hàng mới, đang xử lý và đã hủy
+            const orders = [
+                // Đơn hàng mới (15 đơn)
+                { id: 'ORD-001', customer: 'Nguyễn Văn A', date: '15/05/2023', total: '450,000 VNĐ', status: 'new' },
+                { id: 'ORD-004', customer: 'Phạm Thị D', date: '13/05/2023', total: '520,000 VNĐ', status: 'new' },
+                { id: 'ORD-009', customer: 'Nguyễn Văn I', date: '08/05/2023', total: '550,000 VNĐ', status: 'new' },
+                { id: 'ORD-012', customer: 'Phạm Thị M', date: '05/05/2023', total: '480,000 VNĐ', status: 'new' },
+                { id: 'ORD-016', customer: 'Trần Văn Q', date: '01/05/2023', total: '380,000 VNĐ', status: 'new' },
+                { id: 'ORD-019', customer: 'Lê Thị T', date: '28/04/2023', total: '510,000 VNĐ', status: 'new' },
+                { id: 'ORD-022', customer: 'Hoàng Văn W', date: '25/04/2023', total: '420,000 VNĐ', status: 'new' },
+                { id: 'ORD-025', customer: 'Vũ Thị Z', date: '22/04/2023', total: '590,000 VNĐ', status: 'new' },
+                { id: 'ORD-028', customer: 'Đặng Văn CC', date: '19/04/2023', total: '470,000 VNĐ', status: 'new' },
+                { id: 'ORD-031', customer: 'Bùi Thị FF', date: '16/04/2023', total: '530,000 VNĐ', status: 'new' },
+                { id: 'ORD-034', customer: 'Nguyễn Văn II', date: '13/04/2023', total: '440,000 VNĐ', status: 'new' },
+                { id: 'ORD-037', customer: 'Trần Thị LL', date: '10/04/2023', total: '560,000 VNĐ', status: 'new' },
+                { id: 'ORD-040', customer: 'Lê Văn OO', date: '07/04/2023', total: '490,000 VNĐ', status: 'new' },
+                { id: 'ORD-043', customer: 'Phạm Thị RR', date: '04/04/2023', total: '510,000 VNĐ', status: 'new' },
+                { id: 'ORD-046', customer: 'Hoàng Văn UU', date: '01/04/2023', total: '430,000 VNĐ', status: 'new' },
+                
+                // Đơn hàng đang xử lý (12 đơn)
+                { id: 'ORD-002', customer: 'Trần Thị B', date: '14/05/2023', total: '320,000 VNĐ', status: 'processing' },
+                { id: 'ORD-008', customer: 'Bùi Thị H', date: '09/05/2023', total: '360,000 VNĐ', status: 'processing' },
+                { id: 'ORD-010', customer: 'Trần Thị K', date: '07/05/2023', total: '420,000 VNĐ', status: 'processing' },
+                { id: 'ORD-017', customer: 'Nguyễn Thị R', date: '30/04/2023', total: '390,000 VNĐ', status: 'processing' },
+                { id: 'ORD-020', customer: 'Phạm Văn U', date: '27/04/2023', total: '450,000 VNĐ', status: 'processing' },
+                { id: 'ORD-023', customer: 'Lê Thị X', date: '24/04/2023', total: '370,000 VNĐ', status: 'processing' },
+                { id: 'ORD-026', customer: 'Hoàng Văn AA', date: '21/04/2023', total: '520,000 VNĐ', status: 'processing' },
+                { id: 'ORD-029', customer: 'Vũ Thị DD', date: '18/04/2023', total: '480,000 VNĐ', status: 'processing' },
+                { id: 'ORD-032', customer: 'Đặng Văn GG', date: '15/04/2023', total: '410,000 VNĐ', status: 'processing' },
+                { id: 'ORD-035', customer: 'Bùi Thị JJ', date: '12/04/2023', total: '540,000 VNĐ', status: 'processing' },
+                { id: 'ORD-038', customer: 'Nguyễn Văn MM', date: '09/04/2023', total: '460,000 VNĐ', status: 'processing' },
+                { id: 'ORD-041', customer: 'Trần Thị PP', date: '06/04/2023', total: '390,000 VNĐ', status: 'processing' },
+                
+                // Đơn hàng đã giao (24 đơn)
+                { id: 'ORD-003', customer: 'Lê Văn C', date: '14/05/2023', total: '280,000 VNĐ', status: 'shipped' },
+                { id: 'ORD-006', customer: 'Vũ Thị F', date: '11/05/2023', total: '410,000 VNĐ', status: 'shipped' },
+                { id: 'ORD-007', customer: 'Đặng Văn G', date: '10/05/2023', total: '290,000 VNĐ', status: 'shipped' },
+                { id: 'ORD-011', customer: 'Lê Văn L', date: '06/05/2023', total: '310,000 VNĐ', status: 'shipped' },
+                { id: 'ORD-014', customer: 'Vũ Thị O', date: '03/05/2023', total: '440,000 VNĐ', status: 'shipped' },
+                { id: 'ORD-015', customer: 'Đặng Văn P', date: '02/05/2023', total: '300,000 VNĐ', status: 'shipped' },
+                { id: 'ORD-018', customer: 'Hoàng Thị S', date: '29/04/2023', total: '470,000 VNĐ', status: 'shipped' },
+                { id: 'ORD-021', customer: 'Vũ Văn V', date: '26/04/2023', total: '380,000 VNĐ', status: 'shipped' },
+                { id: 'ORD-024', customer: 'Đặng Thị Y', date: '23/04/2023', total: '520,000 VNĐ', status: 'shipped' },
+                { id: 'ORD-027', customer: 'Bùi Văn BB', date: '20/04/2023', total: '450,000 VNĐ', status: 'shipped' },
+                { id: 'ORD-030', customer: 'Nguyễn Thị EE', date: '17/04/2023', total: '390,000 VNĐ', status: 'shipped' },
+                { id: 'ORD-033', customer: 'Trần Văn HH', date: '14/04/2023', total: '540,000 VNĐ', status: 'shipped' },
+                { id: 'ORD-036', customer: 'Lê Thị KK', date: '11/04/2023', total: '420,000 VNĐ', status: 'shipped' },
+                { id: 'ORD-039', customer: 'Phạm Văn NN', date: '08/04/2023', total: '480,000 VNĐ', status: 'shipped' },
+                { id: 'ORD-042', customer: 'Hoàng Thị QQ', date: '05/04/2023', total: '360,000 VNĐ', status: 'shipped' },
+                { id: 'ORD-045', customer: 'Vũ Văn TT', date: '02/04/2023', total: '510,000 VNĐ', status: 'shipped' },
+                { id: 'ORD-048', customer: 'Đặng Thị WW', date: '30/03/2023', total: '440,000 VNĐ', status: 'shipped' },
+                { id: 'ORD-051', customer: 'Bùi Văn ZZ', date: '27/03/2023', total: '370,000 VNĐ', status: 'shipped' },
+                { id: 'ORD-054', customer: 'Nguyễn Thị CCC', date: '24/03/2023', total: '490,000 VNĐ', status: 'shipped' },
+                { id: 'ORD-057', customer: 'Trần Văn FFF', date: '21/03/2023', total: '530,000 VNĐ', status: 'shipped' },
+                { id: 'ORD-060', customer: 'Lê Thị III', date: '18/03/2023', total: '410,000 VNĐ', status: 'shipped' },
+                
+                // Đơn hàng đã hủy (9 đơn)
+                { id: 'ORD-005', customer: 'Hoàng Văn E', date: '12/05/2023', total: '380,000 VNĐ', status: 'cancelled' },
+                { id: 'ORD-013', customer: 'Hoàng Văn N', date: '04/05/2023', total: '390,000 VNĐ', status: 'cancelled' },
+                { id: 'ORD-044', customer: 'Trần Văn SS', date: '03/04/2023', total: '460,000 VNĐ', status: 'cancelled' },
+                { id: 'ORD-047', customer: 'Lê Thị VV', date: '31/03/2023', total: '520,000 VNĐ', status: 'cancelled' },
+                { id: 'ORD-050', customer: 'Phạm Văn YY', date: '28/03/2023', total: '380,000 VNĐ', status: 'cancelled' },
+                { id: 'ORD-053', customer: 'Hoàng Thị BBB', date: '25/03/2023', total: '450,000 VNĐ', status: 'cancelled' },
+                { id: 'ORD-056', customer: 'Vũ Văn EEE', date: '22/03/2023', total: '490,000 VNĐ', status: 'cancelled' },
+                { id: 'ORD-059', customer: 'Đặng Thị HHH', date: '19/03/2023', total: '420,000 VNĐ', status: 'cancelled' },
+                { id: 'ORD-062', customer: 'Bùi Văn KKK', date: '16/03/2023', total: '540,000 VNĐ', status: 'cancelled' }
+            ];
+            
+            // Lọc dữ liệu dựa trên các tham số
+            filteredOrders = [...orders];
+            
+            if (status) {
+                filteredOrders = filteredOrders.filter(order => order.status === status);
+            }
+            
+            if (searchTerm) {
+                filteredOrders = filteredOrders.filter(order => 
+                    order.id.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                    order.customer.toLowerCase().includes(searchTerm.toLowerCase())
+                );
+            }
+            
+            // Tính toán số trang
+            totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
+            
+            // Đặt lại trang hiện tại về 1 khi lọc
+            currentPage = 1;
+            
+            // Cập nhật bảng đơn hàng và phân trang
+            updateOrdersTable();
+            updatePagination();
+            
+            // Cập nhật thống kê
+            updateOrderStats();
+            
+            // Cập nhật đơn hàng gần đây (hiển thị tối đa 3 đơn hàng)
+            updateRecentOrders(filteredOrders.slice(0, 3));
+        }
+        
+        // Hàm lọc đơn hàng theo từ khóa tìm kiếm
+        function filterOrdersBySearch(term) {
+            searchTerm = term;
+            
+            // Lọc lại dữ liệu
+            const urlParams = new URLSearchParams(window.location.search);
+            const status = urlParams.get('status');
+            const startDate = urlParams.get('start-date');
+            const endDate = urlParams.get('end-date');
+            
+            // Dữ liệu mẫu - đã thêm nhiều đơn hàng mới, đang xử lý và đã hủy
+            const orders = [
+                // Đơn hàng mới (15 đơn)
+                { id: 'ORD-001', customer: 'Nguyễn Văn A', date: '15/05/2023', total: '450,000 VNĐ', status: 'new' },
+                { id: 'ORD-004', customer: 'Phạm Thị D', date: '13/05/2023', total: '520,000 VNĐ', status: 'new' },
+                { id: 'ORD-009', customer: 'Nguyễn Văn I', date: '08/05/2023', total: '550,000 VNĐ', status: 'new' },
+                { id: 'ORD-012', customer: 'Phạm Thị M', date: '05/05/2023', total: '480,000 VNĐ', status: 'new' },
+                { id: 'ORD-016', customer: 'Trần Văn Q', date: '01/05/2023', total: '380,000 VNĐ', status: 'new' },
+                { id: 'ORD-019', customer: 'Lê Thị T', date: '28/04/2023', total: '510,000 VNĐ', status: 'new' },
+                { id: 'ORD-022', customer: 'Hoàng Văn W', date: '25/04/2023', total: '420,000 VNĐ', status: 'new' },
+                { id: 'ORD-025', customer: 'Vũ Thị Z', date: '22/04/2023', total: '590,000 VNĐ', status: 'new' },
+                { id: 'ORD-028', customer: 'Đặng Văn CC', date: '19/04/2023', total: '470,000 VNĐ', status: 'new' },
+                { id: 'ORD-031', customer: 'Bùi Thị FF', date: '16/04/2023', total: '530,000 VNĐ', status: 'new' },
+                { id: 'ORD-034', customer: 'Nguyễn Văn II', date: '13/04/2023', total: '440,000 VNĐ', status: 'new' },
+                { id: 'ORD-037', customer: 'Trần Thị LL', date: '10/04/2023', total: '560,000 VNĐ', status: 'new' },
+                { id: 'ORD-040', customer: 'Lê Văn OO', date: '07/04/2023', total: '490,000 VNĐ', status: 'new' },
+                { id: 'ORD-043', customer: 'Phạm Thị RR', date: '04/04/2023', total: '510,000 VNĐ', status: 'new' },
+                { id: 'ORD-046', customer: 'Hoàng Văn UU', date: '01/04/2023', total: '430,000 VNĐ', status: 'new' },
+                
+                // Đơn hàng đang xử lý (12 đơn)
+                { id: 'ORD-002', customer: 'Trần Thị B', date: '14/05/2023', total: '320,000 VNĐ', status: 'processing' },
+                { id: 'ORD-008', customer: 'Bùi Thị H', date: '09/05/2023', total: '360,000 VNĐ', status: 'processing' },
+                { id: 'ORD-010', customer: 'Trần Thị K', date: '07/05/2023', total: '420,000 VNĐ', status: 'processing' },
+                { id: 'ORD-017', customer: 'Nguyễn Thị R', date: '30/04/2023', total: '390,000 VNĐ', status: 'processing' },
+                { id: 'ORD-020', customer: 'Phạm Văn U', date: '27/04/2023', total: '450,000 VNĐ', status: 'processing' },
+                { id: 'ORD-023', customer: 'Lê Thị X', date: '24/04/2023', total: '370,000 VNĐ', status: 'processing' },
+                { id: 'ORD-026', customer: 'Hoàng Văn AA', date: '21/04/2023', total: '520,000 VNĐ', status: 'processing' },
+                { id: 'ORD-029', customer: 'Vũ Thị DD', date: '18/04/2023', total: '480,000 VNĐ', status: 'processing' },
+                { id: 'ORD-032', customer: 'Đặng Văn GG', date: '15/04/2023', total: '410,000 VNĐ', status: 'processing' },
+                { id: 'ORD-035', customer: 'Bùi Thị JJ', date: '12/04/2023', total: '540,000 VNĐ', status: 'processing' },
+                { id: 'ORD-038', customer: 'Nguyễn Văn MM', date: '09/04/2023', total: '460,000 VNĐ', status: 'processing' },
+                { id: 'ORD-041', customer: 'Trần Thị PP', date: '06/04/2023', total: '390,000 VNĐ', status: 'processing' },
+                
+                // Đơn hàng đã giao (24 đơn)
+                { id: 'ORD-003', customer: 'Lê Văn C', date: '14/05/2023', total: '280,000 VNĐ', status: 'shipped' },
+                { id: 'ORD-006', customer: 'Vũ Thị F', date: '11/05/2023', total: '410,000 VNĐ', status: 'shipped' },
+                { id: 'ORD-007', customer: 'Đặng Văn G', date: '10/05/2023', total: '290,000 VNĐ', status: 'shipped' },
+                { id: 'ORD-011', customer: 'Lê Văn L', date: '06/05/2023', total: '310,000 VNĐ', status: 'shipped' },
+                { id: 'ORD-014', customer: 'Vũ Thị O', date: '03/05/2023', total: '440,000 VNĐ', status: 'shipped' },
+                { id: 'ORD-015', customer: 'Đặng Văn P', date: '02/05/2023', total: '300,000 VNĐ', status: 'shipped' },
+                { id: 'ORD-018', customer: 'Hoàng Thị S', date: '29/04/2023', total: '470,000 VNĐ', status: 'shipped' },
+                { id: 'ORD-021', customer: 'Vũ Văn V', date: '26/04/2023', total: '380,000 VNĐ', status: 'shipped' },
+                { id: 'ORD-024', customer: 'Đặng Thị Y', date: '23/04/2023', total: '520,000 VNĐ', status: 'shipped' },
+                { id: 'ORD-027', customer: 'Bùi Văn BB', date: '20/04/2023', total: '450,000 VNĐ', status: 'shipped' },
+                { id: 'ORD-030', customer: 'Nguyễn Thị EE', date: '17/04/2023', total: '390,000 VNĐ', status: 'shipped' },
+                { id: 'ORD-033', customer: 'Trần Văn HH', date: '14/04/2023', total: '540,000 VNĐ', status: 'shipped' },
+                { id: 'ORD-036', customer: 'Lê Thị KK', date: '11/04/2023', total: '420,000 VNĐ', status: 'shipped' },
+                { id: 'ORD-039', customer: 'Phạm Văn NN', date: '08/04/2023', total: '480,000 VNĐ', status: 'shipped' },
+                { id: 'ORD-042', customer: 'Hoàng Thị QQ', date: '05/04/2023', total: '360,000 VNĐ', status: 'shipped' },
+                { id: 'ORD-045', customer: 'Vũ Văn TT', date: '02/04/2023', total: '510,000 VNĐ', status: 'shipped' },
+                { id: 'ORD-048', customer: 'Đặng Thị WW', date: '30/03/2023', total: '440,000 VNĐ', status: 'shipped' },
+                { id: 'ORD-051', customer: 'Bùi Văn ZZ', date: '27/03/2023', total: '370,000 VNĐ', status: 'shipped' },
+                { id: 'ORD-054', customer: 'Nguyễn Thị CCC', date: '24/03/2023', total: '490,000 VNĐ', status: 'shipped' },
+                { id: 'ORD-057', customer: 'Trần Văn FFF', date: '21/03/2023', total: '530,000 VNĐ', status: 'shipped' },
+                { id: 'ORD-060', customer: 'Lê Thị III', date: '18/03/2023', total: '410,000 VNĐ', status: 'shipped' },
+                
+                // Đơn hàng đã hủy (9 đơn)
+                { id: 'ORD-005', customer: 'Hoàng Văn E', date: '12/05/2023', total: '380,000 VNĐ', status: 'cancelled' },
+                { id: 'ORD-013', customer: 'Hoàng Văn N', date: '04/05/2023', total: '390,000 VNĐ', status: 'cancelled' },
+                { id: 'ORD-044', customer: 'Trần Văn SS', date: '03/04/2023', total: '460,000 VNĐ', status: 'cancelled' },
+                { id: 'ORD-047', customer: 'Lê Thị VV', date: '31/03/2023', total: '520,000 VNĐ', status: 'cancelled' },
+                { id: 'ORD-050', customer: 'Phạm Văn YY', date: '28/03/2023', total: '380,000 VNĐ', status: 'cancelled' },
+                { id: 'ORD-053', customer: 'Hoàng Thị BBB', date: '25/03/2023', total: '450,000 VNĐ', status: 'cancelled' },
+                { id: 'ORD-056', customer: 'Vũ Văn EEE', date: '22/03/2023', total: '490,000 VNĐ', status: 'cancelled' },
+                { id: 'ORD-059', customer: 'Đặng Thị HHH', date: '19/03/2023', total: '420,000 VNĐ', status: 'cancelled' },
+                { id: 'ORD-062', customer: 'Bùi Văn KKK', date: '16/03/2023', total: '540,000 VNĐ', status: 'cancelled' }
+            ];
+            
+            // Lọc dữ liệu dựa trên các tham số
+            filteredOrders = [...orders];
+            
+            if (status) {
+                filteredOrders = filteredOrders.filter(order => order.status === status);
+            }
+            
+            if (searchTerm) {
+                filteredOrders = filteredOrders.filter(order => 
+                    order.id.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                    order.customer.toLowerCase().includes(searchTerm.toLowerCase())
+                );
+            }
+            
+            // Tính toán số trang
+            totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
+            
+            // Đặt lại trang hiện tại về 1 khi lọc
+            currentPage = 1;
+            
+            // Cập nhật bảng đơn hàng và phân trang
+            updateOrdersTable();
+            updatePagination();
+            
+            // Cập nhật thống kê
+            updateOrderStats();
+            
+            // Cập nhật đơn hàng gần đây (hiển thị tối đa 3 đơn hàng)
+            updateRecentOrders(filteredOrders.slice(0, 3));
+        }
+        
+        // Hàm cập nhật bảng đơn hàng
+        function updateOrdersTable() {
+            const tableBody = document.getElementById('orders-table-body');
+            tableBody.innerHTML = '';
+            
+            // Tính toán dữ liệu cho trang hiện tại
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
+            const currentOrders = filteredOrders.slice(startIndex, endIndex);
+            
+            if (currentOrders.length === 0) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="text-center py-4">
+                            <i class="fas fa-search fa-2x mb-3 text-muted"></i>
+                            <p class="text-muted">Không tìm thấy đơn hàng nào phù hợp với tiêu chí tìm kiếm.</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            currentOrders.forEach(order => {
+                const statusText = getStatusText(order.status);
+                const statusClass = `badge badge-status-${order.status}`;
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><a href="orderdetails.html?id=${order.id}" class="order-link">${order.id}</a></td>
+                    <td><span class="customer-link">${order.customer}</span></td>
+                    <td>${order.date}</td>
+                    <td>${order.total}</td>
+                    <td><span class="${statusClass}">${statusText}</span></td>
+                    <td>
+                        <a href="orderdetails.html?id=${order.id}" class="btn btn-sm btn-custom">
+                            <i class="fas fa-eye me-1"></i>Xem
+                        </a>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+        
+        // Hàm cập nhật phân trang
+        function updatePagination() {
+            const paginationContainer = document.getElementById('pagination-container');
+            paginationContainer.innerHTML = '';
+            
+            if (totalPages <= 1) {
+                return;
+            }
+            
+            // Tạo nút "Trước"
+            const prevLi = document.createElement('li');
+            prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
+            prevLi.innerHTML = `<a class="page-link" href="#" data-page="${currentPage - 1}">Trước</a>`;
+            paginationContainer.appendChild(prevLi);
+            
+            // Tạo các nút trang
+            const maxVisiblePages = 5;
+            let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+            let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+            
+            // Điều chỉnh startPage nếu endPage đạt tới totalPages
+            if (endPage - startPage + 1 < maxVisiblePages && startPage > 1) {
+                startPage = Math.max(1, endPage - maxVisiblePages + 1);
+            }
+            
+            for (let i = startPage; i <= endPage; i++) {
+                const pageLi = document.createElement('li');
+                pageLi.className = `page-item ${i === currentPage ? 'active' : ''}`;
+                pageLi.innerHTML = `<a class="page-link" href="#" data-page="${i}">${i}</a>`;
+                paginationContainer.appendChild(pageLi);
+            }
+            
+            // Tạo nút "Tiếp"
+            const nextLi = document.createElement('li');
+            nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
+            nextLi.innerHTML = `<a class="page-link" href="#" data-page="${currentPage + 1}">Tiếp</a>`;
+            paginationContainer.appendChild(nextLi);
+            
+            // Thêm sự kiện click cho các nút phân trang
+            paginationContainer.querySelectorAll('.page-link').forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const page = parseInt(this.getAttribute('data-page'));
+                    if (page >= 1 && page <= totalPages && page !== currentPage) {
+                        currentPage = page;
+                        updateOrdersTable();
+                        updatePagination();
+                    }
+                });
+            });
+        }
+        
+        // Hàm cập nhật thống kê đơn hàng
+        function updateOrderStats() {
+            const newOrders = filteredOrders.filter(order => order.status === 'new').length;
+            const processingOrders = filteredOrders.filter(order => order.status === 'processing').length;
+            const shippedOrders = filteredOrders.filter(order => order.status === 'shipped').length;
+            const cancelledOrders = filteredOrders.filter(order => order.status === 'cancelled').length;
+            
+            document.getElementById('new-orders').textContent = newOrders;
+            document.getElementById('processing-orders').textContent = processingOrders;
+            document.getElementById('shipped-orders').textContent = shippedOrders;
+            document.getElementById('cancelled-orders').textContent = cancelledOrders;
+        }
+        
+        // Hàm cập nhật đơn hàng gần đây
+        function updateRecentOrders(orders) {
+            const recentOrdersBody = document.getElementById('recent-orders-body');
+            recentOrdersBody.innerHTML = '';
+            
+            orders.forEach(order => {
+                const statusText = getStatusText(order.status);
+                const statusClass = `badge badge-status-${order.status}`;
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><a href="orderdetails.html?id=${order.id}" class="order-link">${order.id}</a></td>
+                    <td><span class="customer-link">${order.customer}</span></td>
+                    <td>${order.date}</td>
+                    <td>${order.total}</td>
+                    <td><span class="${statusClass}">${statusText}</span></td>
+                `;
+                recentOrdersBody.appendChild(row);
+            });
+        }
+        
+        // Hàm lấy văn bản cho trạng thái
+        function getStatusText(status) {
+            switch(status) {
+                case 'new': return 'Mới';
+                case 'processing': return 'Đang xử lý';
+                case 'shipped': return 'Đã giao';
+                case 'cancelled': return 'Hủy';
+                default: return 'Không xác định';
+            }
+        }
+    </script>
+</body>
+</html>

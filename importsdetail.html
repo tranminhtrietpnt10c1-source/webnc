@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chi tiết Phiếu nhập - Feane Restaurant</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <style>
+        :root {
+            --primary-color: #ffbe33;
+            --secondary-color: #222831;
+            --light-color: #ffffff;
+            --dark-color: #121618;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+            overflow-x: hidden;
+        }
+        
+        .sidebar {
+            min-height: 100vh;
+            background-color: var(--secondary-color);
+            color: var(--light-color);
+            transition: all 0.3s;
+            position: fixed;
+            z-index: 100;
+            width: 250px;
+        }
+        
+        .sidebar .nav-link {
+            color: rgba(255, 255, 255, 0.8);
+            padding: 0.75rem 1rem;
+            margin: 0.25rem 0;
+            border-radius: 0.25rem;
+            transition: all 0.2s;
+        }
+        
+        .sidebar .nav-link:hover, 
+        .sidebar .nav-link.active {
+            background-color: var(--primary-color);
+            color: var(--dark-color);
+        }
+        
+        .sidebar .nav-link i {
+            width: 20px;
+            margin-right: 10px;
+        }
+        
+        .main-content {
+            margin-left: 250px;
+            padding: 20px;
+            transition: all 0.3s;
+        }
+        
+        .navbar-custom {
+            background-color: var(--light-color);
+            box-shadow: 0 2px 4px rgba(0,0,0,.1);
+        }
+        
+        .card-custom {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,.1);
+            transition: transform 0.3s;
+        }
+        
+        .card-custom:hover {
+            transform: translateY(-5px);
+        }
+        
+        .bg-primary-custom {
+            background-color: var(--primary-color);
+            color: var(--dark-color);
+        }
+        
+        .bg-secondary-custom {
+            background-color: var(--secondary-color);
+            color: var(--light-color);
+        }
+        
+        .table-responsive {
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .table th {
+            background-color: var(--secondary-color);
+            color: var(--light-color);
+        }
+        
+        .btn-custom {
+            background-color: var(--primary-color);
+            color: var(--dark-color);
+            border: none;
+            border-radius: 5px;
+            padding: 8px 15px;
+            transition: all 0.3s;
+        }
+        
+        .btn-custom:hover {
+            background-color: #e6a500;
+            transform: translateY(-2px);
+        }
+        
+        .toggle-sidebar {
+            display: none;
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 70px;
+                text-align: center;
+            }
+            
+            .sidebar .nav-link span {
+                display: none;
+            }
+            
+            .sidebar .nav-link i {
+                margin-right: 0;
+            }
+            
+            .main-content {
+                margin-left: 70px;
+            }
+            
+            .toggle-sidebar {
+                display: block;
+            }
+        }
+        
+        .badge-status-pending {
+            background-color: #6c757d;
+        }
+        
+        .badge-status-completed {
+            background-color: #28a745;
+        }
+        
+        .import-detail-header {
+            background-color: var(--secondary-color);
+            color: var(--light-color);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .import-info-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .import-info-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+        
+        .import-info-label {
+            font-weight: bold;
+        }
+        
+        .product-img {
+            max-width: 80px;
+            height: auto;
+            display: block;
+            margin: 0 auto;
+        }
+        
+        .total-section {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        
+        @media print {
+            .sidebar, .navbar-custom, .btn, .toggle-sidebar {
+                display: none !important;
+            }
+            
+            .main-content {
+                margin-left: 0 !important;
+                padding: 0 !important;
+            }
+            
+            .card-custom {
+                box-shadow: none !important;
+                border: 1px solid #ddd !important;
+            }
+            
+            .import-detail-header {
+                background-color: #f8f9fa !important;
+                color: #000 !important;
+                border: 1px solid #ddd !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Trang quản trị -->
+    <div id="admin-page">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="p-3">
+                <h4 class="text-center mb-4"><i class="fas fa-utensils"></i> Feane Admin</h4>
+            </div>
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a class="nav-link" href="admin.html">
+                        <i class="fas fa-tachometer-alt"></i> <span>Dashboard</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="users.html">
+                        <i class="fas fa-users"></i> <span>Quản lý người dùng</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="categories.html">
+                        <i class="fas fa-tags"></i> <span>Loại sản phẩm</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="products.html">
+                        <i class="fas fa-hamburger"></i> <span>Sản phẩm</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link active" href="imports.html">
+                        <i class="fas fa-arrow-down"></i> <span>Nhập sản phẩm</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="pricing.html">
+                        <i class="fas fa-dollar-sign"></i> <span>Giá bán</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="orders.html">
+                        <i class="fas fa-shopping-cart"></i> <span>Đơn hàng</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="inventory.html">
+                        <i class="fas fa-boxes"></i> <span>Tồn kho</span>
+                    </a>
+                </li>
+                <li class="nav-item mt-4">
+                    <a class="nav-link" href="adminlogin.html" id="logout-btn">
+                        <i class="fas fa-sign-out-alt"></i> <span>Đăng xuất</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Top Navbar -->
+            <nav class="navbar navbar-expand-lg navbar-custom mb-4">
+                <div class="container-fluid">
+                    <button class="btn toggle-sidebar" id="toggle-sidebar">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <div class="d-flex align-items-center">
+                        <span class="navbar-text me-3">
+                            Xin chào, <strong>Admin</strong>
+                        </span>
+                        <div class="dropdown">
+                            <button class="btn" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-user-circle fa-lg"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton">
+                                <li><a class="dropdown-item" href="profile.html"><i class="fas fa-user me-2"></i> Hồ sơ</a></li>
+                                <li><a class="dropdown-item" href="settings.html"><i class="fas fa-cog me-2"></i> Cài đặt</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="adminlogin.html" id="nav-logout-btn"><i class="fas fa-sign-out-alt me-2"></i> Đăng xuất</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+
+            <!-- Import Detail Content -->
+            <div id="import-detail-page" class="page-content">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2>Chi tiết Phiếu nhập</h2>
+                    <a href="imports.html" class="btn btn-custom">
+                        <i class="fas fa-arrow-left me-2"></i>Quay lại
+                    </a>
+                </div>
+                
+                <!-- Import Header Info -->
+                <div class="import-detail-header">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="import-info-item">
+                                <span class="import-info-label">Mã phiếu nhập:</span>
+                                <span>#PN-001</span>
+                            </div>
+                            <div class="import-info-item">
+                                <span class="import-info-label">Ngày nhập:</span>
+                                <span>15/05/2023</span>
+                            </div>
+                            <div class="import-info-item">
+                                <span class="import-info-label">Nhà cung cấp:</span>
+                                <span>Công ty Thực phẩm ABC</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="import-info-item">
+                                <span class="import-info-label">Trạng thái:</span>
+                                <span class="badge badge-status-completed">Đã hoàn thành</span>
+                            </div>
+                            <div class="import-info-item">
+                                <span class="import-info-label">Người nhập:</span>
+                                <span>Admin</span>
+                            </div>
+                            <div class="import-info-item">
+                                <span class="import-info-label">Ghi chú:</span>
+                                <span>Nhập hàng định kỳ tháng 5</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Import Items -->
+                <div class="card card-custom">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Chi tiết sản phẩm nhập</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Mã SP</th>
+                                        <th>Tên sản phẩm</th>
+                                        <th>Hình ảnh</th>
+                                        <th>Số lượng</th>
+                                        <th>Đơn giá</th>
+                                        <th>Thành tiền</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>PD01</td>
+                                        <td>Burger gà chiên</td>
+                                        <td class="text-center">
+                                            <img src="feane-1.0.0/images/f2.png" class="product-img" alt="Burger gà chiên">
+                                        </td>
+                                        <td>30</td>
+                                        <td>50,000 VND</td>
+                                        <td>1,500,000 VND</td>
+                                    </tr>
+                                    <tr>
+                                        <td>PD04</td>
+                                        <td>Pizza hải sản</td>
+                                        <td class="text-center">
+                                            <img src="feane-1.0.0/images/f1.png" class="product-img" alt="Pizza hải sản">
+                                        </td>
+                                        <td>10</td>
+                                        <td>150,000 VND</td>
+                                        <td>1,500,000 VND</td>
+                                    </tr>
+                                    <tr>
+                                        <td>PD07</td>
+                                        <td>Pasta rau củ</td>
+                                        <td class="text-center">
+                                            <img src="feane-1.0.0/images/f4.png" class="product-img" alt="Pasta rau củ">
+                                        </td>
+                                        <td>10</td>
+                                        <td>80,000 VND</td>
+                                        <td>800,000 VND</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <!-- Total Section -->
+                        <div class="total-section">
+                            <div class="row">
+                                <div class="col-md-6 offset-md-6">
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span>Tổng số lượng:</span>
+                                        <strong>50</strong>
+                                    </div>
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span>Tổng tiền hàng:</span>
+                                        <strong>3,800,000 VND</strong>
+                                    </div>
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span>Chiết khấu:</span>
+                                        <strong>-50,000 VND</strong>
+                                    </div>
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span>Thuế VAT :</span>
+                                        <strong>700,000 VND</strong>
+                                    </div>
+                                    <hr>
+                                    <div class="d-flex justify-content-between fw-bold fs-5">
+                                        <span>Tổng cộng:</span>
+                                        <strong>4,450,000 VND</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="d-flex justify-content-end mt-4">
+
+                    
+                    
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Custom JS -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Xử lý toggle sidebar trên mobile
+            document.getElementById('toggle-sidebar').addEventListener('click', function() {
+                const sidebar = document.querySelector('.sidebar');
+                const mainContent = document.querySelector('.main-content');
+                
+                if (sidebar.style.width === '70px' || sidebar.style.width === '') {
+                    sidebar.style.width = '250px';
+                    mainContent.style.marginLeft = '250px';
+                    
+                    // Hiển thị text trong sidebar
+                    const navTexts = document.querySelectorAll('.sidebar .nav-link span');
+                    navTexts.forEach(text => text.style.display = 'inline');
+                } else {
+                    sidebar.style.width = '70px';
+                    mainContent.style.marginLeft = '70px';
+                    
+                    // Ẩn text trong sidebar
+                    const navTexts = document.querySelectorAll('.sidebar .nav-link span');
+                    navTexts.forEach(text => text.style.display = 'none');
+                }
+            });
+
+            // Xử lý in phiếu nhập
+            const printButton = document.querySelector('.btn-primary');
+            printButton.addEventListener('click', function() {
+                window.print();
+            });
+
+            // Xử lý xác nhận xóa phiếu nhập
+            const deleteButton = document.querySelector('.btn-danger');
+            deleteButton.addEventListener('click', function(e) {
+                if (!confirm('Bạn có chắc chắn muốn xóa phiếu nhập này không?')) {
+                    e.preventDefault();
+                }
+            });
+        });
+    </script>
+</body>
+</html>

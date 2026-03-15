@@ -1,0 +1,1216 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tỷ lệ lợi nhuận theo sản phẩm - Feane Restaurant</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <style>
+        :root {
+            --primary-color: #ffbe33;
+            --secondary-color: #222831;
+            --light-color: #ffffff;
+            --dark-color: #121618;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+            overflow-x: hidden;
+        }
+        
+        .sidebar {
+            min-height: 100vh;
+            background-color: var(--secondary-color);
+            color: var(--light-color);
+            transition: all 0.3s;
+            position: fixed;
+            z-index: 100;
+            width: 250px;
+        }
+        
+        .sidebar .nav-link {
+            color: rgba(255, 255, 255, 0.8);
+            padding: 0.75rem 1rem;
+            margin: 0.25rem 0;
+            border-radius: 0.25rem;
+            transition: all 0.2s;
+        }
+        
+        .sidebar .nav-link:hover, 
+        .sidebar .nav-link.active {
+            background-color: var(--primary-color);
+            color: var(--dark-color);
+        }
+        
+        .sidebar .nav-link i {
+            width: 20px;
+            margin-right: 10px;
+        }
+        
+        .main-content {
+            margin-left: 250px;
+            padding: 20px;
+            transition: all 0.3s;
+        }
+        
+        .navbar-custom {
+            background-color: var(--light-color);
+            box-shadow: 0 2px 4px rgba(0,0,0,.1);
+        }
+        
+        .card-custom {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,.1);
+            transition: transform 0.3s;
+        }
+        
+        .card-custom:hover {
+            transform: translateY(-5px);
+        }
+        
+        .table-responsive {
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .table th {
+            background-color: var(--secondary-color);
+            color: var(--light-color);
+        }
+        
+        .btn-custom {
+            background-color: var(--primary-color);
+            color: var(--dark-color);
+            border: none;
+            border-radius: 5px;
+            padding: 8px 15px;
+            transition: all 0.3s;
+        }
+        
+        .btn-custom:hover {
+            background-color: #e6a500;
+            transform: translateY(-2px);
+        }
+        
+        .btn-filter {
+            background-color: var(--primary-color);
+            color: var(--dark-color);
+            border: none;
+            border-radius: 5px;
+            padding: 8px 15px;
+            transition: all 0.3s;
+        }
+        
+        .btn-filter:hover {
+            background-color: #e6a500;
+            transform: translateY(-2px);
+            color: var(--dark-color);
+        }
+        
+        .toggle-sidebar {
+            display: none;
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 70px;
+                text-align: center;
+            }
+            
+            .sidebar .nav-link span {
+                display: none;
+            }
+            
+            .sidebar .nav-link i {
+                margin-right: 0;
+            }
+            
+            .main-content {
+                margin-left: 70px;
+            }
+            
+            .toggle-sidebar {
+                display: block;
+            }
+        }
+        
+        .profit-percentage {
+            font-weight: bold;
+            color: #28a745;
+        }
+        
+        .cost-price {
+            color: #6c757d;
+        }
+        
+        .selling-price {
+            font-weight: bold;
+            color: #dc3545;
+        }
+        
+        .category-header {
+            background-color: #f8f9fa;
+            padding: 10px 15px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .category-header:hover {
+            background-color: #e9ecef;
+            transform: translateX(5px);
+        }
+        
+        .category-header a {
+            color: inherit;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            width: 100%;
+        }
+        
+        .category-header i {
+            margin-right: 10px;
+        }
+        
+        .nav-tabs .nav-link.active {
+            background-color: var(--primary-color);
+            color: var(--dark-color);
+            border-color: var(--primary-color);
+        }
+        
+        .nav-tabs .nav-link {
+            color: var(--secondary-color);
+            text-decoration: none;
+        }
+        
+        .nav-tabs .nav-link:hover {
+            background-color: rgba(255, 190, 51, 0.1);
+        }
+        
+        /* New styles for search functionality */
+        .global-search-container {
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,.1);
+        }
+        
+        .search-form {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .search-input-container {
+            flex-grow: 1;
+            position: relative;
+        }
+        
+        .search-input {
+            padding-right: 45px;
+        }
+        
+        .search-icon {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #6c757d;
+        }
+        
+        .search-btn {
+            white-space: nowrap;
+        }
+        
+        /* Styles for editable fields */
+        .editable-input {
+            width: 80px;
+            padding: 4px 8px;
+            border: 1px solid #ffbe33;
+            border-radius: 3px;
+            font-size: 14px;
+            text-align: center;
+        }
+        
+        .save-btn {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            padding: 5px 10px;
+            font-size: 12px;
+            cursor: pointer;
+            margin-top: 5px;
+        }
+        
+        .save-btn:hover {
+            background-color: #218838;
+        }
+        
+        .cancel-btn {
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            padding: 5px 10px;
+            font-size: 12px;
+            cursor: pointer;
+            margin-top: 5px;
+            margin-left: 5px;
+        }
+        
+        .cancel-btn:hover {
+            background-color: #5a6268;
+        }
+        
+        .edit-form {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 5px;
+        }
+        
+        .edit-actions {
+            display: flex;
+            justify-content: flex-start;
+        }
+        
+        .profit-cell {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 5px;
+        }
+        .category-container {
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+        }
+        
+        .category-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        
+        .category-content.show {
+            max-height: 5000px; /* Giá trị đủ lớn để chứa nội dung */
+        }
+        
+        .category-header .toggle-icon {
+            transition: transform 0.3s ease;
+        }
+        
+        .category-header.expanded .toggle-icon {
+            transform: rotate(90deg);
+        }
+        
+        /* Filter dropdown styles */
+        .filter-dropdown .dropdown-menu {
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,.1);
+            border: none;
+        }
+        
+        .filter-dropdown .dropdown-item {
+            padding: 10px 15px;
+            transition: all 0.2s;
+        }
+        
+        .filter-dropdown .dropdown-item:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .filter-dropdown .dropdown-item i {
+            width: 20px;
+            margin-right: 8px;
+        }
+        
+        .card-header-buttons {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        /* Modal styles */
+        .modal-header {
+            background-color: var(--secondary-color);
+            color: var(--light-color);
+        }
+
+        .filter-modal .form-label {
+            font-weight: 600;
+            color: var(--secondary-color);
+        }
+
+        .range-display {
+            background-color: #f8f9fa;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-weight: 600;
+            text-align: center;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Trang quản trị -->
+    <div id="admin-page">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="p-3">
+                <h4 class="text-center mb-4"><i class="fas fa-utensils"></i> Feane Admin</h4>
+            </div>
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a class="nav-link" href="admin.html">
+                        <i class="fas fa-tachometer-alt"></i> <span>Dashboard</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="users.html">
+                        <i class="fas fa-users"></i> <span>Quản lý người dùng</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="categories.html">
+                        <i class="fas fa-tags"></i> <span>Loại sản phẩm</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="products.html">
+                        <i class="fas fa-hamburger"></i> <span>Sản phẩm</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="imports.html">
+                        <i class="fas fa-arrow-down"></i> <span>Nhập sản phẩm</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link active" href="pricing.html">
+                        <i class="fas fa-dollar-sign"></i> <span> Giá bán</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="orders.html">
+                        <i class="fas fa-shopping-cart"></i> <span>Đơn hàng</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="inventory.html">
+                        <i class="fas fa-boxes"></i> <span>Tồn kho</span>
+                    </a>
+                </li>
+                <li class="nav-item mt-4">
+                    <a class="nav-link" href="adminlogin.html" id="logout-btn">
+                        <i class="fas fa-sign-out-alt"></i> <span>Đăng xuất</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Top Navbar -->
+            <nav class="navbar navbar-expand-lg navbar-custom mb-4">
+                <div class="container-fluid">
+                    <button class="btn toggle-sidebar" id="toggle-sidebar">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <div class="d-flex align-items-center">
+                        <span class="navbar-text me-3">
+                            Xin chào, <strong>Admin</strong>
+                        </span>
+                        <div class="dropdown">
+                            <button class="btn" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-user-circle fa-lg"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton">
+                                <li><a class="dropdown-item" href="profile.html"><i class="fas fa-user me-2"></i> Hồ sơ</a></li>
+                                <li><a class="dropdown-item" href="settings.html"><i class="fas fa-cog me-2"></i> Cài đặt</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="adminlogin.html" id="nav-logout-btn"><i class="fas fa-sign-out-alt me-2"></i> Đăng xuất</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+
+            <!-- Pricing Management Content -->
+            <div id="pricing-page" class="page-content">
+                <h2 class="mb-4">Giá bán</h2>
+                
+                <!-- Global Search Container -->
+                <div class="global-search-container">
+                    <h5 class="mb-3"><i class="fas fa-search me-2"></i>Tra cứu</h5>
+                    <form class="search-form" id="global-search-form">
+                        <div class="search-input-container">
+                            <input type="text" class="form-control search-input" id="global-search-input" placeholder="Nhập tên hoặc mã sản phẩm...">
+                            <i class="fas fa-search search-icon"></i>
+                        </div>
+                        <button type="submit" class="btn btn-custom search-btn">
+                            <i class="fas fa-check me-2"></i>OK
+                        </button>
+                    </form>
+                </div>
+                
+                <!-- Tabs Navigation -->
+                <ul class="nav nav-tabs" id="pricingTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <a class="nav-link" href="pricing.html">
+                            <i class="fas fa-tags me-2"></i>Tỷ lệ lợi nhuận theo loại sản phẩm
+                        </a>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <a class="nav-link active" href="pricingproducts.html">
+                            <i class="fas fa-hamburger me-2"></i>Tỷ lệ lợi nhuận theo sản phẩm
+                        </a>
+                    </li>
+                </ul>
+                
+                <!-- Content -->
+                <div class="mt-4">
+                    <div class="card card-custom">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="card-title mb-0">Tỷ lệ lợi nhuận theo sản phẩm</h5>
+                            <div class="card-header-buttons">
+                                <!-- Filter Dropdown -->
+                                <div class="dropdown filter-dropdown">
+                                    <button class="btn btn-filter dropdown-toggle" type="button" id="filterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="fas fa-filter me-2"></i>Lọc & Tra cứu
+                                    </button>
+                                    <ul class="dropdown-menu" aria-labelledby="filterDropdown">
+                                        <li><a class="dropdown-item filter-option" href="#" data-filter-type="cost-price">
+                                            <i class="fas fa-money-bill-wave me-2"></i>Tra cứu giá vốn
+                                        </a></li>
+                                        <li><a class="dropdown-item filter-option" href="#" data-filter-type="profit">
+                                            <i class="fas fa-chart-line me-2"></i>Tra cứu lợi nhuận
+                                        </a></li>
+                                        <li><a class="dropdown-item filter-option" href="#" data-filter-type="selling-price">
+                                            <i class="fas fa-tag me-2"></i>Tra cứu giá bán
+                                        </a></li>
+                                    </ul>
+                                </div>
+                                <select class="form-select me-2" id="categorySelect" style="width: auto;">
+                                    <option value="all" selected>Tất cả loại sản phẩm</option>
+                                    <option value="pizza">Pizza</option>
+                                    <option value="burger">Burger</option>
+                                    <option value="pasta">Pasta</option>
+                                    <option value="fries">Khoai tây chiên</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <!-- Pizza Category -->
+                            <div class="category-container" data-category="pizza">
+                                <div class="category-header" id="pizza-header">
+                                    <div>
+                                        <i class="fas fa-pizza-slice me-2"></i>Pizza
+                                        <i class="fas fa-chevron-right toggle-icon ms-2"></i>
+                                    </div>
+                                </div>
+                                <div class="category-content" id="pizza-content">
+                                    <div class="table-responsive mb-4">
+                                        <table class="table table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th>Mã SP</th>
+                                                    <th>Tên sản phẩm</th>
+                                                    <th>Giá vốn</th>
+                                                    <th>Tỷ lệ lợi nhuận (%)</th>
+                                                    <th>Giá bán</th>
+                                                    <th>Ngày cập nhật</th>
+                                                    <th>Thao tác</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td>PZ001</td>
+                                                    <td>Pizza hải sản</td>
+                                                    <td class="cost-price">115,385 VNĐ</td>
+                                                    <td>
+                                                        <div class="profit-cell" id="profit-cell-PZ001">
+                                                            <span class="profit-percentage">30%</span>
+                                                        </div>
+                                                    </td>
+                                                    <td class="selling-price">150,000 VNĐ</td>
+                                                    <td>15/05/2023</td>
+                                                    <td class="action-buttons">
+                                                        <button class="btn btn-sm btn-custom" onclick="editProfitPercentage('PZ001', '30')">
+                                                            <i class="fas fa-edit"></i> Sửa
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td>PZ002</td>
+                                                    <td>Pizza phô mai</td>
+                                                    <td class="cost-price">115,385 VNĐ</td>
+                                                    <td>
+                                                        <div class="profit-cell" id="profit-cell-PZ002">
+                                                            <span class="profit-percentage">30%</span>
+                                                        </div>
+                                                    </td>
+                                                    <td class="selling-price">150,000 VNĐ</td>
+                                                    <td>14/05/2023</td>
+                                                    <td class="action-buttons">
+                                                        <button class="btn btn-sm btn-custom" onclick="editProfitPercentage('PZ002', '30')">
+                                                            <i class="fas fa-edit"></i> Sửa
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td>PZ003</td>
+                                                    <td>Pizza 3 vị</td>
+                                                    <td class="cost-price">115,385 VNĐ</td>
+                                                    <td>
+                                                        <div class="profit-cell" id="profit-cell-PZ003">
+                                                            <span class="profit-percentage">30%</span>
+                                                        </div>
+                                                    </td>
+                                                    <td class="selling-price">150,000 VNĐ</td>
+                                                    <td>12/05/2023</td>
+                                                    <td class="action-buttons">
+                                                        <button class="btn btn-sm btn-custom" onclick="editProfitPercentage('PZ003', '30')">
+                                                            <i class="fas fa-edit"></i> Sửa
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Burger Category -->
+                            <div class="category-container" data-category="burger">
+                                <div class="category-header" id="burger-header">
+                                    <div>
+                                        <i class="fas fa-hamburger me-2"></i>Burger
+                                        <i class="fas fa-chevron-right toggle-icon ms-2"></i>
+                                    </div>
+                                </div>
+                                <div class="category-content" id="burger-content">
+                                    <div class="table-responsive mb-4">
+                                        <table class="table table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th>Mã SP</th>
+                                                    <th>Tên sản phẩm</th>
+                                                    <th>Giá vốn</th>
+                                                    <th>Tỷ lệ lợi nhuận (%)</th>
+                                                    <th>Giá bán</th>
+                                                    <th>Ngày cập nhật</th>
+                                                    <th>Thao tác</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td>BG001</td>
+                                                    <td>Burger bò</td>
+                                                    <td class="cost-price">37,037 VNĐ</td>
+                                                    <td>
+                                                        <div class="profit-cell" id="profit-cell-BG001">
+                                                            <span class="profit-percentage">35%</span>
+                                                        </div>
+                                                    </td>
+                                                    <td class="selling-price">50,000 VNĐ</td>
+                                                    <td>15/05/2023</td>
+                                                    <td class="action-buttons">
+                                                        <button class="btn btn-sm btn-custom" onclick="editProfitPercentage('BG001', '35')">
+                                                            <i class="fas fa-edit"></i> Sửa
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td>BG002</td>
+                                                    <td>Burger gà chiên</td>
+                                                    <td class="cost-price">37,037 VNĐ</td>
+                                                    <td>
+                                                        <div class="profit-cell" id="profit-cell-BG002">
+                                                            <span class="profit-percentage">35%</span>
+                                                        </div>
+                                                    </td>
+                                                    <td class="selling-price">50,000 VNĐ</td>
+                                                    <td>14/05/2023</td>
+                                                    <td class="action-buttons">
+                                                        <button class="btn btn-sm btn-custom" onclick="editProfitPercentage('BG002', '35')">
+                                                            <i class="fas fa-edit"></i> Sửa
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td>BG003</td>
+                                                    <td>Burger ức gà</td>
+                                                    <td class="cost-price">37,037 VNĐ</td>
+                                                    <td>
+                                                        <div class="profit-cell" id="profit-cell-BG003">
+                                                            <span class="profit-percentage">35%</span>
+                                                        </div>
+                                                    </td>
+                                                    <td class="selling-price">50,000 VNĐ</td>
+                                                    <td>13/05/2023</td>
+                                                    <td class="action-buttons">
+                                                        <button class="btn btn-sm btn-custom" onclick="editProfitPercentage('BG003', '35')">
+                                                            <i class="fas fa-edit"></i> Sửa
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Pasta Category -->
+                            <div class="category-container" data-category="pasta">
+                                <div class="category-header" id="pasta-header">
+                                    <div>
+                                        <i class="fas fa-utensils me-2"></i>Pasta
+                                        <i class="fas fa-chevron-right toggle-icon ms-2"></i>
+                                    </div>
+                                </div>
+                                <div class="category-content" id="pasta-content">
+                                    <div class="table-responsive mb-4">
+                                        <table class="table table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th>Mã SP</th>
+                                                    <th>Tên sản phẩm</th>
+                                                    <th>Giá vốn</th>
+                                                    <th>Tỷ lệ lợi nhuận (%)</th>
+                                                    <th>Giá bán</th>
+                                                    <th>Ngày cập nhật</th>
+                                                    <th>Thao tác</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td>PA001</td>
+                                                    <td>Pasta rau củ</td>
+                                                    <td class="cost-price">57,143 VNĐ</td>
+                                                    <td>
+                                                        <div class="profit-cell" id="profit-cell-PA001">
+                                                            <span class="profit-percentage">40%</span>
+                                                        </div>
+                                                    </td>
+                                                    <td class="selling-price">80,000 VNĐ</td>
+                                                    <td>15/05/2023</td>
+                                                    <td class="action-buttons">
+                                                        <button class="btn btn-sm btn-custom" onclick="editProfitPercentage('PA001', '40')">
+                                                            <i class="fas fa-edit"></i> Sửa
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td>PA002</td>
+                                                    <td>Pasta phô mai</td>
+                                                    <td class="cost-price">57,143 VNĐ</td>
+                                                    <td>
+                                                        <div class="profit-cell" id="profit-cell-PA002">
+                                                            <span class="profit-percentage">40%</span>
+                                                        </div>
+                                                    </td>
+                                                    <td class="selling-price">80,000 VNĐ</td>
+                                                    <td>14/05/2023</td>
+                                                    <td class="action-buttons">
+                                                        <button class="btn btn-sm btn-custom" onclick="editProfitPercentage('PA002', '40')">
+                                                            <i class="fas fa-edit"></i> Sửa
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Fries Category -->
+                            <div class="category-container" data-category="fries">
+                                <div class="category-header" id="fries-header">
+                                    <div>
+                                        <i class="fas fa-french-fries me-2"></i>Khoai tây chiên
+                                        <i class="fas fa-chevron-right toggle-icon ms-2"></i>
+                                    </div>
+                                </div>
+                                <div class="category-content" id="fries-content">
+                                    <div class="table-responsive mb-4">
+                                        <table class="table table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th>Mã SP</th>
+                                                    <th>Tên sản phẩm</th>
+                                                    <th>Giá vốn</th>
+                                                    <th>Tỷ lệ lợi nhuận (%)</th>
+                                                    <th>Giá bán</th>
+                                                    <th>Ngày cập nhật</th>
+                                                    <th>Thao tác</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td>FR001</td>
+                                                    <td>Khoai tây chiên</td>
+                                                    <td class="cost-price">13,333 VNĐ</td>
+                                                    <td>
+                                                        <div class="profit-cell" id="profit-cell-FR001">
+                                                            <span class="profit-percentage">50%</span>
+                                                        </div>
+                                                    </td>
+                                                    <td class="selling-price">20,000 VNĐ</td>
+                                                    <td>15/05/2023</td>
+                                                    <td class="action-buttons">
+                                                        <button class="btn btn-sm btn-custom" onclick="editProfitPercentage('FR001', '50')">
+                                                            <i class="fas fa-edit"></i> Sửa
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Modals -->
+    <!-- Cost Price Filter Modal -->
+    <div class="modal fade" id="costPriceModal" tabindex="-1" aria-labelledby="costPriceModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="costPriceModalLabel"><i class="fas fa-money-bill-wave me-2"></i>Tra cứu giá vốn</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body filter-modal">
+                    <div class="mb-3">
+                        <label for="costPriceRange" class="form-label">Khoảng giá vốn (VNĐ)</label>
+                        <input type="range" class="form-range" id="costPriceRange" min="0" max="500000" step="10000" value="150000">
+                        <div class="range-display" id="costPriceDisplay">150,000 VNĐ</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="costPriceCategory" class="form-label">Loại sản phẩm</label>
+                        <select class="form-select" id="costPriceCategory">
+                            <option value="">Tất cả loại</option>
+                            <option value="pizza">Pizza</option>
+                            <option value="burger">Burger</option>
+                            <option value="pasta">Pasta</option>
+                            <option value="fries">Khoai tây chiên</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-custom" id="applyCostPriceFilter">Áp dụng</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Profit Filter Modal -->
+    <div class="modal fade" id="profitModal" tabindex="-1" aria-labelledby="profitModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="profitModalLabel"><i class="fas fa-chart-line me-2"></i>Tra cứu lợi nhuận</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body filter-modal">
+                    <div class="mb-3">
+                        <label for="profitRange" class="form-label">Tỷ lệ lợi nhuận (%)</label>
+                        <input type="range" class="form-range" id="profitRange" min="0" max="100" step="5" value="30">
+                        <div class="range-display" id="profitDisplay">30%</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Loại lợi nhuận</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="profitType" id="profitTypePercentage" value="percentage" checked>
+                            <label class="form-check-label" for="profitTypePercentage">
+                                Theo phần trăm (%)
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="profitType" id="profitTypeAmount" value="amount">
+                            <label class="form-check-label" for="profitTypeAmount">
+                                Theo số tiền (VNĐ)
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-custom" id="applyProfitFilter">Áp dụng</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Selling Price Filter Modal -->
+    <div class="modal fade" id="sellingPriceModal" tabindex="-1" aria-labelledby="sellingPriceModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="sellingPriceModalLabel"><i class="fas fa-tag me-2"></i>Tra cứu giá bán</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body filter-modal">
+                    <div class="mb-3">
+                        <label for="minSellingPrice" class="form-label">Giá bán từ (VNĐ)</label>
+                        <input type="number" class="form-control" id="minSellingPrice" placeholder="0" min="0">
+                    </div>
+                    <div class="mb-3">
+                        <label for="maxSellingPrice" class="form-label">Đến (VNĐ)</label>
+                        <input type="number" class="form-control" id="maxSellingPrice" placeholder="500000" min="0">
+                    </div>
+                    <div class="mb-3">
+                        <label for="sellingPriceSort" class="form-label">Sắp xếp theo</label>
+                        <select class="form-select" id="sellingPriceSort">
+                            <option value="asc">Giá thấp đến cao</option>
+                            <option value="desc">Giá cao đến thấp</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-custom" id="applySellingPriceFilter">Áp dụng</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Xử lý toggle sidebar trên mobile
+            document.getElementById('toggle-sidebar').addEventListener('click', function() {
+                const sidebar = document.querySelector('.sidebar');
+                const mainContent = document.querySelector('.main-content');
+                
+                if (sidebar.style.width === '70px' || sidebar.style.width === '') {
+                    sidebar.style.width = '250px';
+                    mainContent.style.marginLeft = '250px';
+                    
+                    const navTexts = document.querySelectorAll('.sidebar .nav-link span');
+                    navTexts.forEach(text => text.style.display = 'inline');
+                } else {
+                    sidebar.style.width = '70px';
+                    mainContent.style.marginLeft = '70px';
+                    
+                    const navTexts = document.querySelectorAll('.sidebar .nav-link span');
+                    navTexts.forEach(text => text.style.display = 'none');
+                }
+            });
+
+            // Xử lý sự kiện khi chọn loại sản phẩm
+            document.getElementById('categorySelect').addEventListener('change', function() {
+                const selectedCategory = this.value;
+                filterProductsByCategory(selectedCategory);
+            });
+
+            // Hàm lọc sản phẩm theo loại
+            function filterProductsByCategory(category) {
+                // Ẩn tất cả các phần danh mục
+                const allCategoryContainers = document.querySelectorAll('.category-container');
+                allCategoryContainers.forEach(container => {
+                    container.style.display = 'none';
+                });
+
+                // Nếu chọn "Tất cả", hiển thị tất cả
+                if (category === 'all') {
+                    allCategoryContainers.forEach(container => {
+                        container.style.display = 'block';
+                    });
+                    return;
+                }
+
+                // Hiển thị danh mục được chọn
+                const selectedContainer = document.querySelector(`.category-container[data-category="${category}"]`);
+                if (selectedContainer) {
+                    selectedContainer.style.display = 'block';
+                }
+            }
+
+            // Khởi tạo: hiển thị tất cả danh mục
+            filterProductsByCategory('all');
+
+            // Xử lý tìm kiếm sản phẩm - CHUYỂN HƯỚNG SANG pricingfind.html
+            document.getElementById('global-search-form').addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const searchTerm = document.getElementById('global-search-input').value.trim();
+                
+                if (searchTerm) {
+                    // Chuyển hướng đến trang pricingfind.html với tham số tìm kiếm
+                    window.location.href = `pricingfind.html?search=${encodeURIComponent(searchTerm)}`;
+                } else {
+                    // Nếu không có từ khóa tìm kiếm, vẫn chuyển đến pricingfind.html
+                    window.location.href = 'pricingfind.html';
+                }
+            });
+            
+            // Xử lý sự kiện nhấn phím Enter trong ô tìm kiếm
+            document.getElementById('global-search-input').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    document.getElementById('global-search-form').dispatchEvent(new Event('submit'));
+                }
+            });
+
+            // Thêm sự kiện click cho các header danh mục để mở/đóng
+            const categoryHeaders = document.querySelectorAll('.category-header');
+            categoryHeaders.forEach(header => {
+                header.addEventListener('click', function() {
+                    const categoryId = this.id.replace('-header', '');
+                    const content = document.getElementById(`${categoryId}-content`);
+                    
+                    if (content.classList.contains('show')) {
+                        content.classList.remove('show');
+                        this.classList.remove('expanded');
+                    } else {
+                        content.classList.add('show');
+                        this.classList.add('expanded');
+                    }
+                });
+            });
+
+            // Xử lý các tùy chọn lọc
+            document.querySelectorAll('.filter-option').forEach(option => {
+                option.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const filterType = this.getAttribute('data-filter-type');
+                    
+                    switch(filterType) {
+                        case 'cost-price':
+                            const costPriceModal = new bootstrap.Modal(document.getElementById('costPriceModal'));
+                            costPriceModal.show();
+                            break;
+                        case 'profit':
+                            const profitModal = new bootstrap.Modal(document.getElementById('profitModal'));
+                            profitModal.show();
+                            break;
+                        case 'selling-price':
+                            const sellingPriceModal = new bootstrap.Modal(document.getElementById('sellingPriceModal'));
+                            sellingPriceModal.show();
+                            break;
+                    }
+                });
+            });
+            
+            // Xử lý range slider cho giá vốn
+            const costPriceRange = document.getElementById('costPriceRange');
+            const costPriceDisplay = document.getElementById('costPriceDisplay');
+            
+            costPriceRange.addEventListener('input', function() {
+                const value = parseInt(this.value).toLocaleString('vi-VN');
+                costPriceDisplay.textContent = `${value} VNĐ`;
+            });
+            
+            // Xử lý range slider cho lợi nhuận
+            const profitRange = document.getElementById('profitRange');
+            const profitDisplay = document.getElementById('profitDisplay');
+            
+            profitRange.addEventListener('input', function() {
+                profitDisplay.textContent = `${this.value}%`;
+            });
+            
+            // Xử lý áp dụng bộ lọc giá vốn
+            document.getElementById('applyCostPriceFilter').addEventListener('click', function() {
+                const selectedPrice = parseInt(costPriceRange.value);
+                const selectedCategory = document.getElementById('costPriceCategory').value;
+                
+                // Thực hiện lọc dữ liệu
+                filterDataByCostPrice(selectedPrice, selectedCategory);
+                
+                // Đóng modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('costPriceModal'));
+                modal.hide();
+                
+                // Hiển thị thông báo
+                showFilterNotification('Đã áp dụng bộ lọc giá vốn');
+            });
+            
+            // Xử lý áp dụng bộ lọc lợi nhuận
+            document.getElementById('applyProfitFilter').addEventListener('click', function() {
+                const selectedProfit = parseInt(profitRange.value);
+                const profitType = document.querySelector('input[name="profitType"]:checked').value;
+                
+                // Thực hiện lọc dữ liệu
+                filterDataByProfit(selectedProfit, profitType);
+                
+                // Đóng modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('profitModal'));
+                modal.hide();
+                
+                // Hiển thị thông báo
+                showFilterNotification('Đã áp dụng bộ lọc lợi nhuận');
+            });
+            
+            // Xử lý áp dụng bộ lọc giá bán
+            document.getElementById('applySellingPriceFilter').addEventListener('click', function() {
+                const minPrice = document.getElementById('minSellingPrice').value;
+                const maxPrice = document.getElementById('maxSellingPrice').value;
+                const sortOrder = document.getElementById('sellingPriceSort').value;
+                
+                // Thực hiện lọc dữ liệu
+                filterDataBySellingPrice(minPrice, maxPrice, sortOrder);
+                
+                // Đóng modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('sellingPriceModal'));
+                modal.hide();
+                
+                // Hiển thị thông báo
+                showFilterNotification('Đã áp dụng bộ lọc giá bán');
+            });
+            
+            // Hàm lọc theo giá vốn
+            function filterDataByCostPrice(price, category) {
+                console.log(`Lọc theo giá vốn: ${price} VNĐ, Loại: ${category || 'Tất cả'}`);
+                // Ở đây bạn có thể thêm code để lọc dữ liệu thực tế
+            }
+            
+            // Hàm lọc theo lợi nhuận
+            function filterDataByProfit(profit, type) {
+                console.log(`Lọc theo lợi nhuận: ${profit}${type === 'percentage' ? '%' : ' VNĐ'}`);
+                // Ở đây bạn có thể thêm code để lọc dữ liệu thực tế
+            }
+            
+            // Hàm lọc theo giá bán
+            function filterDataBySellingPrice(minPrice, maxPrice, sortOrder) {
+                console.log(`Lọc theo giá bán: ${minPrice || 0} - ${maxPrice || 'Không giới hạn'} VNĐ, Sắp xếp: ${sortOrder}`);
+                // Ở đây bạn có thể thêm code để lọc dữ liệu thực tế
+            }
+            
+            // Hàm hiển thị thông báo
+            function showFilterNotification(message) {
+                // Tạo và hiển thị thông báo
+                const alertDiv = document.createElement('div');
+                alertDiv.className = 'alert alert-success alert-dismissible fade show';
+                alertDiv.innerHTML = `
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                
+                document.querySelector('.page-content').insertBefore(alertDiv, document.querySelector('.global-search-container'));
+                
+                // Tự động ẩn thông báo sau 3 giây
+                setTimeout(() => {
+                    if (alertDiv.parentNode) {
+                        alertDiv.remove();
+                    }
+                }, 3000);
+            }
+        });
+
+        // Hàm chỉnh sửa tỷ lệ lợi nhuận
+        function editProfitPercentage(id, currentValue) {
+            const profitCell = document.getElementById(`profit-cell-${id}`);
+            
+            // Tạo form chỉnh sửa
+            const editForm = document.createElement('div');
+            editForm.className = 'edit-form';
+            
+            const input = document.createElement('input');
+            input.type = 'number';
+            input.className = 'editable-input';
+            input.value = currentValue;
+            input.min = '0';
+            input.max = '100';
+            input.step = '0.5';
+            
+            const actions = document.createElement('div');
+            actions.className = 'edit-actions';
+            
+            const saveBtn = document.createElement('button');
+            saveBtn.type = 'button';
+            saveBtn.className = 'save-btn';
+            saveBtn.textContent = 'Lưu';
+            saveBtn.onclick = function() {
+                saveProfitPercentage(id, input.value);
+            };
+            
+            const cancelBtn = document.createElement('button');
+            cancelBtn.type = 'button';
+            cancelBtn.className = 'cancel-btn';
+            cancelBtn.textContent = 'Hủy';
+            cancelBtn.onclick = function() {
+                cancelEdit(id, currentValue);
+            };
+            
+            actions.appendChild(saveBtn);
+            actions.appendChild(cancelBtn);
+            
+            editForm.appendChild(input);
+            editForm.appendChild(actions);
+            
+            // Thay thế nội dung ô bằng form chỉnh sửa
+            profitCell.innerHTML = '';
+            profitCell.appendChild(editForm);
+            
+            // Tự động focus vào input
+            input.focus();
+        }
+
+        // Hàm lưu tỷ lệ lợi nhuận
+        function saveProfitPercentage(id, newValue) {
+            // Tìm hàng chứa nút đã nhấn
+            const row = document.getElementById(`profit-cell-${id}`).closest('tr');
+            
+            // Cập nhật giá bán dựa trên tỷ lệ lợi nhuận mới
+            const costPrice = parseFloat(row.querySelector('.cost-price').textContent.replace(' VNĐ', '').replace(/,/g, ''));
+            const newSellingPrice = costPrice * (1 + parseFloat(newValue) / 100);
+            
+            // Định dạng số
+            const formattedSellingPrice = newSellingPrice.toLocaleString('vi-VN') + ' VNĐ';
+            
+            // Cập nhật giá bán trong bảng
+            row.querySelector('.selling-price').textContent = formattedSellingPrice;
+            
+            // Cập nhật tỷ lệ lợi nhuận
+            const profitCell = document.getElementById(`profit-cell-${id}`);
+            
+            const newProfitSpan = document.createElement('span');
+            newProfitSpan.className = 'profit-percentage';
+            newProfitSpan.textContent = `${newValue}%`;
+            
+            profitCell.innerHTML = '';
+            profitCell.appendChild(newProfitSpan);
+            
+            // Hiển thị thông báo thành công
+            alert(`Đã cập nhật tỷ lệ lợi nhuận thành ${newValue}%`);
+        }
+
+        // Hàm hủy chỉnh sửa
+        function cancelEdit(id, originalValue) {
+            const profitCell = document.getElementById(`profit-cell-${id}`);
+            
+            // Khôi phục lại trạng thái ban đầu
+            const newProfitSpan = document.createElement('span');
+            newProfitSpan.className = 'profit-percentage';
+            newProfitSpan.textContent = `${originalValue}%`;
+            
+            profitCell.innerHTML = '';
+            profitCell.appendChild(newProfitSpan);
+        }
+    </script>
+</body>
+</html>

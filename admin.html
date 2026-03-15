@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Feane Restaurant</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <style>
+        :root {
+            --primary-color: #ffbe33;
+            --secondary-color: #222831;
+            --light-color: #ffffff;
+            --dark-color: #121618;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+            overflow-x: hidden;
+        }
+        
+        .sidebar {
+            min-height: 100vh;
+            background-color: var(--secondary-color);
+            color: var(--light-color);
+            transition: all 0.3s;
+            position: fixed;
+            z-index: 100;
+            width: 250px;
+        }
+        
+        .sidebar .nav-link {
+            color: rgba(255, 255, 255, 0.8);
+            padding: 0.75rem 1rem;
+            margin: 0.25rem 0;
+            border-radius: 0.25rem;
+            transition: all 0.2s;
+        }
+        
+        .sidebar .nav-link:hover, 
+        .sidebar .nav-link.active {
+            background-color: var(--primary-color);
+            color: var(--dark-color);
+        }
+        
+        .sidebar .nav-link i {
+            width: 20px;
+            margin-right: 10px;
+        }
+        
+        .main-content {
+            margin-left: 250px;
+            padding: 20px;
+            transition: all 0.3s;
+        }
+        
+        .navbar-custom {
+            background-color: var(--light-color);
+            box-shadow: 0 2px 4px rgba(0,0,0,.1);
+        }
+        
+        .card-custom {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,.1);
+            transition: transform 0.3s;
+        }
+        
+        .card-custom:hover {
+            transform: translateY(-5px);
+        }
+        
+        .stat-card {
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .stat-card i {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+        }
+        
+        .bg-primary-custom {
+            background-color: var(--primary-color);
+            color: var(--dark-color);
+        }
+        
+        .bg-secondary-custom {
+            background-color: var(--secondary-color);
+            color: var(--light-color);
+        }
+        
+        .table-responsive {
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .table th {
+            background-color: var(--secondary-color);
+            color: var(--light-color);
+        }
+        
+        .btn-custom {
+            background-color: var(--primary-color);
+            color: var(--dark-color);
+            border: none;
+            border-radius: 5px;
+            padding: 8px 15px;
+            transition: all 0.3s;
+        }
+        
+        .btn-custom:hover {
+            background-color: #e6a500;
+            transform: translateY(-2px);
+        }
+        
+        .toggle-sidebar {
+            display: none;
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 70px;
+                text-align: center;
+            }
+            
+            .sidebar .nav-link span {
+                display: none;
+            }
+            
+            .sidebar .nav-link i {
+                margin-right: 0;
+            }
+            
+            .main-content {
+                margin-left: 70px;
+            }
+            
+            .toggle-sidebar {
+                display: block;
+            }
+        }
+        
+        .dashboard-stats .col-md-3 {
+            margin-bottom: 20px;
+        }
+        
+        .alert-warning-custom {
+            background-color: #fff3cd;
+            border-color: #ffeaa7;
+            color: #856404;
+        }
+        
+        .badge-status-new {
+            background-color: #17a2b8;
+        }
+        
+        .badge-status-processing {
+            background-color: #ffc107;
+            color: #212529;
+        }
+        
+        .badge-status-shipped {
+            background-color: #28a745;
+        }
+        
+        .badge-status-cancelled {
+            background-color: #dc3545;
+        }
+        
+        .search-box {
+            position: relative;
+        }
+        
+        .search-box input {
+            padding-right: 40px;
+        }
+        
+        .search-box i {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #6c757d;
+        }
+        
+        .action-buttons .btn {
+            margin-right: 5px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Trang quản trị -->
+    <div id="admin-page">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="p-3">
+                <h4 class="text-center mb-4"><i class="fas fa-utensils"></i> Feane Admin</h4>
+            </div>
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a class="nav-link active" href="admin.html">
+                        <i class="fas fa-tachometer-alt"></i> <span>Dashboard</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="users.html">
+                        <i class="fas fa-users"></i> <span>Quản lý người dùng</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="categories.html">
+                        <i class="fas fa-tags"></i> <span>Loại sản phẩm</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="products.html">
+                        <i class="fas fa-hamburger"></i> <span>Sản phẩm</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="imports.html">
+                        <i class="fas fa-arrow-down"></i> <span>Nhập sản phẩm</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="pricing.html">
+                        <i class="fas fa-dollar-sign"></i> <span>Giá bán</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="orders.html">
+                        <i class="fas fa-shopping-cart"></i> <span>Đơn hàng</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="inventory.html">
+                        <i class="fas fa-boxes"></i> <span>Tồn kho</span>
+                    </a>
+                </li>
+                <li class="nav-item mt-4">
+                    <a class="nav-link" href="adminlogin.html" id="logout-btn">
+                        <i class="fas fa-sign-out-alt"></i> <span>Đăng xuất</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Top Navbar -->
+            <nav class="navbar navbar-expand-lg navbar-custom mb-4">
+                <div class="container-fluid">
+                    <button class="btn toggle-sidebar" id="toggle-sidebar">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <div class="d-flex align-items-center">
+                        <span class="navbar-text me-3">
+                            Xin chào, <strong>Admin</strong>
+                        </span>
+                        <div class="dropdown">
+                            <button class="btn" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-user-circle fa-lg"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton">
+                                <li><a class="dropdown-item" href="profile.html"><i class="fas fa-user me-2"></i> Hồ sơ</a></li>
+                                <li><a class="dropdown-item" href="settings.html"><i class="fas fa-cog me-2"></i> Cài đặt</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="adminlogin.html" id="nav-logout-btn"><i class="fas fa-sign-out-alt me-2"></i> Đăng xuất</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+
+            <!-- Dashboard Content -->
+            <div id="dashboard-page" class="page-content">
+                <h2 class="mb-4">Dashboard</h2>
+                
+                <!-- Statistics Cards -->
+                <div class="row dashboard-stats">
+                    <div class="col-md-3">
+                        <a href="orders.html" style="text-decoration:none ; display: block;">
+                            <div class=" card card-custom bg-primary-custom">
+                                <div class=" card-body stat-card">
+                                    <i class="fas fa-shopping-cart"></i>
+                                    <h3>156</h3>
+                                    <p>Đơn hàng mới</p>
+                                </div>
+                            </div>
+                        </a>            
+                    </div>
+                    <div class="col-md-3">
+                        <a href="users.html" style="text-decoration: none; display: block;">
+                            <div class="card card-custom bg-primary-custom"> 
+                                <div class="card-body stat-card">
+                                    <i class="fas fa-users"></i>
+                                    <h3>2,847</h3>
+                                    <p>Khách hàng</p>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <a href="inventory.html" style="text-decoration: none; display: block;">
+                            <div class="card card-custom bg-primary-custom">
+                                <div class="card-body stat-card">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    <h3>23</h3>
+                                    <p>Sản phẩm sắp hết</p>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+
+                    <div class="col-md-3">
+                        <a href="pricing.html" style="text-decoration: none; display: block;">
+                            <div class="card card-custom" style="background-color: #28a745; color: white;">
+                                <div class="card-body stat-card">
+                                    <i class="fas fa-dollar-sign"></i>
+                                    <h3>$12,458</h3>
+                                    <p>Doanh thu tháng</p>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Recent Orders -->
+                <div class="row mt-4">
+                    <div class="col-md-8">
+                        <div class="card card-custom">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">Đơn hàng gần đây</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Mã đơn</th>
+                                                <th>Khách hàng</th>
+                                                <th>Ngày đặt</th>
+                                                <th>Tổng tiền</th>
+                                                <th>Trạng thái</th>
+                                                <th>Thao tác</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td><a href="orderdetails.html">#ORD-001</a></td>
+                                                <td><a>Nguyễn Văn A</a></td>
+                                                <td>15/05/2023</td>
+                                                <td>$45.50</td>
+                                                <td><span class="badge badge-status-new">Mới</span></td>
+                                                <td>
+                                                    <a href="orderdetails.html" class="btn btn-sm btn-custom">Xem</a>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td><a href="orderdetails.html">#ORD-002</a></td>
+                                                <td><a>Trần Thị B</a></td>
+                                                <td>14/05/2023</td>
+                                                <td>$32.75</td>
+                                                <td><span class="badge badge-status-processing">Đang xử lý</span></td>
+                                                <td>
+                                                    <a href="orderdetails.html" class="btn btn-sm btn-custom">Xem</a>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td><a href="orderdetails.html">#ORD-003</a></td>
+                                                <td><a>Lê Văn C</a></td>
+                                                <td>14/05/2023</td>
+                                                <td>$28.90</td>
+                                                <td><span class="badge badge-status-shipped">Đã giao</span></td>
+                                                <td>
+                                                    <a href="orderdetails.html" class="btn btn-sm btn-custom">Xem</a>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <div class="card card-custom">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">Sản phẩm bán chạy</h5>
+                            </div>
+                            <div class="card-body">
+                                <ul class="list-group list-group-flush">
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        <a href="productspizza.html">Pizza Hải Sản</a>
+                                        <span class="badge bg-primary rounded-pill">156</span>
+                                    </li>
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        <a href="productsburger.html">Burger Bò Phô Mai</a>
+                                        <span class="badge bg-primary rounded-pill">142</span>
+                                    </li>
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        <a href="productspasta.html">Mỳ Ý Sốt Bò Bằm</a>
+                                        <span class="badge bg-primary rounded-pill">128</span>
+                                    </li>
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        <a href="productsfries.html">Khoai Tây Chiên</a>
+                                        <span class="badge bg-primary rounded-pill">115</span>
+                                    </li>
+                                    
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Custom JS -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Xử lý toggle sidebar trên mobile
+            document.getElementById('toggle-sidebar').addEventListener('click', function() {
+                const sidebar = document.querySelector('.sidebar');
+                const mainContent = document.querySelector('.main-content');
+                
+                if (sidebar.style.width === '70px' || sidebar.style.width === '') {
+                    sidebar.style.width = '250px';
+                    mainContent.style.marginLeft = '250px';
+                    
+                    // Hiển thị text trong sidebar
+                    const navTexts = document.querySelectorAll('.sidebar .nav-link span');
+                    navTexts.forEach(text => text.style.display = 'inline');
+                } else {
+                    sidebar.style.width = '70px';
+                    mainContent.style.marginLeft = '70px';
+                    
+                    // Ẩn text trong sidebar
+                    const navTexts = document.querySelectorAll('.sidebar .nav-link span');
+                    navTexts.forEach(text => text.style.display = 'none');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

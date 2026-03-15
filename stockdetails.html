@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chi tiết Sản phẩm - Feane Restaurant</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <style>
+        :root {
+            --primary-color: #ffbe33;
+            --secondary-color: #222831;
+            --light-color: #ffffff;
+            --dark-color: #121618;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+        }
+        
+        .navbar-custom {
+            background-color: var(--light-color);
+            box-shadow: 0 2px 4px rgba(0,0,0,.1);
+        }
+        
+        .card-custom {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,.1);
+        }
+        
+        .btn-custom {
+            background-color: var(--primary-color);
+            color: var(--dark-color);
+            border: none;
+            border-radius: 5px;
+            padding: 8px 15px;
+            transition: all 0.3s;
+        }
+        
+        .btn-custom:hover {
+            background-color: #e6a500;
+            transform: translateY(-2px);
+        }
+        
+        .warning {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        
+        .back-link {
+            color: var(--secondary-color);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+        
+        .back-link:hover {
+            color: var(--primary-color);
+        }
+        
+        .product-image {
+            max-width: 100%;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        .stat-card {
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .stat-card i {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+        
+        .product-link {
+            color: var(--secondary-color);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+        
+        .product-link:hover {
+            color: var(--primary-color);
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <!-- Top Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-custom mb-4">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="admin.html">
+                <i class="fas fa-utensils me-2"></i>Feane Admin
+            </a>
+            <div class="d-flex align-items-center">
+                <span class="navbar-text me-3">
+                    Xin chào, <strong>Admin</strong>
+                </span>
+                <div class="dropdown">
+                    <button class="btn" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-user-circle fa-lg"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton">
+                        <li><a class="dropdown-item" href="profile.html"><i class="fas fa-user me-2"></i> Hồ sơ</a></li>
+                        <li><a class="dropdown-item" href="settings.html"><i class="fas fa-cog me-2"></i> Cài đặt</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="index.html"><i class="fas fa-sign-out-alt me-2"></i> Về trang chủ</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Page Content -->
+    <div class="container">
+        <div class="d-flex align-items-center mb-4">
+            <a href="inventory.html" class="back-link me-3">
+                <i class="fas fa-arrow-left me-1"></i>Quay lại
+            </a>
+            <h2 class="mb-0">Chi tiết Sản phẩm</h2>
+        </div>
+        
+        <!-- Product Info -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card card-custom">
+                    <div class="card-body text-center">
+                        <img id="product-image" src="feane-1.0.0/images/f1.png" alt="Pizza Hải Sản" class="product-image mb-3">
+                        <h4 id="product-name">Pizza Hải Sản</h4>
+                        <p class="text-muted" id="product-id">Mã SP: SP01</p>
+                        <p id="product-type">Loại: <a href="categories.html?type=Đồ ăn" class="product-link">Đồ ăn</a></p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-8">
+                <div class="card card-custom">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Thông tin tồn kho</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-4">
+                            <div class="col-md-4">
+                                <div class="stat-card">
+                                    <i class="fas fa-arrow-down text-primary"></i>
+                                    <h3 id="import-quantity">100</h3>
+                                    <p>Số lượng nhập</p>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="stat-card">
+                                    <i class="fas fa-arrow-up text-success"></i>
+                                    <h3 id="export-quantity">95</h3>
+                                    <p>Số lượng xuất</p>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="stat-card">
+                                    <i class="fas fa-boxes text-info"></i>
+                                    <h3 id="stock-quantity">5</h3>
+                                    <p>Số lượng tồn</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>Tỷ lệ bán:</strong> <span id="sale-rate">95%</span></p>
+                                <p><strong>Trạng thái:</strong> <span id="stock-status" class="warning">Sắp hết hàng!</span></p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>Ngày nhập cuối:</strong> <span id="last-import-date">15/05/2023</span></p>
+                                <p><strong>Ngày xuất cuối:</strong> <span id="last-export-date">14/05/2023</span></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Product History -->
+        <div class="card card-custom mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Lịch sử nhập/xuất</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Ngày</th>
+                                <th>Loại giao dịch</th>
+                                <th>Số lượng</th>
+                                <th>Đơn giá</th>
+                                <th>Thành tiền</th>
+                                <th>Ghi chú</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-table-body">
+                            <!-- Dữ liệu lịch sử sẽ được tải động -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Actions -->
+        <div class="card card-custom">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Thao tác</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex gap-2">
+                    <a href="imports.html" class="btn btn-custom">
+                        <i class="fas fa-plus me-2"></i>Nhập thêm
+                    </a>
+                    <a href="products.html" class="btn btn-outline-secondary">
+                        <i class="fas fa-edit me-2"></i>Chỉnh sửa sản phẩm
+                    </a>
+                    <a href="pricing.html" class="btn btn-outline-secondary">
+                        <i class="fas fa-dollar-sign me-2"></i>Điều chỉnh giá
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Custom JS -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Lấy ID sản phẩm từ URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const productId = urlParams.get('id');
+            
+            // Dữ liệu mẫu cho các sản phẩm
+            const products = {
+                'SP01': {
+                    id: 'SP01',
+                    name: 'Pizza Hải Sản',
+                    type: 'Pizza',
+                    image: 'feane-1.0.0/images/f1.png',
+                    importQty: 100,
+                    exportQty: 95,
+                    stockQty: 5,
+                    lastImportDate: '15/05/2023',
+                    lastExportDate: '14/05/2023'
+                },
+                'SP02': {
+                    id: 'SP02',
+                    name: 'Burger Bò Phô Mai',
+                    type: 'Burger',
+                    image: 'feane-1.0.0/images/f2.png',
+                    importQty: 80,
+                    exportQty: 60,
+                    stockQty: 20,
+                    lastImportDate: '12/05/2023',
+                    lastExportDate: '13/05/2023'
+                },
+                'SP03': {
+                    id: 'SP03',
+                    name: 'Khoai Tây Chiên',
+                    type: 'Fries',
+                    image: 'feane-1.0.0/images/f5.png',
+                    importQty: 150,
+                    exportQty: 145,
+                    stockQty: 5,
+                    lastImportDate: '10/05/2023',
+                    lastExportDate: '12/05/2023'
+                },
+                'SP04': {
+                    id: 'SP04',
+                    name: 'Burger gà chiên',
+                    type: 'Burger',
+                    image: 'feane-1.0.0/images/f7.png',
+                    importQty: 120,
+                    exportQty: 115,
+                    stockQty: 5,
+                    lastImportDate: '13/05/2023',
+                    lastExportDate: '14/05/2023'
+                },
+                'SP05': {
+                    id: 'SP05',
+                    name: 'Mỳ Ý Sốt Bò Bằm',
+                    type: 'Pasta',
+                    image: 'feane-1.0.0/images/f9.png',
+                    importQty: 90,
+                    exportQty: 85,
+                    stockQty: 5,
+                    lastImportDate: '11/05/2023',
+                    lastExportDate: '13/05/2023'
+                },
+                'SP06': {
+                    id: 'SP06',
+                    name: 'Pasta Rau Củ',
+                    type: 'Pasta',
+                    image: 'feane-1.0.0/images/f4.png',
+                    importQty: 70,
+                    exportQty: 65,
+                    stockQty: 5,
+                    lastImportDate: '09/05/2023',
+                    lastExportDate: '12/05/2023'
+                }
+            };
+            
+            // Hiển thị thông tin sản phẩm
+            if (productId && products[productId]) {
+                const product = products[productId];
+                displayProductDetails(product);
+                loadProductHistory(productId);
+            } else {
+                // Nếu không tìm thấy sản phẩm, hiển thị thông báo lỗi
+                document.querySelector('.container').innerHTML = `
+                    <div class="alert alert-danger text-center" role="alert">
+                        <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
+                        <h4>Không tìm thấy sản phẩm</h4>
+                        <p>Sản phẩm bạn đang tìm kiếm không tồn tại hoặc đã bị xóa.</p>
+                        <a href="inventory.html" class="btn btn-custom mt-2">
+                            <i class="fas fa-arrow-left me-2"></i>Quay lại trang tồn kho
+                        </a>
+                    </div>
+                `;
+            }
+        });
+        
+        // Hàm hiển thị chi tiết sản phẩm
+        function displayProductDetails(product) {
+            document.getElementById('product-image').src = product.image;
+            document.getElementById('product-image').alt = product.name;
+            document.getElementById('product-name').textContent = product.name;
+            document.getElementById('product-id').textContent = `Mã SP: ${product.id}`;
+            document.getElementById('product-type').innerHTML = `Loại: <a href="inventory.html?type=${encodeURIComponent(product.type)}" class="product-link">${product.type}</a>`;
+            
+            document.getElementById('import-quantity').textContent = product.importQty;
+            document.getElementById('export-quantity').textContent = product.exportQty;
+            document.getElementById('stock-quantity').textContent = product.stockQty;
+            
+            const saleRate = Math.round((product.exportQty / product.importQty) * 100);
+            document.getElementById('sale-rate').textContent = `${saleRate}%`;
+            
+            const stockStatus = document.getElementById('stock-status');
+            if (product.stockQty <= 10) {
+                stockStatus.textContent = 'Sắp hết hàng!';
+                stockStatus.className = 'warning';
+            } else {
+                stockStatus.textContent = 'Đủ hàng';
+                stockStatus.className = '';
+            }
+            
+            document.getElementById('last-import-date').textContent = product.lastImportDate;
+            document.getElementById('last-export-date').textContent = product.lastExportDate;
+        }
+        
+        // Hàm tải lịch sử sản phẩm
+        function loadProductHistory(productId) {
+            // Dữ liệu mẫu cho lịch sử
+            const historyData = {
+                'SP01': [
+                    { date: '15/05/2023', type: 'Nhập', quantity: 50, price: '120,000', total: '6,000,000', note: 'Nhập hàng định kỳ' },
+                    { date: '14/05/2023', type: 'Xuất', quantity: 25, price: '150,000', total: '3,750,000', note: 'Bán hàng' },
+                    { date: '10/05/2023', type: 'Nhập', quantity: 50, price: '120,000', total: '6,000,000', note: 'Nhập hàng định kỳ' },
+                    { date: '08/05/2023', type: 'Xuất', quantity: 30, price: '150,000', total: '4,500,000', note: 'Bán hàng' },
+                    { date: '05/05/2023', type: 'Xuất', quantity: 40, price: '150,000', total: '6,000,000', note: 'Bán hàng' }
+                ],
+                'SP02': [
+                    { date: '12/05/2023', type: 'Nhập', quantity: 40, price: '80,000', total: '3,200,000', note: 'Nhập hàng định kỳ' },
+                    { date: '13/05/2023', type: 'Xuất', quantity: 20, price: '100,000', total: '2,000,000', note: 'Bán hàng' },
+                    { date: '08/05/2023', type: 'Nhập', quantity: 40, price: '80,000', total: '3,200,000', note: 'Nhập hàng định kỳ' },
+                    { date: '05/05/2023', type: 'Xuất', quantity: 20, price: '100,000', total: '2,000,000', note: 'Bán hàng' },
+                    { date: '03/05/2023', type: 'Xuất', quantity: 20, price: '100,000', total: '2,000,000', note: 'Bán hàng' }
+                ],
+                'SP03': [
+                    { date: '14/05/2023', type: 'Nhập', quantity: 100, price: '15,000', total: '1,500,000', note: 'Nhập hàng định kỳ' },
+                    { date: '15/05/2023', type: 'Xuất', quantity: 65, price: '20,000', total: '1,300,000', note: 'Bán hàng' },
+                    { date: '10/05/2023', type: 'Nhập', quantity: 100, price: '15,000', total: '1,500,000', note: 'Nhập hàng định kỳ' },
+                    { date: '08/05/2023', type: 'Xuất', quantity: 70, price: '20,000', total: '1,400,000', note: 'Bán hàng' },
+                    { date: '05/05/2023', type: 'Xuất', quantity: 60, price: '20,000', total: '1,200,000', note: 'Bán hàng' }
+                ]
+            };
+            
+            const history = historyData[productId] || [];
+            const tableBody = document.getElementById('history-table-body');
+            tableBody.innerHTML = '';
+            
+            if (history.length === 0) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="text-center py-4">
+                            <i class="fas fa-history fa-2x mb-3 text-muted"></i>
+                            <p class="text-muted">Không có lịch sử giao dịch cho sản phẩm này.</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            history.forEach(item => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${item.date}</td>
+                    <td>
+                        <span class="badge ${item.type === 'Nhập' ? 'bg-success' : 'bg-primary'}">
+                            ${item.type}
+                        </span>
+                    </td>
+                    <td>${item.quantity}</td>
+                    <td>${item.price} VNĐ</td>
+                    <td>${item.total} VNĐ</td>
+                    <td>${item.note}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+    </script>
+</body>
+</html>
