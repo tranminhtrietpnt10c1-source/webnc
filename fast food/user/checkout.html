@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Thanh Toán - Feane</title>
+  
+  <!-- Bootstrap core CSS -->
+  <link rel="stylesheet" type="text/css" href="css/bootstrap.css" />
+  <!-- Font Awesome -->
+  <link href="css/font-awesome.min.css" rel="stylesheet" />
+  <!-- Custom styles -->
+  <link href="css/style.css" rel="stylesheet" />
+  <link href="css/responsive.css" rel="stylesheet" />
+  
+  <style>
+    .checkout_section {
+      padding: 50px 0;
+    }
+    .order-summary {
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      padding: 20px;
+      margin-bottom: 30px;
+    }
+    .order-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid #eee;
+    }
+    .payment-method {
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      padding: 20px;
+      margin-bottom: 30px;
+    }
+    .payment-option {
+      margin-bottom: 15px;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+    }
+    .payment-option.active {
+      border-color: #ffbe33;
+      background-color: #fff9f0;
+    }
+    .payment-details {
+      margin-top: 15px;
+      padding: 15px;
+      background: #f9f9f9;
+      border-radius: 5px;
+      display: none;
+    }
+    .order-confirmation {
+      text-align: center;
+      padding: 30px;
+      border: 2px dashed #ffbe33;
+      border-radius: 5px;
+      margin-top: 30px;
+      display: none;
+    }
+    .address-info {
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 5px;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body class="sub_page">
+
+  <div class="hero_area">
+    <div class="bg-box">
+      <img src="images/hero-bg.jpg" alt="">
+    </div>
+    <!-- header section strats -->
+    <header class="header_section">
+      <div class="container">
+        <nav class="navbar navbar-expand-lg custom_nav-container ">
+          <a class="navbar-brand" href="indexlogin.html">
+            <span>
+              Feane
+            </span>
+          </a>
+
+          <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+            <span class=""> </span>
+          </button>
+
+          <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <ul class="navbar-nav  mx-auto ">
+              <li class="nav-item">
+                <a class="nav-link" href="indexlogin.html">Home </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="menulogin.html">Menu</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="aboutlogin.html">About</a>
+              </li>
+              <li class="nav-item active">
+                <a class="nav-link" href="shoppingcart.html">Giỏ Hàng <span class="sr-only">(current)</span></a>
+              </li>
+            </ul>
+            <div class="user_option">
+              <a href="personalinformation.html" class="user_link">
+                <i class="fa fa-user" aria-hidden="true"></i>
+              </a>
+              <a class="cart_link" href="shoppingcart.html">
+                <svg version="1.1" id="Capa_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 456.029 456.029" style="enable-background:new 0 0 456.029 456.029;" xml:space="preserve">
+                  <g>
+                    <g>
+                      <path d="M345.6,338.862c-29.184,0-53.248,23.552-53.248,53.248c0,29.184,23.552,53.248,53.248,53.248
+                   c29.184,0,53.248-23.552,53.248-53.248C398.336,362.926,374.784,338.862,345.6,338.862z" />
+                    </g>
+                  </g>
+                  <g>
+                    <g>
+                      <path d="M439.296,84.91c-1.024,0-2.56-0.512-4.096-0.512H112.64l-5.12-34.304C104.448,27.566,84.992,10.67,61.952,10.67H20.48
+                   C9.216,10.67,0,19.886,0,31.15c0,11.264,9.216,20.48,20.48,20.48h41.472c2.56,0,4.608,2.048,5.12,4.608l31.744,216.064
+                   c4.096,27.136,27.648,47.616,55.296,47.616h212.992c26.624,0,49.664-18.944,55.296-45.056l33.28-166.4
+                   C457.728,97.71,450.56,86.958,439.296,84.91z" />
+                    </g>
+                  </g>
+                  <g>
+                    <g>
+                      <path d="M215.04,389.55c-1.024-28.16-24.576-50.688-52.736-50.688c-29.696,1.536-52.224,26.112-51.2,55.296
+                   c1.024,28.16,24.064,50.688,52.224,50.688h1.024C193.536,443.31,216.576,418.734,215.04,389.55z" />
+                    </g>
+                  </g>
+                </svg>
+              </a>
+             <form class="form-inline">
+                <a href ="findproduct.html" class="btn  my-2 my-sm-0 nav_search-btn" >
+                  <i class="fa fa-search" aria-hidden="true"></i>
+               </a>
+              </form>
+              <div class="order_online" >
+                <a href="index.html" style="color: white;">
+                  Đăng xuất
+                </a>
+              </div>
+            </div>
+          </div>
+        </nav>
+      </div>
+    </header>
+    <!-- end header section -->
+  </div>
+
+  <!-- checkout section -->
+  <section class="checkout_section layout_padding">
+    <div class="container">
+      <div class="heading_container heading_center">
+        <h2>
+          Thanh Toán
+        </h2>
+      </div>
+
+      <div class="row">
+        <div class="col-md-8">
+          <!-- Thông tin giao hàng -->
+          <div class="address-info">
+            <h4>Thông tin giao hàng</h4>
+            <p><strong>Huỳnh Lê Khánh Ly</strong></p>
+            <p>123 Đường ABC, Phường 1, Quận 1, TP.HCM</p>
+            <p>Điện thoại: 094 174 2841</p>
+            <a href="shoppingcart.html" class="btn btn-outline-secondary btn-sm">Thay đổi địa chỉ</a>
+          </div>
+
+          <!-- Phương thức thanh toán -->
+          <div class="payment-method">
+            <h4>Phương thức thanh toán</h4>
+            
+            <div class="payment-option active" id="cash-option">
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="paymentMethod" id="cash" checked>
+                <label class="form-check-label" for="cash">
+                  <strong>Thanh toán tiền mặt khi nhận hàng</strong>
+                </label>
+              </div>
+              <p class="mb-0 mt-2">Bạn sẽ thanh toán bằng tiền mặt khi nhận được hàng</p>
+            </div>
+            
+            <div class="payment-option" id="transfer-option">
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="paymentMethod" id="transfer">
+                <label class="form-check-label" for="transfer">
+                  <strong>Chuyển khoản ngân hàng</strong>
+                </label>
+              </div>
+              <div class="payment-details" id="transfer-details">
+                <p>Vui lòng chuyển khoản đến tài khoản sau:</p>
+                <p><strong>Ngân hàng: ABC Bank</strong></p>
+                <p><strong>Số tài khoản: 123456789</strong></p>
+                <p><strong>Chủ tài khoản: CÔNG TY TNHH FEANE</strong></p>
+                <p><strong>Nội dung chuyển khoản: Mã đơn hàng + Số điện thoại</strong></p>
+                <p>Sau khi chuyển khoản, vui lòng gửi xác nhận đến email: thanhtoan@feane.com</p>
+              </div>
+            </div>
+            
+            <div class="payment-option" id="online-option">
+              <div class="form-check">
+                <input class="form-check-input" type="radio" name="paymentMethod" id="online">
+                <label class="form-check-label" for="online">
+                  <strong>Thanh toán trực tuyến</strong>
+                </label>
+              </div>
+              <div class="payment-details" id="online-details">
+                <p>Bạn sẽ được chuyển hướng đến cổng thanh toán an toàn</p>
+                <div class="payment-icons">
+                  <img src="https://cdn-icons-png.flaticon.com/128/179/179457.png" width="40" class="mr-2" alt="PayPal">
+                  <img src="https://cdn-icons-png.flaticon.com/128/196/196578.png" width="40" class="mr-2" alt="Visa">
+                  <img src="https://cdn-icons-png.flaticon.com/128/196/196561.png" width="40" class="mr-2" alt="Mastercard">
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Ghi chú đơn hàng -->
+          <div class="form-group">
+            <label for="orderNotes"><strong>Ghi chú đơn hàng (tùy chọn)</strong></label>
+            <textarea class="form-control" id="orderNotes" rows="3" placeholder="Ghi chú về đơn hàng của bạn..."></textarea>
+          </div>
+        </div>
+        
+        <div class="col-md-4">
+          <!-- Tóm tắt đơn hàng -->
+          <div class="order-summary">
+            <h4>Tóm tắt đơn hàng</h4>
+            <div id="order-items-container">
+              <!-- Nội dung sẽ được cập nhật bằng JavaScript -->
+            </div>
+            
+           <a href="ordersuccessfully.html" class="btn btn-outline-primary btn-block mt-2">Xác nhận thanh toán</a>
+            <a href="shoppingcart.html" class="btn btn-outline-secondary btn-block mt-2">Quay lại giỏ hàng</a>
+          </div>
+        </div>
+      </div>
+      
+
+
+  <!-- footer section -->
+  <footer class="footer_section">
+    <div class="container">
+      <div class="row">
+        <div class="col-md-4 footer-col">
+          <div class="footer_contact">
+            <h4>
+              Contact Us
+            </h4>
+            <div class="contact_link_box">
+              <a href="contact.html">
+                <i class="fa fa-map-marker" aria-hidden="true"></i>
+                <span>
+                  Location
+                </span>
+              </a>
+              <a href="contact.html">
+                <i class="fa fa-phone" aria-hidden="true"></i>
+                <span>
+                  Call +01 1234567890
+                </span>
+              </a>
+              <a href="contact.html">
+                <i class="fa fa-envelope" aria-hidden="true"></i>
+                <span>
+                  demo@gmail.com
+                </span>
+              </a>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4 footer-col">
+          <div class="footer_detail">
+            <a href="indexlogin.html" class="footer-logo">
+              Feane
+            </a>
+            <p>
+              Necessary, making this the first true generator on the Internet. It uses a dictionary of over 200 Latin words, combined with
+            </p>
+            <div class="footer_social">
+              <a href="social.html">
+                <i class="fa fa-facebook" aria-hidden="true"></i>
+              </a>
+              <a href="social.html">
+                <i class="fa fa-twitter" aria-hidden="true"></i>
+              </a>
+              <a href="social.html">
+                <i class="fa fa-linkedin" aria-hidden="true"></i>
+              </a>
+              <a href="social.html">
+                <i class="fa fa-instagram" aria-hidden="true"></i>
+              </a>
+              <a href="social.html">
+                <i class="fa fa-pinterest" aria-hidden="true"></i>
+              </a>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4 footer-col">
+          <h4>
+            Opening Hours
+          </h4>
+          <p>
+            Everyday
+          </p>
+          <p>
+            10.00 Am -10.00 Pm
+          </p>
+        </div>
+      </div>
+      <div class="footer-info">
+        <p>
+          &copy; <span id="displayYear"></span> All Rights Reserved By
+          <a href="https://html.design/">Free Html Templates</a><br><br>
+          &copy; <span id="displayYear"></span> Distributed By
+          <a href="https://themewagon.com/" target="_blank">ThemeWagon</a>
+        </p>
+      </div>
+    </div>
+  </footer>
+  <!-- footer section -->
+
+  <!-- jQery -->
+  <script src="js/jquery-3.4.1.min.js"></script>
+  <!-- popper js -->
+  <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous">
+  </script>
+  <!-- bootstrap js -->
+  <script src="js/bootstrap.js"></script>
+  <!-- custom js -->
+  <script src="js/custom.js"></script>
+
+  <script>
+    // Hàm tải giỏ hàng từ localStorage và cập nhật giao diện
+    function loadCartFromLocalStorage() {
+      const cartData = JSON.parse(localStorage.getItem('cartData'));
+      
+      if (!cartData || !cartData.items || cartData.items.length === 0) {
+        // Nếu không có dữ liệu giỏ hàng, chuyển hướng về trang giỏ hàng
+        window.location.href = 'shoppingcart.html';
+        return;
+      }
+      
+      // Cập nhật tổng tiền
+      document.getElementById('subtotal').textContent = '$' + cartData.subtotal;
+      document.getElementById('shipping').textContent = '$' + cartData.shipping;
+      document.getElementById('total').textContent = '$' + cartData.total;
+      
+      // Cập nhật danh sách sản phẩm trong tóm tắt đơn hàng
+      const orderItemsContainer = document.getElementById('order-items-container');
+      orderItemsContainer.innerHTML = '';
+      
+      // Thêm các mục mới từ giỏ hàng
+      cartData.items.forEach(item => {
+        const orderItem = document.createElement('div');
+        orderItem.className = 'order-item';
+        orderItem.innerHTML = `
+          <div>
+            <p class="mb-1"><strong>${item.name}</strong></p>
+            <p class="mb-0 text-muted">Số lượng: ${item.quantity}</p>
+          </div>
+          <span>$${item.total}</span>
+        `;
+        orderItemsContainer.appendChild(orderItem);
+      });
+      
+      // Thêm các phần tổng kết
+      const subtotalItem = document.createElement('div');
+      subtotalItem.className = 'order-item';
+      subtotalItem.innerHTML = `
+        <div>Tạm tính</div>
+        <span>$${cartData.subtotal}</span>
+      `;
+      orderItemsContainer.appendChild(subtotalItem);
+      
+      const shippingItem = document.createElement('div');
+      shippingItem.className = 'order-item';
+      shippingItem.innerHTML = `
+        <div>Phí vận chuyển</div>
+        <span>$${cartData.shipping}</span>
+      `;
+      orderItemsContainer.appendChild(shippingItem);
+      
+      const totalItem = document.createElement('div');
+      totalItem.className = 'order-item';
+      totalItem.style.borderBottom = 'none';
+      totalItem.innerHTML = `
+        <div><strong>Tổng cộng</strong></div>
+        <span><strong>$${cartData.total}</strong></span>
+      `;
+      orderItemsContainer.appendChild(totalItem);
+    }
+
+    // Xử lý chọn phương thức thanh toán
+    document.querySelectorAll('input[name="paymentMethod"]').forEach(radio => {
+      radio.addEventListener('change', function() {
+        // Ẩn tất cả các chi tiết thanh toán
+        document.querySelectorAll('.payment-details').forEach(detail => {
+          detail.style.display = 'none';
+        });
+        
+        // Xóa trạng thái active của tất cả các tùy chọn
+        document.querySelectorAll('.payment-option').forEach(option => {
+          option.classList.remove('active');
+        });
+        
+        // Hiển thị chi tiết thanh toán tương ứng và thêm lớp active
+        if (this.id === 'transfer') {
+          document.getElementById('transfer-details').style.display = 'block';
+          document.getElementById('transfer-option').classList.add('active');
+        } else if (this.id === 'online') {
+          document.getElementById('online-details').style.display = 'block';
+          document.getElementById('online-option').classList.add('active');
+        } else {
+          document.getElementById('cash-option').classList.add('active');
+        }
+      });
+    });
+
+    // Xử lý xác nhận đơn hàng
+    document.getElementById('confirm-order').addEventListener('click', function() {
+      // Hiển thị xác nhận đơn hàng
+      document.getElementById('order-confirmation').style.display = 'block';
+      
+      // Cuộn đến phần xác nhận
+      document.getElementById('order-confirmation').scrollIntoView({ behavior: 'smooth' });
+    });
+
+    // Gọi hàm khi trang được tải
+    document.addEventListener('DOMContentLoaded', loadCartFromLocalStorage);
+  </script>
+
+</body>
+</html>

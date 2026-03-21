@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Chi Tiết Đơn Hàng - Feane</title>
+  
+  <!-- Bootstrap core CSS -->
+  <link rel="stylesheet" type="text/css" href="css/bootstrap.css" />
+  <!-- Font Awesome -->
+  <link href="css/font-awesome.min.css" rel="stylesheet" />
+  <!-- Custom styles -->
+  <link href="css/style.css" rel="stylesheet" />
+  <link href="css/responsive.css" rel="stylesheet" />
+  
+  <style>
+    .order-detail_section {
+      padding: 50px 0;
+    }
+    .order-header {
+      background: #f8f9fa;
+      padding: 20px;
+      border-radius: 5px;
+      margin-bottom: 30px;
+    }
+    .order-info-card {
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      padding: 20px;
+      margin-bottom: 30px;
+    }
+    .order-items {
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      overflow: hidden;
+    }
+    .order-item {
+      display: flex;
+      padding: 15px;
+      border-bottom: 1px solid #eee;
+    }
+    .order-item:last-child {
+      border-bottom: none;
+    }
+    .order-item-image {
+      width: 80px;
+      margin-right: 15px;
+    }
+    .order-item-details {
+      flex: 1;
+    }
+    .order-summary {
+      background: #f8f9fa;
+      padding: 20px;
+      border-radius: 5px;
+    }
+    .status-badge {
+      display: inline-block;
+      padding: 5px 10px;
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: bold;
+    }
+    .status-pending {
+      background: #fff3cd;
+      color: #856404;
+    }
+    .status-confirmed {
+      background: #d1ecf1;
+      color: #0c5460;
+    }
+    .status-preparing {
+      background: #d1ecf1;
+      color: #0c5460;
+    }
+    .status-shipping {
+      background: #cce7ff;
+      color: #004085;
+    }
+    .status-delivered {
+      background: #d4edda;
+      color: #155724;
+    }
+    .status-cancelled {
+      background: #f8d7da;
+      color: #721c24;
+    }
+    .timeline {
+      position: relative;
+      padding-left: 30px;
+      margin-top: 20px;
+    }
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 10px;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: #ddd;
+    }
+    .timeline-item {
+      position: relative;
+      margin-bottom: 20px;
+    }
+    .timeline-item::before {
+      content: '';
+      position: absolute;
+      left: -20px;
+      top: 5px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #ffbe33;
+    }
+    .timeline-item.active::before {
+      background: #28a745;
+    }
+    .timeline-item.completed::before {
+      background: #28a745;
+    }
+    .action-buttons {
+      margin-top: 30px;
+    }
+  </style>
+</head>
+<body class="sub_page">
+
+  <div class="hero_area">
+    <div class="bg-box">
+      <img src="images/hero-bg.jpg" alt="">
+    </div>
+    <!-- header section strats -->
+    <header class="header_section">
+      <div class="container">
+        <nav class="navbar navbar-expand-lg custom_nav-container ">
+          <a class="navbar-brand" href="indexlogin.html">
+            <span>
+              Feane
+            </span>
+          </a>
+
+          <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+            <span class=""> </span>
+          </button>
+
+          <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <ul class="navbar-nav  mx-auto ">
+              <li class="nav-item">
+                <a class="nav-link" href="indexlogin.html">Home </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="menulogin.html">Menu</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="aboutlogin.html">About</a>
+              </li>
+              <li class="nav-item active">
+                <a class="nav-link" href="orderhistory.html">Đơn Hàng <span class="sr-only">(current)</span></a>
+              </li>
+            </ul>
+            <div class="user_option">
+              <a href="personalinformation.html" class="user_link">
+                <i class="fa fa-user" aria-hidden="true"></i>
+              </a>
+              <a class="cart_link" href="shoppingcart.html">
+                <svg version="1.1" id="Capa_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 456.029 456.029" style="enable-background:new 0 0 456.029 456.029;" xml:space="preserve">
+                  <g>
+                    <g>
+                      <path d="M345.6,338.862c-29.184,0-53.248,23.552-53.248,53.248c0,29.184,23.552,53.248,53.248,53.248
+                   c29.184,0,53.248-23.552,53.248-53.248C398.336,362.926,374.784,338.862,345.6,338.862z" />
+                    </g>
+                  </g>
+                  <g>
+                    <g>
+                      <path d="M439.296,84.91c-1.024,0-2.56-0.512-4.096-0.512H112.64l-5.12-34.304C104.448,27.566,84.992,10.67,61.952,10.67H20.48
+                   C9.216,10.67,0,19.886,0,31.15c0,11.264,9.216,20.48,20.48,20.48h41.472c2.56,0,4.608,2.048,5.12,4.608l31.744,216.064
+                   c4.096,27.136,27.648,47.616,55.296,47.616h212.992c26.624,0,49.664-18.944,55.296-45.056l33.28-166.4
+                   C457.728,97.71,450.56,86.958,439.296,84.91z" />
+                    </g>
+                  </g>
+                  <g>
+                    <g>
+                      <path d="M215.04,389.55c-1.024-28.16-24.576-50.688-52.736-50.688c-29.696,1.536-52.224,26.112-51.2,55.296
+                   c1.024,28.16,24.064,50.688,52.224,50.688h1.024C193.536,443.31,216.576,418.734,215.04,389.55z" />
+                    </g>
+                  </g>
+                </svg>
+                
+              </a>
+              <form class="form-inline">
+                <a href ="findproduct.html" class="btn  my-2 my-sm-0 nav_search-btn" >
+                  <i class="fa fa-search" aria-hidden="true"></i>
+               </a>
+              </form>
+              <div class="order_online" >
+                <a href="index.html" style="color: white;">
+                  Đăng xuất
+                </a>
+              </div>
+            </div>
+          </div>
+        </nav>
+      </div>
+    </header>
+    <!-- end header section -->
+  </div>
+
+  <!-- order detail section -->
+  <section class="order-detail_section layout_padding">
+    <div class="container">
+      <div class="heading_container heading_center">
+        <h2>
+          Chi Tiết Đơn Hàng
+        </h2>
+      </div>
+
+      <div class="order-header">
+        <div class="row">
+          <div class="col-md-6">
+            <h4>Mã đơn hàng: <strong>#FEANE2023001</strong></h4>
+            <p>Ngày đặt: <strong>1/11/2025 14:30</strong></p>
+          </div>
+          <div class="col-md-6 text-right">
+            <span class="status-badge status-confirmed">ĐÃ HỦY</span>
+            <p class="mt-2">Dự kiến giao: <strong>1/11/2025 18:00 - 19:00</strong></p>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-8">
+          <!-- Thông tin đơn hàng -->
+          <div class="order-info-card">
+            <h4>Thông tin đơn hàng</h4>
+            
+            <div class="order-items" id="order-items-container">
+             <div class="cart-items">
+        <div class="cart-item">
+          <div class="row align-items-center">
+            <div class="col-md-2">
+              
+                <img src="images/f1.png" class="img-fluid" alt="Delicious Pizza">
+              
+            </div>
+            <div class="col-md-4">
+              
+                <h5> Pizza hải sản</h5>
+              
+              <p class="text-muted">Size: Medium</p>
+            </div>
+            <div class="col-md-2">
+              <span class="price">150,000đ</span>
+            </div>
+            
+            <h5 > Số lượng: 1</h5>
+            
+              
+            </div>
+           
+          </div>
+          
+        </div>
+
+        <div class="cart-item">
+          <div class="row align-items-center">
+            <div class="col-md-2">
+              
+                <img src="images/f2.png" class="img-fluid" alt="Delicious Burger">
+              
+            </div>
+            <div class="col-md-4">
+             
+                <h5>Burger bò</h5>
+              
+              <p class="text-muted">Extra cheese</p>
+            </div>
+            <div class="col-md-2">
+              <span class="price">50,000đ</span>
+            </div>
+            <h5 > Số lượng: 2</h5>
+           
+          </div>
+        
+        </div>
+
+        <div class="cart-item">
+          <div class="row align-items-center">
+            <div class="col-md-2">
+              
+                <img src="images/f5.png" class="img-fluid" alt="French Fries">
+              
+            </div>
+            <div class="col-md-4">
+              
+                <h5>Khoai tây chiên</h5>
+           
+              <p class="text-muted">Large size</p>
+            </div>
+            <div class="col-md-2">
+              <span class="price">20,000đ</span>
+            </div>
+            <h5 > Số lượng: 1</h5>
+            
+          </div>
+          
+        </div>
+      </div>
+            </div>
+            
+            <div class="order-summary mt-4">
+              <div class="d-flex justify-content-between mb-2">
+                <span>Tạm tính:</span>
+                <span id="subtotal">270,000đ</span>
+              </div>
+              <div class="d-flex justify-content-between mb-2">
+                <span>Phí vận chuyển:</span>
+                <span id="shipping">30,000đ</span>
+              </div>
+              <div class="d-flex justify-content-between mb-2">
+                <span>Giảm giá:</span>
+                <span class="text-success">-0đ</span>
+              </div>
+              <div class="d-flex justify-content-between font-weight-bold" style="font-size: 1.2rem;">
+                <span>Tổng cộng:</span>
+                <span id="total">300,000đ</span>
+              </div>
+            </div>
+          
+          
+          <!-- Ghi chú đơn hàng -->
+          <div class="order-info-card">
+            <h4>Ghi chú đơn hàng</h4>
+            <p class="mb-0">Giao hàng trước 18h, vui lòng gọi điện trước khi giao.</p>
+          </div>
+        </div>
+        
+        <div class="col-md-4">
+          <!-- Thông tin giao hàng -->
+          <div class="order-info-card">
+            <h4>Thông tin giao hàng</h4>
+            <p><strong>Huỳnh Lê Khánh Ly</strong></p>
+            <p>123 Đường ABC, Phường 1, Quận 1, TP.HCM</p>
+            <p>Điện thoại: 094 174 2841</p>
+          </div>
+          
+          <!-- Phương thức thanh toán -->
+          <div class="order-info-card">
+            <h4>Phương thức thanh toán</h4>
+            <p><strong>Tiền mặt khi nhận hàng</strong></p>
+            <p class="mb-0">Bạn sẽ thanh toán khi nhận được hàng</p>
+          </div>
+          
+          <!-- Trạng thái đơn hàng -->
+          <div class="order-info-card">
+            <h4>Trạng thái đơn hàng</h4>
+            <div class="timeline">
+              <div class="timeline-item completed">
+                <strong>Đơn hàng đã đặt</strong>
+                <p class="mb-0 text-muted">1/11/2025 14:30</p>
+              </div>
+              <div class="timeline-item completed">
+                <strong>Đã xác nhận</strong>
+                <p class="mb-0 text-muted">1/11/2025 14:35</p>
+              </div>
+              <div class="timeline-item active">
+                <strong>Đang chuẩn bị</strong>
+                <p class="mb-0 text-muted">Dự kiến: 15:00</p>
+              </div>
+              <div class="timeline-item">
+                <strong>Đang giao hàng</strong>
+                <p class="mb-0 text-muted">Dự kiến: 18:00</p>
+              </div>
+              <div class="timeline-item">
+                <strong>Đã giao hàng</strong>
+                <p class="mb-0 text-muted">Chưa hoàn thành</p>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Hỗ trợ -->
+          <div class="order-info-card">
+            <h4>Cần hỗ trợ?</h4>
+            <p>Nếu bạn có bất kỳ câu hỏi nào về đơn hàng, vui lòng liên hệ:</p>
+            <p><strong>Hotline:</strong> 1900 1234</p>
+            <p><strong>Email:</strong> support@feane.com</p>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Nút hành động -->
+      <div class="action-buttons text-center">
+        <a href="ordershistory.html" class="btn btn-outline-secondary">Quay lại lịch sử đơn hàng</a>
+        <a href="menulogin.html" class="btn btn-primary ml-2">Đặt món mới</a>
+        
+      </div>
+      
+      
+      </div>
+    </div>
+  </section>
+  <!-- end order detail section -->
+
+  <!-- footer section -->
+  <footer class="footer_section">
+    <div class="container">
+      <div class="row">
+        <div class="col-md-4 footer-col">
+          <div class="footer_contact">
+            <h4>
+              Contact Us
+            </h4>
+            <div class="contact_link_box">
+              <a href="contact.html">
+                <i class="fa fa-map-marker" aria-hidden="true"></i>
+                <span>
+                  Location
+                </span>
+              </a>
+              <a href="contact.html">
+                <i class="fa fa-phone" aria-hidden="true"></i>
+                <span>
+                  Call +01 1234567890
+                </span>
+              </a>
+              <a href="contact.html">
+                <i class="fa fa-envelope" aria-hidden="true"></i>
+                <span>
+                  demo@gmail.com
+                </span>
+              </a>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4 footer-col">
+          <div class="footer_detail">
+            <a href="indexlogin.html" class="footer-logo">
+              Feane
+            </a>
+            <p>
+              Necessary, making this the first true generator on the Internet. It uses a dictionary of over 200 Latin words, combined with
+            </p>
+            <div class="footer_social">
+              <a href="social.html">
+                <i class="fa fa-facebook" aria-hidden="true"></i>
+              </a>
+              <a href="social.html">
+                <i class="fa fa-twitter" aria-hidden="true"></i>
+              </a>
+              <a href="social.html">
+                <i class="fa fa-linkedin" aria-hidden="true"></i>
+              </a>
+              <a href="social.html">
+                <i class="fa fa-instagram" aria-hidden="true"></i>
+              </a>
+              <a href="social.html">
+                <i class="fa fa-pinterest" aria-hidden="true"></i>
+              </a>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4 footer-col">
+          <h4>
+            Opening Hours
+          </h4>
+          <p>
+            Everyday
+          </p>
+          <p>
+            10.00 Am -10.00 Pm
+          </p>
+        </div>
+      </div>
+      <div class="footer-info">
+        <p>
+          &copy; <span id="displayYear"></span> All Rights Reserved By
+          <a href="https://html.design/">Free Html Templates</a><br><br>
+          &copy; <span id="displayYear"></span> Distributed By
+          <a href="https://themewagon.com/" target="_blank">ThemeWagon</a>
+        </p>
+      </div>
+    </div>
+  </footer>
+  <!-- footer section -->
+
+  <!-- jQery -->
+  <script src="js/jquery-3.4.1.min.js"></script>
+  <!-- popper js -->
+  <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous">
+  </script>
+  <!-- bootstrap js -->
+  <script src="js/bootstrap.js"></script>
+  <!-- custom js -->
+  <script src="js/custom.js"></script>
+
+  <script>
+    // Hàm tải giỏ hàng từ localStorage và cập nhật giao diện chi tiết đơn hàng
+    function loadOrderDetailFromLocalStorage() {
+      const cartData = JSON.parse(localStorage.getItem('cartData'));
+      
+      if (cartData && cartData.items) {
+        // Cập nhật tổng tiền
+        document.getElementById('subtotal').textContent = '$' + cartData.subtotal;
+        document.getElementById('shipping').textContent = '$' + cartData.shipping;
+        document.getElementById('total').textContent = '$' + cartData.total;
+        
+        // Cập nhật chi tiết từng sản phẩm
+        const orderItemsContainer = document.getElementById('order-items-container');
+        orderItemsContainer.innerHTML = '';
+        
+        cartData.items.forEach(item => {
+          const orderItem = document.createElement('div');
+          orderItem.className = 'order-item';
+          
+          // Xác định hình ảnh dựa trên tên sản phẩm
+          let imageSrc = 'images/f1.png'; // Mặc định
+          if (item.name.includes('Burger')) {
+            imageSrc = 'images/f2.png';
+          } else if (item.name.includes('Fries')) {
+            imageSrc = 'images/f5.png';
+          }
+          
+          orderItem.innerHTML = `
+            <div class="order-item-image">
+              <a href="productdetail.html">
+                <img src="${imageSrc}" class="img-fluid" alt="${item.name}">
+              </a>
+            </div>
+            <div class="order-item-details">
+              <a href="productdetail.html">
+                <h5>${item.name}</h5>
+              </a>
+              <p class="text-muted">${item.name.includes('Pizza') ? 'Size: Medium' : item.name.includes('Burger') ? 'Extra cheese' : 'Large size'}</p>
+              <div class="d-flex justify-content-between">
+                <span>Số lượng: ${item.quantity}</span>
+                <span class="font-weight-bold">$${item.total}</span>
+              </div>
+            </div>
+          `;
+          orderItemsContainer.appendChild(orderItem);
+        });
+      }
+    }
+
+    // Xử lý nút hủy đơn hàng
+    document.getElementById('cancel-order').addEventListener('click', function() {
+      $('#cancelOrderModal').modal('show');
+    });
+
+    // Xác nhận hủy đơn hàng
+    document.getElementById('confirm-cancel').addEventListener('click', function() {
+      // Ở đây sẽ là code xử lý hủy đơn hàng (trong thực tế)
+      // Với mục đích giao diện, chúng ta chỉ hiển thị thông báo
+      alert('Đơn hàng #FEANE2023001 đã được hủy thành công.');
+      $('#cancelOrderModal').modal('hide');
+      
+      // Cập nhật trạng thái đơn hàng
+      document.querySelector('.status-badge').className = 'status-badge status-cancelled';
+      document.querySelector('.status-badge').textContent = 'ĐÃ HỦY';
+      
+      // Vô hiệu hóa nút hủy
+      document.getElementById('cancel-order').disabled = true;
+    });
+
+    // Gọi hàm khi trang được tải
+    document.addEventListener('DOMContentLoaded', loadOrderDetailFromLocalStorage);
+  </script>
+
+</body>
+</html>
