@@ -54,11 +54,16 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
                 $stmt->execute();
                 $imports = $stmt->fetchAll();
 
+                // Count query – fixed subquery
                 $countSql = "SELECT COUNT(DISTINCT i.id) as total FROM imports i
                              LEFT JOIN import_details d ON i.id = d.import_id WHERE 1=1";
                 $countParams = [];
                 if ($search) {
-                    $countSql .= " AND (i.import_code LIKE :search OR EXISTS (...))";
+                    $countSql .= " AND (i.import_code LIKE :search OR EXISTS (
+                                    SELECT 1 FROM import_details d2
+                                    JOIN products p ON d2.product_id = p.id
+                                    WHERE d2.import_id = i.id AND p.name LIKE :search2
+                                ))";
                     $countParams[':search'] = "%$search%";
                     $countParams[':search2'] = "%$search%";
                 }
@@ -71,7 +76,9 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
                     $countParams[':status'] = $status;
                 }
                 $countStmt = $pdo->prepare($countSql);
-                foreach ($countParams as $key => $val) $countStmt->bindValue($key, $val);
+                foreach ($countParams as $key => $val) {
+                    $countStmt->bindValue($key, $val);
+                }
                 $countStmt->execute();
                 $total = $countStmt->fetch()['total'];
                 $totalPages = ceil($total / $limit);
@@ -245,6 +252,7 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <style>
         :root {
             --primary-color: #ffbe33;
@@ -578,7 +586,7 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
         function renderTable(imports) {
             const tbody = $('#imports-tbody');
             if (!imports.length) {
-                tbody.html('<td colspan="7" class="text-center">Không có phiếu nhập nào</td>');
+                tbody.html('<tr><td colspan="7" class="text-center">Không có phiếu nhập nào</td></tr>');
                 return;
             }
             let html = '';
@@ -851,5 +859,25 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
         loadProducts();
         loadImports();
     </script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/vn.js"></script>
+<script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/vn.js"></script>
+<script>
+  flatpickr("#date-input", {
+    locale: "vn",
+    dateFormat: "d/m/Y",
+    position: "below left",
+  
+  });
+  flatpickr("#import_date", {
+    locale: "vn",
+    dateFormat: "d/m/Y",
+    position: "below left",
+  
+  });
+</script>
+</script>
 </body>
 </html>
