@@ -2,13 +2,6 @@
 session_start();
 require_once 'db_connection.php';
 
-// Kiểm tra đăng nhập admin
-if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
-    header('Location: adminlogin.html');
-    exit;
-}
-
-// Xử lý các action AJAX
 if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
     header('Content-Type: application/json');
     $action = $_POST['action'] ?? $_GET['action'] ?? '';
@@ -388,9 +381,9 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
             <li class="nav-item"><a class="nav-link" href="categories.html"><i class="fas fa-tags"></i> <span>Loại sản phẩm</span></a></li>
             <li class="nav-item"><a class="nav-link" href="products.html"><i class="fas fa-hamburger"></i> <span>Sản phẩm</span></a></li>
             <li class="nav-item"><a class="nav-link active" href="imports.php"><i class="fas fa-arrow-down"></i> <span>Nhập sản phẩm</span></a></li>
-            <li class="nav-item"><a class="nav-link" href="pricing.html"><i class="fas fa-dollar-sign"></i> <span>Giá bán</span></a></li>
-            <li class="nav-item"><a class="nav-link" href="orders.html"><i class="fas fa-shopping-cart"></i> <span>Đơn hàng</span></a></li>
-            <li class="nav-item"><a class="nav-link" href="inventory.html"><i class="fas fa-boxes"></i> <span>Tồn kho</span></a></li>
+            <li class="nav-item"><a class="nav-link" href="pricing.php"><i class="fas fa-dollar-sign"></i> <span>Giá bán</span></a></li>
+            <li class="nav-item"><a class="nav-link" href="orders.php"><i class="fas fa-shopping-cart"></i> <span>Đơn hàng</span></a></li>
+            <li class="nav-item"><a class="nav-link" href="inventory.php"><i class="fas fa-boxes"></i> <span>Tồn kho</span></a></li>
             <li class="nav-item mt-4"><a class="nav-link" href="adminlogin.html" id="logout-btn"><i class="fas fa-sign-out-alt"></i> <span>Đăng xuất</span></a></li>
         </ul>
     </div>
