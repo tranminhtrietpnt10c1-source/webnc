@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Đặt Hàng Thành Công - Feane</title>
+  
+  <!-- Bootstrap core CSS -->
+  <link rel="stylesheet" type="text/css" href="css/bootstrap.css" />
+  <!-- Font Awesome -->
+  <link href="css/font-awesome.min.css" rel="stylesheet" />
+  <!-- Custom styles -->
+  <link href="css/style.css" rel="stylesheet" />
+  <link href="css/responsive.css" rel="stylesheet" />
+  
+  <style>
+    .success-section {
+      min-height: calc(100vh - 200px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 50px 0;
+    }
+    .order-confirmation {
+      text-align: center;
+      padding: 40px;
+      border: 2px dashed #ffbe33;
+      border-radius: 10px;
+      background-color: #fff;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+      max-width: 600px;
+      width: 100%;
+    }
+    .order-details {
+      margin-top: 30px;
+      padding: 20px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      text-align: left;
+    }
+    .order-details h5 {
+      color: #333;
+      margin-bottom: 15px;
+      border-bottom: 1px solid #ddd;
+      padding-bottom: 10px;
+    }
+    .order-details p {
+      margin-bottom: 8px;
+    }
+    .btn-primary {
+      background-color: #ffbe33;
+      border-color: #ffbe33;
+    }
+    .btn-primary:hover {
+      background-color: #e69c29;
+      border-color: #e69c29;
+    }
+  </style>
+</head>
+<body class="sub_page">
+
+  <div class="hero_area">
+    <div class="bg-box">
+      <img src="images/hero-bg.jpg" alt="">
+    </div>
+    <!-- header section strats -->
+    <header class="header_section">
+      <div class="container">
+        <nav class="navbar navbar-expand-lg custom_nav-container ">
+          <a class="navbar-brand" href="indexlogin.html">
+            <span>
+              Feane
+            </span>
+          </a>
+
+          <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+            <span class=""> </span>
+          </button>
+
+          <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <ul class="navbar-nav  mx-auto ">
+              <li class="nav-item">
+                <a class="nav-link" href="indexlogin.html">Home </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="menulogin.html">Menu</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="aboutlogin.html">About</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="ordershistory.html">Order history</a>
+              </li>
+            </ul>
+            <div class="user_option">
+              <a href="personalinformation.html" class="user_link">
+                <i class="fa fa-user" aria-hidden="true"></i>
+              </a>
+              <a class="cart_link" href="shoppingcart.html">
+                <svg version="1.1" id="Capa_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 456.029 456.029" style="enable-background:new 0 0 456.029 456.029;" xml:space="preserve">
+                  <g>
+                    <g>
+                      <path d="M345.6,338.862c-29.184,0-53.248,23.552-53.248,53.248c0,29.184,23.552,53.248,53.248,53.248
+                   c29.184,0,53.248-23.552,53.248-53.248C398.336,362.926,374.784,338.862,345.6,338.862z" />
+                    </g>
+                  </g>
+                  <g>
+                    <g>
+                      <path d="M439.296,84.91c-1.024,0-2.56-0.512-4.096-0.512H112.64l-5.12-34.304C104.448,27.566,84.992,10.67,61.952,10.67H20.48
+                   C9.216,10.67,0,19.886,0,31.15c0,11.264,9.216,20.48,20.48,20.48h41.472c2.56,0,4.608,2.048,5.12,4.608l31.744,216.064
+                   c4.096,27.136,27.648,47.616,55.296,47.616h212.992c26.624,0,49.664-18.944,55.296-45.056l33.28-166.4
+                   C457.728,97.71,450.56,86.958,439.296,84.91z" />
+                    </g>
+                  </g>
+                  <g>
+                    <g>
+                      <path d="M215.04,389.55c-1.024-28.16-24.576-50.688-52.736-50.688c-29.696,1.536-52.224,26.112-51.2,55.296
+                   c1.024,28.16,24.064,50.688,52.224,50.688h1.024C193.536,443.31,216.576,418.734,215.04,389.55z" />
+                    </g>
+                  </g>
+                </svg>
+               
+              </a>
+              <form class="form-inline">
+                <a href ="findproduct.html" class="btn  my-2 my-sm-0 nav_search-btn" >
+                  <i class="fa fa-search" aria-hidden="true"></i>
+               </a>
+              </form>
+              <div class="order_online" >
+                <a href="index.html" style="color: white;">
+                  Đăng xuất
+                </a>
+              </div>
+            </div>
+          </div>
+        </nav>
+      </div>
+    </header>
+    <!-- end header section -->
+  </div>
+  
+  <!-- Success Section -->
+  <section class="success-section">
+    <div class="container">
+      <div class="row justify-content-center">
+        <div class="col-md-8">
+          <div class="order-confirmation">
+            <i class="fa fa-check-circle" style="font-size: 80px; color: #28a745;"></i>
+            <h2 class="mt-4 mb-3">Đặt Hàng Thành Công!</h2>
+            <p class="mb-4">Cảm ơn bạn đã đặt hàng tại Feane. Đơn hàng của bạn đã được tiếp nhận và đang được xử lý.</p>
+            <div class="order-details">
+              <h5>Thông tin đơn hàng</h5>
+              <p><strong>Mã đơn hàng:</strong> #FEANE2023001</p>
+              <p><strong>Ngày đặt hàng:</strong> 20/11/2023</p>
+              <p><strong>Tổng tiền:</strong> 300,000đ</p>
+              <p><strong>Phương thức thanh toán:</strong> Thanh toán khi nhận hàng</p>
+            </div>
+            <p class="mt-4 mb-4">Bạn sẽ nhận được email xác nhận đơn hàng trong vòng 5 phút.</p>
+            <div class="mt-4">
+              <a href="orderdetail.html" class="btn btn-primary mr-3">Xem chi tiết đơn hàng</a>
+              <a href="menulogin.html" class="btn btn-outline-secondary">Tiếp tục mua hàng</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  
+</body>
+</html>
