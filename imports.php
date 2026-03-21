@@ -281,6 +281,7 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
             width: 20px;
             margin-right: 10px;
         }
+
         .main-content {
             margin-left: 250px;
             padding: 20px;
@@ -310,6 +311,12 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
         .btn-custom:hover {
             background-color: #e6a500;
             transform: translateY(-2px);
+        }
+ 
+        .table th {
+            background-color: var(--secondary-color);
+            color: var(--light-color);
+            border: none;
         }
         .badge-status-pending {
             background-color: #6c757d;
@@ -349,13 +356,22 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
             color: var(--dark-color);
         }
         .product-row {
+            background-color: #fef9e6;
+            transition: all 0.2s;
             margin-bottom: 15px;
             padding: 10px;
-            border: 1px solid #dee2e6;
-            border-radius: 5px;
+            border-radius: 8px;
         }
-        .remove-row {
-            margin-top: 30px;
+        .product-row:hover {
+            background-color: #fff3d1;
+        }
+        .select2-container--default .select2-selection--single {
+            height: 38px;
+            border: 1px solid #ced4da;
+            border-radius: 0.375rem;
+        }
+        .select2-container--default .select2-dropdown {
+            z-index: 1060 !important;
         }
         @media (max-width: 768px) {
             .sidebar {
@@ -367,6 +383,22 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
             .main-content {
                 margin-left: 70px;
             }
+        }
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            background-color: var(--primary-color);
+            color: var(--dark-color);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+            margin-right: 12px;
+        }
+        .navbar-custom .container-fluid {
+            justify-content: flex-start;
         }
     </style>
 </head>
@@ -391,17 +423,11 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
     <div class="main-content">
         <nav class="navbar navbar-expand-lg navbar-custom mb-4">
             <div class="container-fluid">
-                <button class="btn toggle-sidebar" id="toggle-sidebar"><i class="fas fa-bars"></i></button>
                 <div class="d-flex align-items-center">
-                    <span class="navbar-text me-3">Xin chào, <strong>Admin</strong></span>
-                    <div class="dropdown">
-                        <button class="btn" type="button" data-bs-toggle="dropdown"><i class="fas fa-user-circle fa-lg"></i></button>
-                        <ul class="dropdown-menu dropdown-menu-end">
-                            <li><a class="dropdown-item" href="profile.html"><i class="fas fa-user me-2"></i> Hồ sơ</a></li>
-                            <li><a class="dropdown-item" href="settings.html"><i class="fas fa-cog me-2"></i> Cài đặt</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="adminlogin.html"><i class="fas fa-sign-out-alt me-2"></i> Đăng xuất</a></li>
-                        </ul>
+                    <div class="user-avatar">A</div>
+                    <div>
+                        <div class="fw-bold">Admin</div>
+                        <small class="text-muted">Quản trị viên</small>
                     </div>
                 </div>
             </div>
@@ -417,14 +443,17 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
 
             <div class="card card-custom mb-4">
                 <div class="card-body">
-                    <div class="row g-3">
+                    <div class="row g-3 align-items-end">
                         <div class="col-md-5">
-                            <input type="text" id="search-input" class="form-control" placeholder="Tìm kiếm theo mã phiếu hoặc tên sản phẩm">
+                            <label class="form-label">Tìm kiếm</label>
+                            <input type="text" id="search-input" class="form-control" placeholder="Mã phiếu hoặc tên sản phẩm">
                         </div>
                         <div class="col-md-4">
+                            <label class="form-label">Ngày nhập</label>
                             <input type="date" id="date-input" class="form-control">
                         </div>
                         <div class="col-md-3">
+                            <label class="form-label">&nbsp;</label>
                             <button id="btn-search" class="btn btn-custom w-100"><i class="fas fa-search"></i> Tìm kiếm</button>
                         </div>
                     </div>
@@ -442,18 +471,16 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
                     <div class="table-responsive">
                         <table class="table table-hover" id="imports-table">
                             <thead>
-                                <tr>
-                                    <th>Mã phiếu</th>
+                                <th>Mã phiếu</th>
                                     <th>Ngày nhập</th>
                                     <th>Số sản phẩm</th>
                                     <th>Tổng số lượng</th>
                                     <th>Tổng giá trị</th>
                                     <th>Trạng thái</th>
                                     <th>Thao tác</th>
-                                </tr>
-                            </thead>
+                                </thead>
                             <tbody id="imports-tbody">
-                                <tr><td colspan="7" class="text-center">Đang tải...</td></tr>
+                                <td colspan="7" class="text-center">Đang tải...</td>
                             </tbody>
                         </table>
                     </div>
@@ -467,24 +494,30 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
     <div class="modal fade" id="importFormModal" tabindex="-1">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
-                <div class="modal-header">
+                <div class="modal-header bg-dark text-white">
                     <h5 class="modal-title" id="formModalTitle">Thêm phiếu nhập</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <form id="import-form">
                         <input type="hidden" id="import_id" name="import_id">
                         <div class="mb-3">
-                            <label class="form-label">Ngày nhập</label>
+                            <label class="form-label fw-bold">Ngày nhập</label>
                             <input type="date" name="import_date" id="import_date" class="form-control" required>
                         </div>
+
+                        <div class="mb-2 fw-bold">Danh sách sản phẩm</div>
                         <div id="product-rows-container"></div>
-                        <div class="mt-2">
-                            <button type="button" id="add-product-row" class="btn btn-secondary btn-sm"><i class="fas fa-plus"></i> Thêm sản phẩm</button>
+
+                        <div class="mt-3">
+                            <button type="button" id="add-product-row" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-plus me-1"></i> Thêm sản phẩm
+                            </button>
                         </div>
-                        <div class="mt-4">
-                            <button type="submit" class="btn btn-custom">Lưu</button>
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+
+                        <div class="mt-4 d-flex justify-content-end gap-2">
+                            <button type="submit" class="btn btn-custom px-4">Lưu</button>
+                            <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Hủy</button>
                         </div>
                     </form>
                 </div>
@@ -513,6 +546,16 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
         let currentFilters = { search: '', date: '', status: '' };
         let productsList = [];
 
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+
         function loadImports() {
             const params = {
                 ajax: 1,
@@ -535,7 +578,7 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
         function renderTable(imports) {
             const tbody = $('#imports-tbody');
             if (!imports.length) {
-                tbody.html('<tr><td colspan="7" class="text-center">Không có phiếu nhập nào</td></tr>');
+                tbody.html('<td colspan="7" class="text-center">Không có phiếu nhập nào</td>');
                 return;
             }
             let html = '';
@@ -605,30 +648,40 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
         }
 
         function addProductRow(selectedProductId = '', quantity = '', price = '') {
-            const rowIndex = $('#product-rows-container .product-row').length;
             const rowHtml = `
-                <div class="product-row row align-items-end mb-2" data-index="${rowIndex}">
+                <div class="product-row row g-2 align-items-end mb-3 p-2 border rounded">
                     <div class="col-md-5">
+                        <label class="form-label small text-muted">Sản phẩm</label>
                         <select name="products[]" class="form-select product-select" required>
                             <option value="">-- Chọn sản phẩm --</option>
                         </select>
                     </div>
-                    <div class="col-md-2">
+                    <div class="col-md-3">
+                        <label class="form-label small text-muted">Số lượng</label>
                         <input type="number" name="quantities[]" class="form-control" placeholder="SL" min="1" value="${quantity}" required>
                     </div>
                     <div class="col-md-3">
-                        <input type="number" name="prices[]" class="form-control" placeholder="Giá" step="1000" min="0" value="${price}" required>
+                        <label class="form-label small text-muted">Giá nhập (VNĐ)</label>
+                        <input type="number" name="prices[]" class="form-control" placeholder="Giá" step="10000" min="0" value="${price}" required>
                     </div>
-                    <div class="col-md-2">
-                        <button type="button" class="btn btn-danger btn-sm remove-row"><i class="fas fa-trash"></i></button>
+                    <div class="col-md-1 text-center">
+                        <button type="button" class="btn btn-sm btn-outline-danger remove-row mt-2">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
                     </div>
                 </div>
             `;
             $('#product-rows-container').append(rowHtml);
+
             const $select = $('#product-rows-container .product-select').last();
-            $select.select2({ width: '100%', placeholder: '-- Chọn sản phẩm --' });
+            $select.select2({
+                width: '100%',
+                placeholder: '-- Chọn sản phẩm --',
+                allowClear: true,
+                dropdownParent: $('#importFormModal')
+            });
             productsList.forEach(p => {
-                $select.append(`<option value="${p.id}" ${p.id == selectedProductId ? 'selected' : ''}>${p.name}</option>`);
+                $select.append(`<option value="${p.id}" ${p.id == selectedProductId ? 'selected' : ''}>${escapeHtml(p.name)}</option>`);
             });
         }
 

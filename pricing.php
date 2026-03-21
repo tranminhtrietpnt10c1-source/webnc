@@ -96,7 +96,7 @@ if (isset($_REQUEST['action'])) {
                 if (!$product_id) throw new Exception('Missing product ID');
 
                 // Lấy cost_price hiện tại
-                $stmt = $pdo->prepare("SELECT cost_price FROM products WHERE id = ?");
+                $stmt = $pdo->prepare("SELECT cost_price, selling_price FROM products WHERE id = ?");
                 $stmt->execute([$product_id]);
                 $product = $stmt->fetch();
                 if (!$product) throw new Exception('Product not found');
@@ -120,9 +120,10 @@ if (isset($_REQUEST['action'])) {
             case 'getImportLots':
                 $product_id = $_GET['product_id'] ?? null;
                 $sql = "SELECT d.id, d.import_id, d.product_id, d.quantity, d.unit_cost, d.subtotal,
-                               i.import_date, i.import_code
+                               i.import_date, i.import_code, p.name as product_name
                         FROM import_details d
                         JOIN imports i ON d.import_id = i.id
+                        JOIN products p ON d.product_id = p.id
                         WHERE 1=1";
                 $params = [];
                 if ($product_id) {
@@ -185,9 +186,8 @@ $categories = $stmt->fetchAll();
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <!-- Custom CSS (giữ nguyên từ file HTML gốc) -->
     <style>
-        /* ... copy toàn bộ CSS từ file pricing.html ... */
+        /* CSS giữ nguyên từ file gốc, chỉ điều chỉnh một số phần để đồng bộ */
         :root {
             --primary-color: #ffbe33;
             --secondary-color: #222831;
@@ -401,6 +401,7 @@ $categories = $stmt->fetchAll();
         .search-form {
             display: flex;
             gap: 10px;
+            align-items: center;
         }
         .search-input-container {
             flex-grow: 1;
@@ -443,6 +444,27 @@ $categories = $stmt->fetchAll();
         .nav-tabs .nav-link {
             color: var(--secondary-color);
         }
+      
+        .table th {
+            background-color: var(--secondary-color);
+            color: var(--light-color);
+        }
+        .table td {
+            vertical-align: middle;
+        }
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            background-color: var(--primary-color);
+            color: var(--dark-color);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+            margin-right: 12px;
+        }
     </style>
 </head>
 <body>
@@ -468,17 +490,14 @@ $categories = $stmt->fetchAll();
     <div class="main-content">
         <nav class="navbar navbar-expand-lg navbar-custom mb-4">
             <div class="container-fluid">
-                <button class="btn toggle-sidebar" id="toggle-sidebar"><i class="fas fa-bars"></i></button>
+                <button class="btn toggle-sidebar" id="toggle-sidebar">
+                    <i class="fas fa-bars"></i>
+                </button>
                 <div class="d-flex align-items-center">
-                    <span class="navbar-text me-3">Xin chào, <strong>Admin</strong></span>
-                    <div class="dropdown">
-                        <button class="btn" type="button" data-bs-toggle="dropdown"><i class="fas fa-user-circle fa-lg"></i></button>
-                        <ul class="dropdown-menu dropdown-menu-end">
-                            <li><a class="dropdown-item" href="profile.html"><i class="fas fa-user me-2"></i> Hồ sơ</a></li>
-                            <li><a class="dropdown-item" href="settings.html"><i class="fas fa-cog me-2"></i> Cài đặt</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="adminlogin.html"><i class="fas fa-sign-out-alt me-2"></i> Đăng xuất</a></li>
-                        </ul>
+                    <div class="user-avatar">A</div>
+                    <div>
+                        <div class="fw-bold">Admin</div>
+                        <small class="text-muted">Quản trị viên</small>
                     </div>
                 </div>
             </div>
@@ -489,7 +508,7 @@ $categories = $stmt->fetchAll();
 
             <!-- Global Search Container -->
             <div class="global-search-container">
-                <h5 class="mb-3"><i class="fas fa-search me-2"></i>Tra cứu </h5>
+                <h5 class="mb-3"><i class="fas fa-search me-2"></i>Tra cứu</h5>
                 <form class="search-form" id="global-search-form">
                     <div class="search-input-container">
                         <input type="text" class="form-control search-input" id="global-search-input" placeholder="Nhập tên hoặc mã sản phẩm...">
@@ -523,7 +542,7 @@ $categories = $stmt->fetchAll();
                             <h5 class="card-title mb-0">Tỷ lệ lợi nhuận theo loại sản phẩm</h5>
                             <div class="card-header-buttons">
                                 <div class="dropdown filter-dropdown">
-                                    <button class="btn btn-filter dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                    <button class="btn btn-custom dropdown-toggle" type="button" data-bs-toggle="dropdown">
                                         <i class="fas fa-filter me-2"></i>Lọc & Tra cứu
                                     </button>
                                     <ul class="dropdown-menu">
@@ -538,15 +557,13 @@ $categories = $stmt->fetchAll();
                             <div class="table-responsive">
                                 <table class="table table-hover" id="category-table">
                                     <thead>
-                                        <tr>
-                                            <th>Mã loại</th>
+                                        <th>Mã loại</th>
                                             <th>Tên loại sản phẩm</th>
                                             <th>Giá vốn TB (VNĐ)</th>
                                             <th>Giá bán TB (VNĐ)</th>
                                             <th>Số lượng SP</th>
                                             <th>Tỷ lệ lợi nhuận TB (%)</th>
-                                        </tr>
-                                    </thead>
+                                        </thead>
                                     <tbody id="category-tbody">
                                         <tr><td colspan="6" class="text-center">Đang tải...</td></tr>
                                     </tbody>
@@ -563,7 +580,7 @@ $categories = $stmt->fetchAll();
                             <h5 class="card-title mb-0">Tỷ lệ lợi nhuận theo sản phẩm</h5>
                             <div class="card-header-buttons">
                                 <div class="dropdown filter-dropdown">
-                                    <button class="btn btn-filter dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                    <button class="btn btn-custom dropdown-toggle" type="button" data-bs-toggle="dropdown">
                                         <i class="fas fa-filter me-2"></i>Lọc & Tra cứu
                                     </button>
                                     <ul class="dropdown-menu">
@@ -578,22 +595,19 @@ $categories = $stmt->fetchAll();
                             <div class="table-responsive">
                                 <table class="table table-hover" id="product-table">
                                     <thead>
-                                        <tr>
-                                            <th>Mã SP</th>
+                                        <th>Mã SP</th>
                                             <th>Tên sản phẩm</th>
                                             <th>Loại</th>
                                             <th>Giá vốn (VNĐ)</th>
                                             <th>Giá bán (VNĐ)</th>
                                             <th>Tỷ lệ lợi nhuận (%)</th>
                                             <th>Thao tác</th>
-                                        </tr>
-                                    </thead>
+                                        </thead>
                                     <tbody id="product-tbody">
                                         <tr><td colspan="7" class="text-center">Đang tải...</td></tr>
                                     </tbody>
                                 </table>
                             </div>
-                            <!-- Phân trang (có thể thêm nếu cần) -->
                         </div>
                     </div>
                 </div>
@@ -627,16 +641,14 @@ $categories = $stmt->fetchAll();
                             <div class="table-responsive">
                                 <table class="table table-hover" id="import-table">
                                     <thead>
-                                        <tr>
-                                            <th>Mã phiếu</th>
+                                        <th>Mã phiếu</th>
                                             <th>Ngày nhập</th>
                                             <th>Sản phẩm</th>
                                             <th>Số lượng</th>
                                             <th>Giá nhập (VNĐ)</th>
                                             <th>Giá bán hiện tại (VNĐ)</th>
                                             <th>Lợi nhuận (%)</th>
-                                        </tr>
-                                    </thead>
+                                        </thead>
                                     <tbody id="import-tbody">
                                         <tr><td colspan="7" class="text-center">Đang tải...</td></tr>
                                     </tbody>
@@ -649,8 +661,7 @@ $categories = $stmt->fetchAll();
         </div>
     </div>
 
-    <!-- Modals (giữ nguyên các modal lọc từ HTML gốc nhưng có thể điều chỉnh nội dung để phù hợp) -->
-    <!-- Modal lọc giá vốn -->
+    <!-- Modals (giữ nguyên) -->
     <div class="modal fade" id="costPriceModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -682,7 +693,6 @@ $categories = $stmt->fetchAll();
         </div>
     </div>
 
-    <!-- Modal lọc lợi nhuận -->
     <div class="modal fade" id="profitModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -716,7 +726,6 @@ $categories = $stmt->fetchAll();
         </div>
     </div>
 
-    <!-- Modal lọc giá bán -->
     <div class="modal fade" id="sellingPriceModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -777,14 +786,12 @@ $categories = $stmt->fetchAll();
             $('#global-search-form').submit(function(e) {
                 e.preventDefault();
                 const searchTerm = $('#global-search-input').val().trim();
-                // Khi tìm kiếm, ta chuyển sang tab sản phẩm và load lại dữ liệu
                 $('#product-tab').tab('show');
                 loadProducts({ search: searchTerm });
             });
 
             // Xử lý khi chuyển tab sản phẩm (có thể tải lại nếu cần)
             $('#product-tab').on('shown.bs.tab', function() {
-                // Nếu chưa có dữ liệu thì tải
                 if ($('#product-tbody tr').length <= 1) loadProducts();
             });
             $('#category-tab').on('shown.bs.tab', function() {
@@ -811,12 +818,10 @@ $categories = $stmt->fetchAll();
             $('#applyCostPriceFilter').click(function() {
                 const maxCost = parseFloat($('#costPriceRange').val());
                 const category_id = $('#costPriceCategory').val();
-                // Áp dụng lọc cho tab đang active
                 const activeTab = $('#pricingTabs .nav-link.active').attr('id');
                 if (activeTab === 'product-tab') {
                     loadProducts({ max_cost: maxCost, category_id: category_id });
                 } else if (activeTab === 'category-tab') {
-                    // Đối với category, lọc theo avg_cost_price (cần gửi lên server để tính lại avg)
                     loadCategories({ max_cost: maxCost, category_id: category_id });
                 }
                 $('#costPriceModal').modal('hide');
@@ -832,11 +837,9 @@ $categories = $stmt->fetchAll();
                     if (profitType === 'percentage') {
                         loadProducts({ min_profit_percent: profitValue });
                     } else {
-                        // Lọc theo số tiền lợi nhuận (selling_price - cost_price) >= profitValue
                         loadProducts({ min_profit_amount: profitValue });
                     }
                 } else if (activeTab === 'category-tab') {
-                    // Tương tự cho category
                     if (profitType === 'percentage') {
                         loadCategories({ min_profit_percent: profitValue });
                     } else {
@@ -895,7 +898,6 @@ $categories = $stmt->fetchAll();
                             <td>
                                 <div class="profit-cell">
                                     <span class="profit-percentage">${avgProfit}%</span>
-                                    <!-- Không có nút sửa cho category -->
                                 </div>
                             </td>
                         </tr>
@@ -960,7 +962,6 @@ $categories = $stmt->fetchAll();
                 // Gắn sự kiện xem lô nhập
                 $('.view-lots').click(function() {
                     const productId = $(this).data('id');
-                    // Chuyển sang tab import và load lô hàng của sản phẩm đó
                     $('#import-tab').tab('show');
                     loadImportLots({ product_id: productId });
                 });
@@ -971,7 +972,6 @@ $categories = $stmt->fetchAll();
                 const profitCell = $(`#profit-cell-${productId}`);
                 const originalHtml = profitCell.html();
 
-                // Tạo form chỉnh sửa
                 const editForm = $('<div class="edit-form"></div>');
                 const input = $('<input type="number" class="editable-input" step="0.5" min="0" max="100">').val(currentProfit);
                 const actions = $('<div class="edit-actions"></div>');
@@ -984,14 +984,11 @@ $categories = $stmt->fetchAll();
                         alert('Vui lòng nhập tỷ lệ hợp lệ (>=0)');
                         return;
                     }
-                    // Gửi AJAX cập nhật
                     $.post('pricing.php', { action: 'updateProfit', product_id: productId, profit_percent: newProfit }, function(res) {
                         if (res.success) {
-                            // Cập nhật giao diện
                             const newSelling = new Intl.NumberFormat('vi-VN').format(res.new_selling_price);
                             $(`tr[data-id="${productId}"] .selling-price`).text(newSelling);
                             profitCell.html(`<span class="profit-percentage">${newProfit}%</span> <button class="btn btn-sm btn-custom edit-profit" data-id="${productId}" data-profit="${newProfit}"><i class="fas fa-edit"></i> Sửa</button>`);
-                            // Gắn lại sự kiện
                             profitCell.find('.edit-profit').click(function() {
                                 editProfit(productId, newProfit);
                             });
@@ -1050,9 +1047,7 @@ $categories = $stmt->fetchAll();
                             <td>${quantity}</td>
                             <td class="cost-price">${unitCost}</td>
                             <td class="selling-price">${sellingPrice}</td>
-                            <td>
-                                <span class="profit-percentage">${profitPercent}%</span>
-                            </td>
+                            <td><span class="profit-percentage">${profitPercent}%</span></td>
                         </tr>
                     `;
                 });
