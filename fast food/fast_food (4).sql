@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Máy chủ: 127.0.0.1
--- Thời gian đã tạo: Th3 23, 2026 lúc 05:00 PM
+-- Thời gian đã tạo: Th3 23, 2026 lúc 05:20 PM
 -- Phiên bản máy phục vụ: 10.4.32-MariaDB
 -- Phiên bản PHP: 8.0.30
 
@@ -18,7 +18,7 @@ SET time_zone = "+00:00";
 /*!40101 SET NAMES utf8mb4 */;
 
 --
--- Cơ sở dữ liệu: `fast_food2`
+-- Cơ sở dữ liệu: `fast_food`
 --
 
 -- --------------------------------------------------------
@@ -228,7 +228,7 @@ INSERT INTO `order_details` (`id`, `order_id`, `product_id`, `quantity`, `unit_p
 (2, 1, 4, 1, 47250.00, 47250.00),
 (3, 2, 5, 3, 43200.00, 129600.00),
 (4, 3, 2, 1, 117000.00, 117000.00),
-(5, 3, 7, 1, 71500.00, 71500.00),
+(5, 3, 7, 1, 77000.00, 77000.00),
 (6, 3, 9, 1, 18000.00, 18000.00),
 (7, 4, 9, 1, 18000.00, 18000.00),
 (8, 4, 8, 1, 84000.00, 84000.00),
@@ -269,16 +269,16 @@ CREATE TABLE `pricing_log` (
 --
 
 INSERT INTO `pricing_log` (`id`, `product_id`, `old_cost_price`, `new_cost_price`, `old_selling_price`, `new_selling_price`, `changed_by`, `change_reason`, `changed_at`) VALUES
-(1, 1, NULL, 100000.00, NULL, 130000.00, 1, 'Nhập hàng lần đầu - Giá bán 30% lợi nhuận', '2026-03-21 05:54:48'),
-(2, 1, 100000.00, 105000.00, 130000.00, 136500.00, 1, 'Điều chỉnh giá vốn tăng 5%', '2026-03-22 07:00:00'),
-(3, 2, NULL, 90000.00, NULL, 117000.00, 1, 'Nhập hàng lần đầu - Giá bán 30% lợi nhuận', '2026-03-21 05:54:48'),
-(4, 3, NULL, 110000.00, NULL, 143000.00, 1, 'Nhập hàng lần đầu - Giá bán 30% lợi nhuận', '2026-03-21 05:54:48'),
-(5, 4, NULL, 35000.00, NULL, 47250.00, 1, 'Nhập hàng lần đầu - Giá bán 35% lợi nhuận', '2026-03-21 05:54:48'),
-(6, 5, NULL, 32000.00, NULL, 43200.00, 1, 'Nhập hàng lần đầu - Giá bán 35% lợi nhuận', '2026-03-21 05:54:48'),
-(7, 6, NULL, 33000.00, NULL, 44550.00, 1, 'Nhập hàng lần đầu - Giá bán 35% lợi nhuận', '2026-03-21 05:54:48'),
-(8, 7, NULL, 55000.00, NULL, 77000.00, 1, 'Nhập hàng lần đầu - Giá bán 40% lợi nhuận', '2026-03-21 05:54:48'),
-(9, 8, NULL, 60000.00, NULL, 84000.00, 1, 'Nhập hàng lần đầu - Giá bán 40% lợi nhuận', '2026-03-21 05:54:48'),
-(10, 9, NULL, 12000.00, NULL, 18000.00, 1, 'Nhập hàng lần đầu - Giá bán 50% lợi nhuận', '2026-03-21 05:54:48');
+(1, 1, NULL, 100000.00, NULL, 130000.00, 1, 'Nhập lần 1: 50 sp x 100,000 = 5,000,000 (Giá bán 30% lợi nhuận)', '2026-03-21 05:54:48'),
+(2, 1, 100000.00, 101612.90, 130000.00, 132096.77, 1, 'Nhập lần 2: Tồn 50 sp, giá 100,000. Nhập thêm 20 sp x 105,000. Giá bq = (50*100k + 20*105k)/(70) = 101,612.90', '2026-03-22 07:00:00'),
+(3, 2, NULL, 90000.00, NULL, 117000.00, 1, 'Nhập lần 1: 30 sp x 90,000 = 2,700,000 (Giá bán 30% lợi nhuận)', '2026-03-21 05:54:48'),
+(4, 3, NULL, 110000.00, NULL, 143000.00, 1, 'Nhập lần 1: 20 sp x 110,000 = 2,200,000 (Giá bán 30% lợi nhuận)', '2026-03-21 05:54:48'),
+(5, 4, NULL, 35000.00, NULL, 47250.00, 1, 'Nhập lần 1: 40 sp x 35,000 = 1,400,000 (Giá bán 35% lợi nhuận)', '2026-03-21 05:54:48'),
+(6, 5, NULL, 32000.00, NULL, 43200.00, 1, 'Nhập lần 1: 30 sp x 32,000 = 960,000 (Giá bán 35% lợi nhuận)', '2026-03-21 05:54:48'),
+(7, 6, NULL, 33000.00, NULL, 44550.00, 1, 'Nhập lần 1: 20 sp x 33,000 = 660,000 (Giá bán 35% lợi nhuận)', '2026-03-21 05:54:48'),
+(8, 7, NULL, 55000.00, NULL, 77000.00, 1, 'Nhập lần 1: 35 sp x 55,000 = 1,925,000 (Giá bán 40% lợi nhuận)', '2026-03-21 05:54:48'),
+(9, 8, NULL, 60000.00, NULL, 84000.00, 1, 'Nhập lần 1: 25 sp x 60,000 = 1,500,000 (Giá bán 40% lợi nhuận)', '2026-03-21 05:54:48'),
+(10, 9, NULL, 12000.00, NULL, 18000.00, 1, 'Nhập lần 1: 100 sp x 12,000 = 1,200,000 (Giá bán 50% lợi nhuận)', '2026-03-21 05:54:48');
 
 -- --------------------------------------------------------
 
@@ -307,15 +307,15 @@ CREATE TABLE `products` (
 --
 
 INSERT INTO `products` (`id`, `code`, `name`, `category_id`, `description`, `image`, `cost_price`, `selling_price`, `stock_quantity`, `status`, `created_at`, `updated_at`, `profit_percentage`) VALUES
-(1, 'PZ001', 'Pizza hải sản', 1, 'Đế bánh giòn tan, phủ hải sản tươi ngon (tôm, mực, nghêu), phô mai béo mịn, sốt cà chua đậm đà', 'images/f1.png', 100000.00, 136500.00, 70, 'active', '2026-03-21 05:51:52', '2026-03-23 07:30:00', 30),
-(2, 'PZ002', 'Pizza phô mai', 1, 'Đế giòn vàng, phô mai mozzarella béo ngậy tan chảy, sốt cà chua, hương vị thơm lừng', 'images/f3.png', 90000.00, 117000.00, 55, 'active', '2026-03-21 05:51:52', '2026-03-23 07:30:00', 30),
+(1, 'PZ001', 'Pizza hải sản', 1, 'Đế bánh giòn tan, phủ hải sản tươi ngon (tôm, mực, nghêu), phô mai béo mịn, sốt cà chua đậm đà', 'images/f1.png', 101612.90, 132096.77, 70, 'active', '2026-03-21 05:51:52', '2026-03-23 07:30:00', 30),
+(2, 'PZ002', 'Pizza phô mai', 1, 'Đế giòn vàng, phô mai mozzarella béo ngậy tan chảy, sốt cà chua, hương vị thơm lừng', 'images/f3.png', 90000.00, 117000.00, 30, 'active', '2026-03-21 05:51:52', '2026-03-23 07:30:00', 30),
 (3, 'PZ003', 'Pizza 3 vị', 1, 'Đế pizza giòn thơm, kết hợp ba hương vị: hải sản, phô mai, pepperoni, hấp dẫn mọi thực khách', 'images/f6.png', 110000.00, 143000.00, 20, 'active', '2026-03-21 05:51:52', '2026-03-23 07:30:00', 30),
-(4, 'BG001', 'Burger bò', 2, 'Thịt bò Úc nướng than hoa, rau tươi, sốt đặc trưng, phô mai cheddar tan chảy', 'images/f2.png', 35000.00, 47250.00, 110, 'active', '2026-03-21 05:51:52', '2026-03-23 07:30:00', 35),
-(5, 'BG002', 'Burger gà chiên', 2, 'Ức gà chiên giòn, sốt bơ tỏi, rau tươi, phô mai, bánh mì mềm', 'images/f7.png', 32000.00, 43200.00, 85, 'active', '2026-03-21 05:51:52', '2026-03-23 07:30:00', 35),
-(6, 'BG003', 'Burger ức gà', 2, 'Burger ức gà mềm, sốt mật ong, rau tươi, phô mai, bánh mì đen', 'images/f8.png', 33000.00, 44550.00, 60, 'active', '2026-03-21 05:51:52', '2026-03-23 07:30:00', 35),
-(7, 'PA001', 'Pasta rau củ', 3, 'Sợi mì spaghetti mềm mịn hòa quyện sốt kem béo ngậy, rau củ tươi (bông cải, cà rốt, nấm)', 'images/f4.png', 55000.00, 77000.00, 70, 'active', '2026-03-21 05:51:52', '2026-03-23 07:30:00', 40),
-(8, 'PA002', 'Pasta phô mai', 3, 'Sợi mì fettuccine hòa quyện sốt kem phô mai Parmesan, thịt xông khói, hương vị Ý đậm đà', 'images/f9.png', 60000.00, 84000.00, 50, 'active', '2026-03-21 05:51:52', '2026-03-23 07:30:00', 40),
-(9, 'FR001', 'Khoai tây chiên', 4, 'Khoai tây chiên vàng giòn, muối vừa, thơm ngon, chấm sốt cà chua hoặc sốt mayonnaise', 'images/f5.png', 12000.00, 18000.00, 195, 'active', '2026-03-21 05:51:52', '2026-03-23 07:30:00', 50);
+(4, 'BG001', 'Burger bò', 2, 'Thịt bò Úc nướng than hoa, rau tươi, sốt đặc trưng, phô mai cheddar tan chảy', 'images/f2.png', 35000.00, 47250.00, 80, 'active', '2026-03-21 05:51:52', '2026-03-23 07:30:00', 35),
+(5, 'BG002', 'Burger gà chiên', 2, 'Ức gà chiên giòn, sốt bơ tỏi, rau tươi, phô mai, bánh mì mềm', 'images/f7.png', 32000.00, 43200.00, 60, 'active', '2026-03-21 05:51:52', '2026-03-23 07:30:00', 35),
+(6, 'BG003', 'Burger ức gà', 2, 'Burger ức gà mềm, sốt mật ong, rau tươi, phô mai, bánh mì đen', 'images/f8.png', 33000.00, 44550.00, 40, 'active', '2026-03-21 05:51:52', '2026-03-23 07:30:00', 35),
+(7, 'PA001', 'Pasta rau củ', 3, 'Sợi mì spaghetti mềm mịn hòa quyện sốt kem béo ngậy, rau củ tươi (bông cải, cà rốt, nấm)', 'images/f4.png', 55000.00, 77000.00, 35, 'active', '2026-03-21 05:51:52', '2026-03-23 07:30:00', 40),
+(8, 'PA002', 'Pasta phô mai', 3, 'Sợi mì fettuccine hòa quyện sốt kem phô mai Parmesan, thịt xông khói, hương vị Ý đậm đà', 'images/f9.png', 60000.00, 84000.00, 25, 'active', '2026-03-21 05:51:52', '2026-03-23 07:30:00', 40),
+(9, 'FR001', 'Khoai tây chiên', 4, 'Khoai tây chiên vàng giòn, muối vừa, thơm ngon, chấm sốt cà chua hoặc sốt mayonnaise', 'images/f5.png', 12000.00, 18000.00, 100, 'active', '2026-03-21 05:51:52', '2026-03-23 07:30:00', 50);
 
 -- --------------------------------------------------------
 
