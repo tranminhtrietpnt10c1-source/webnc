@@ -1,7 +1,40 @@
 <?php
 session_start();
-require_once 'db_connection.php';
 
+// Kiểm tra đăng nhập
+if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
+    header('Location: adminlogin.php');
+    exit;
+}
+
+// Kết nối database
+$host = 'localhost';
+$dbname = 'fast_food';
+$username = 'root';
+$password = '';
+
+try {
+    $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8mb4", $username, $password);
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    die("Database connection failed: " . $e->getMessage());
+}
+
+// Lấy thông tin admin từ database
+$admin_id = $_SESSION['admin_id'];
+$stmt = $pdo->prepare("SELECT id, full_name, username, email, phone, address, birthday, register_date, role, status, last_login FROM users WHERE id = ?");
+$stmt->execute([$admin_id]);
+$admin_info = $stmt->fetch();
+
+// Nếu không tìm thấy admin, đăng xuất
+if (!$admin_info) {
+    session_destroy();
+    header('Location: adminlogin.php');
+    exit;
+}
+
+// Xử lý AJAX requests
 if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
     header('Content-Type: application/json');
     $action = $_POST['action'] ?? $_GET['action'] ?? '';
@@ -34,7 +67,7 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
                     $params[':search2'] = "%$search%";
                 }
                 if ($date) {
-                    $sql .= " AND i.import_date = :date";
+                    $sql .= " AND DATE(i.import_date) = :date";
                     $params[':date'] = $date;
                 }
                 if ($status && in_array($status, ['pending', 'completed'])) {
@@ -54,7 +87,7 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
                 $stmt->execute();
                 $imports = $stmt->fetchAll();
 
-                // Count query – fixed subquery
+                // Count query
                 $countSql = "SELECT COUNT(DISTINCT i.id) as total FROM imports i
                              LEFT JOIN import_details d ON i.id = d.import_id WHERE 1=1";
                 $countParams = [];
@@ -68,7 +101,7 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
                     $countParams[':search2'] = "%$search%";
                 }
                 if ($date) {
-                    $countSql .= " AND i.import_date = :date";
+                    $countSql .= " AND DATE(i.import_date) = :date";
                     $countParams[':date'] = $date;
                 }
                 if ($status && in_array($status, ['pending', 'completed'])) {
@@ -252,7 +285,6 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <style>
         :root {
             --primary-color: #ffbe33;
@@ -289,7 +321,6 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
             width: 20px;
             margin-right: 10px;
         }
-
         .main-content {
             margin-left: 250px;
             padding: 20px;
@@ -320,17 +351,17 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
             background-color: #e6a500;
             transform: translateY(-2px);
         }
- 
         .table th {
             background-color: var(--secondary-color);
             color: var(--light-color);
-            border: none;
         }
         .badge-status-pending {
-            background-color: #6c757d;
+            background-color: #ffc107;
+            color: #212529;
         }
         .badge-status-completed {
             background-color: #28a745;
+            color: white;
         }
         .status-filter {
             display: flex;
@@ -345,6 +376,7 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
             border-radius: 5px;
             transition: all 0.3s;
             cursor: pointer;
+            border: none;
         }
         .status-btn:hover, .status-btn.active {
             background-color: var(--primary-color);
@@ -392,21 +424,60 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
                 margin-left: 70px;
             }
         }
-        .user-avatar {
-            width: 40px;
-            height: 40px;
+        .avatar-btn {
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+            transition: transform 0.2s;
+        }
+        .avatar-btn:hover {
+            transform: scale(1.05);
+        }
+        .avatar-btn i {
+            font-size: 2rem;
+            color: var(--primary-color);
+        }
+        .toggle-sidebar {
+            display: none;
+        }
+        @media (max-width: 768px) {
+            .toggle-sidebar {
+                display: block;
+            }
+        }
+        .profile-avatar {
+            width: 100px;
+            height: 100px;
             background-color: var(--primary-color);
-            color: var(--dark-color);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-weight: bold;
-            font-size: 1.2rem;
-            margin-right: 12px;
+            margin: 0 auto 20px;
         }
-        .navbar-custom .container-fluid {
-            justify-content: flex-start;
+        .profile-avatar i {
+            font-size: 3rem;
+            color: var(--dark-color);
+        }
+        .profile-info-item {
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .profile-info-item:last-child {
+            border-bottom: none;
+        }
+        .profile-info-label {
+            font-weight: 600;
+            color: var(--secondary-color);
+            width: 120px;
+            display: inline-block;
+        }
+        .profile-info-value {
+            color: #555;
+        }
+        .modal-header.bg-dark {
+            background-color: var(--secondary-color) !important;
         }
     </style>
 </head>
@@ -416,27 +487,31 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
             <h4 class="text-center mb-4"><i class="fas fa-utensils"></i> Feane Admin</h4>
         </div>
         <ul class="nav flex-column">
-            <li class="nav-item"><a class="nav-link" href="admin.html"><i class="fas fa-tachometer-alt"></i> <span>Dashboard</span></a></li>
-            <li class="nav-item"><a class="nav-link" href="users.html"><i class="fas fa-users"></i> <span>Quản lý người dùng</span></a></li>
-            <li class="nav-item"><a class="nav-link" href="categories.html"><i class="fas fa-tags"></i> <span>Loại sản phẩm</span></a></li>
-            <li class="nav-item"><a class="nav-link" href="products.html"><i class="fas fa-hamburger"></i> <span>Sản phẩm</span></a></li>
+            <li class="nav-item"><a class="nav-link" href="admin.php"><i class="fas fa-tachometer-alt"></i> <span>Dashboard</span></a></li>
+            <li class="nav-item"><a class="nav-link" href="users.php"><i class="fas fa-users"></i> <span>Quản lý người dùng</span></a></li>
+            <li class="nav-item"><a class="nav-link" href="categories.php"><i class="fas fa-tags"></i> <span>Loại sản phẩm</span></a></li>
+            <li class="nav-item"><a class="nav-link" href="products.php"><i class="fas fa-hamburger"></i> <span>Sản phẩm</span></a></li>
             <li class="nav-item"><a class="nav-link active" href="imports.php"><i class="fas fa-arrow-down"></i> <span>Nhập sản phẩm</span></a></li>
             <li class="nav-item"><a class="nav-link" href="pricing.php"><i class="fas fa-dollar-sign"></i> <span>Giá bán</span></a></li>
             <li class="nav-item"><a class="nav-link" href="orders.php"><i class="fas fa-shopping-cart"></i> <span>Đơn hàng</span></a></li>
             <li class="nav-item"><a class="nav-link" href="inventory.php"><i class="fas fa-boxes"></i> <span>Tồn kho</span></a></li>
-            <li class="nav-item mt-4"><a class="nav-link" href="adminlogin.html" id="logout-btn"><i class="fas fa-sign-out-alt"></i> <span>Đăng xuất</span></a></li>
+            <li class="nav-item mt-4"><a class="nav-link" href="logout.php"><i class="fas fa-sign-out-alt"></i> <span>Đăng xuất</span></a></li>
         </ul>
     </div>
 
     <div class="main-content">
         <nav class="navbar navbar-expand-lg navbar-custom mb-4">
             <div class="container-fluid">
-                <div class="d-flex align-items-center">
-                    <div class="user-avatar">A</div>
-                    <div>
-                        <div class="fw-bold">Admin</div>
-                        <small class="text-muted">Quản trị viên</small>
-                    </div>
+                <button class="btn toggle-sidebar" id="toggle-sidebar">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <div class="d-flex align-items-center ms-auto">
+                    <span class="navbar-text me-3">
+                        Xin chào, <strong><?php echo htmlspecialchars($admin_info['full_name'] ?: $admin_info['username']); ?></strong>
+                    </span>
+                    <button class="avatar-btn" data-bs-toggle="modal" data-bs-target="#profileModal">
+                        <i class="fas fa-user-circle fa-2x"></i>
+                    </button>
                 </div>
             </div>
         </nav>
@@ -479,16 +554,10 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
                     <div class="table-responsive">
                         <table class="table table-hover" id="imports-table">
                             <thead>
-                                <th>Mã phiếu</th>
-                                    <th>Ngày nhập</th>
-                                    <th>Số sản phẩm</th>
-                                    <th>Tổng số lượng</th>
-                                    <th>Tổng giá trị</th>
-                                    <th>Trạng thái</th>
-                                    <th>Thao tác</th>
-                                </thead>
+                                <tr><th>Mã phiếu</th><th>Ngày nhập</th><th>Số sản phẩm</th><th>Tổng số lượng</th><th>Tổng giá trị</th><th>Trạng thái</th><th>Thao tác</th></tr>
+                            </thead>
                             <tbody id="imports-tbody">
-                                <td colspan="7" class="text-center">Đang tải...</td>
+                                <tr><td colspan="7" class="text-center">Đang tải...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -513,16 +582,13 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
                             <label class="form-label fw-bold">Ngày nhập</label>
                             <input type="date" name="import_date" id="import_date" class="form-control" required>
                         </div>
-
                         <div class="mb-2 fw-bold">Danh sách sản phẩm</div>
                         <div id="product-rows-container"></div>
-
                         <div class="mt-3">
                             <button type="button" id="add-product-row" class="btn btn-sm btn-outline-primary">
                                 <i class="fas fa-plus me-1"></i> Thêm sản phẩm
                             </button>
                         </div>
-
                         <div class="mt-4 d-flex justify-content-end gap-2">
                             <button type="submit" class="btn btn-custom px-4">Lưu</button>
                             <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Hủy</button>
@@ -537,11 +603,36 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
     <div class="modal fade" id="detailModal" tabindex="-1">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
-                <div class="modal-header">
+                <div class="modal-header bg-dark text-white">
                     <h5 class="modal-title">Chi tiết phiếu nhập</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body" id="detail-content"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Thông tin cá nhân -->
+    <div class="modal fade" id="profileModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title"><i class="fas fa-user-circle me-2"></i> Thông tin cá nhân</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="profile-avatar"><i class="fas fa-user-circle"></i></div>
+                    <div class="profile-info-item"><span class="profile-info-label"><i class="fas fa-user me-2"></i> Họ tên:</span><span class="profile-info-value"><?php echo htmlspecialchars($admin_info['full_name'] ?: 'Chưa cập nhật'); ?></span></div>
+                    <div class="profile-info-item"><span class="profile-info-label"><i class="fas fa-at me-2"></i> Tên đăng nhập:</span><span class="profile-info-value"><?php echo htmlspecialchars($admin_info['username']); ?></span></div>
+                    <div class="profile-info-item"><span class="profile-info-label"><i class="fas fa-envelope me-2"></i> Email:</span><span class="profile-info-value"><?php echo htmlspecialchars($admin_info['email']); ?></span></div>
+                    <div class="profile-info-item"><span class="profile-info-label"><i class="fas fa-phone me-2"></i> Điện thoại:</span><span class="profile-info-value"><?php echo htmlspecialchars($admin_info['phone'] ?: 'Chưa cập nhật'); ?></span></div>
+                    <div class="profile-info-item"><span class="profile-info-label"><i class="fas fa-map-marker-alt me-2"></i> Địa chỉ:</span><span class="profile-info-value"><?php echo htmlspecialchars($admin_info['address'] ?: 'Chưa cập nhật'); ?></span></div>
+                    <div class="profile-info-item"><span class="profile-info-label"><i class="fas fa-calendar-alt me-2"></i> Ngày sinh:</span><span class="profile-info-value"><?php echo $admin_info['birthday'] && $admin_info['birthday'] !== '0000-00-00' ? date('d/m/Y', strtotime($admin_info['birthday'])) : 'Chưa cập nhật'; ?></span></div>
+                    <div class="profile-info-item"><span class="profile-info-label"><i class="fas fa-calendar-plus me-2"></i> Ngày đăng ký:</span><span class="profile-info-value"><?php echo date('d/m/Y', strtotime($admin_info['register_date'])); ?></span></div>
+                    <div class="profile-info-item"><span class="profile-info-label"><i class="fas fa-shield-alt me-2"></i> Vai trò:</span><span class="profile-info-value">Quản trị viên</span></div>
+                    <div class="profile-info-item"><span class="profile-info-label"><i class="fas fa-clock me-2"></i> Lần đăng nhập cuối:</span><span class="profile-info-value"><?php echo $admin_info['last_login'] ? date('d/m/Y H:i:s', strtotime($admin_info['last_login'])) : 'Chưa có dữ liệu'; ?></span></div>
+                </div>
+                <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button></div>
             </div>
         </div>
     </div>
@@ -596,11 +687,11 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
                 const totalValue = new Intl.NumberFormat('vi-VN').format(item.total_value || 0);
                 html += `
                     <tr>
-                        <td><a href="#" class="view-detail" data-id="${item.id}">${item.import_code}</a></td>
+                        <td><a href="#" class="view-detail" data-id="${item.id}">${escapeHtml(item.import_code)}</a></td>
                         <td>${new Date(item.import_date).toLocaleDateString('vi-VN')}</td>
                         <td>${item.product_count || 0}</td>
                         <td>${item.total_quantity || 0}</td>
-                        <td>${totalValue} VND</td>
+                        <td>${totalValue} ₫</td>
                         <td><span class="badge ${statusClass}">${statusText}</span></td>
                         <td>
                             <div class="action-buttons">
@@ -680,7 +771,6 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
                 </div>
             `;
             $('#product-rows-container').append(rowHtml);
-
             const $select = $('#product-rows-container .product-select').last();
             $select.select2({
                 width: '100%',
@@ -700,7 +790,6 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
             $('#import_date').val(new Date().toISOString().slice(0,10));
             $('#product-rows-container').empty();
             addProductRow();
-
             if (isEdit) {
                 $.getJSON(window.location.href, { ajax: 1, action: 'get', id: importId }, function(res) {
                     if (res.success) {
@@ -727,7 +816,6 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
             formData.append('action', action);
             formData.append('ajax', 1);
             if (importId) formData.append('import_id', importId);
-
             $.ajax({
                 url: window.location.href,
                 type: 'POST',
@@ -776,7 +864,7 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
                 if (res.success) {
                     let detailHtml = `
                         <div class="mb-3">
-                            <strong>Mã phiếu:</strong> ${res.import.import_code}<br>
+                            <strong>Mã phiếu:</strong> ${escapeHtml(res.import.import_code)}<br>
                             <strong>Ngày nhập:</strong> ${new Date(res.import.import_date).toLocaleDateString('vi-VN')}<br>
                             <strong>Trạng thái:</strong> <span class="badge ${res.import.status === 'completed' ? 'badge-status-completed' : 'badge-status-pending'}">${res.import.status === 'completed' ? 'Đã hoàn thành' : 'Chờ xử lý'}</span>
                         </div>
@@ -790,17 +878,17 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
                         totalValue += d.subtotal;
                         detailHtml += `
                             <tr>
-                                <td>${d.product_name}</td>
+                                <td>${escapeHtml(d.product_name)}</td>
                                 <td class="text-center">${d.quantity}</td>
-                                <td class="text-end">${new Intl.NumberFormat('vi-VN').format(d.unit_cost)}</td>
-                                <td class="text-end">${new Intl.NumberFormat('vi-VN').format(d.subtotal)}</td>
+                                <td class="text-end">${new Intl.NumberFormat('vi-VN').format(d.unit_cost)} ₫</td>
+                                <td class="text-end">${new Intl.NumberFormat('vi-VN').format(d.subtotal)} ₫</td>
                             </tr>
                         `;
                     });
                     detailHtml += `
                             </tbody>
                             <tfoot>
-                                <tr><th colspan="2" class="text-end">Tổng:</th><th class="text-end">${totalQty} sản phẩm</th><th class="text-end">${new Intl.NumberFormat('vi-VN').format(totalValue)} VND</th></tr>
+                                <tr><th colspan="2" class="text-end">Tổng:</th><th class="text-end">${totalQty} sản phẩm</th><th class="text-end">${new Intl.NumberFormat('vi-VN').format(totalValue)} ₫</th></tr>
                             </tfoot>
                         </table>
                     `;
@@ -818,6 +906,7 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
             currentPage = 1;
             loadImports();
         });
+        
         $('.status-btn').click(function() {
             $('.status-btn').removeClass('active');
             $(this).addClass('active');
@@ -825,9 +914,11 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
             currentPage = 1;
             loadImports();
         });
+        
         $('#add-product-row').click(function() {
             addProductRow();
         });
+        
         $(document).on('click', '.remove-row', function() {
             if ($('.product-row').length > 1) {
                 $(this).closest('.product-row').remove();
@@ -835,13 +926,16 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
                 alert('Phải có ít nhất một sản phẩm');
             }
         });
+        
         $('#btn-add-import').click(function() {
             openFormModal();
         });
+        
         $(document).on('click', '.edit-import', function() {
             const id = $(this).data('id');
             openFormModal(id);
         });
+        
         $('#toggle-sidebar').click(function() {
             const sidebar = $('.sidebar');
             const mainContent = $('.main-content');
@@ -856,28 +950,23 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
             }
         });
 
+        function adjustSidebar() {
+            if (window.innerWidth <= 768) {
+                $('.sidebar').width(70);
+                $('.main-content').css('margin-left', '70px');
+                $('.sidebar .nav-link span').hide();
+            } else {
+                $('.sidebar').width(250);
+                $('.main-content').css('margin-left', '250px');
+                $('.sidebar .nav-link span').show();
+            }
+        }
+        
+        adjustSidebar();
+        $(window).resize(adjustSidebar);
+        
         loadProducts();
         loadImports();
     </script>
-    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/vn.js"></script>
-<script>
-<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/vn.js"></script>
-<script>
-  flatpickr("#date-input", {
-    locale: "vn",
-    dateFormat: "d/m/Y",
-    position: "below left",
-  
-  });
-  flatpickr("#import_date", {
-    locale: "vn",
-    dateFormat: "d/m/Y",
-    position: "below left",
-  
-  });
-</script>
-</script>
 </body>
 </html>

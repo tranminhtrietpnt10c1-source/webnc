@@ -1,9 +1,40 @@
 <?php
-// inventory.php
 session_start();
-require_once 'db_connection.php';
 
-// Xử lý AJAX request (giữ nguyên logic)
+// Kiểm tra đăng nhập
+if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
+    header('Location: adminlogin.php');
+    exit;
+}
+
+// Kết nối database
+$host = 'localhost';
+$dbname = 'fast_food';
+$username = 'root';
+$password = '';
+
+try {
+    $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8mb4", $username, $password);
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+} catch (PDOException $e) {
+    die("Database connection failed: " . $e->getMessage());
+}
+
+// Lấy thông tin admin từ database
+$admin_id = $_SESSION['admin_id'];
+$stmt = $pdo->prepare("SELECT id, full_name, username, email, phone, address, birthday, register_date, role, status, last_login FROM users WHERE id = ?");
+$stmt->execute([$admin_id]);
+$admin_info = $stmt->fetch();
+
+// Nếu không tìm thấy admin, đăng xuất
+if (!$admin_info) {
+    session_destroy();
+    header('Location: adminlogin.php');
+    exit;
+}
+
+// Xử lý AJAX request
 if (isset($_REQUEST['action'])) {
     header('Content-Type: application/json');
     $action = $_REQUEST['action'];
@@ -108,6 +139,7 @@ if (isset($_REQUEST['action'])) {
                 ]);
                 break;
 
+            // Các case khác giữ nguyên
             case 'get_transactions':
                 $product_id = (int)($_GET['product_id'] ?? 0);
                 $date_from = $_GET['date_from'] ?? '';
@@ -360,7 +392,6 @@ if (isset($_REQUEST['action'])) {
                 display: block;
             }
         }
-        /* Filter section */
         .filter-section {
             background-color: var(--primary-color);
             padding: 20px;
@@ -371,7 +402,6 @@ if (isset($_REQUEST['action'])) {
             margin-bottom: 20px;
             color: var(--dark-color);
         }
-        /* Statistics Cards - giống stock.html */
         .stats-row {
             display: flex;
             flex-wrap: wrap;
@@ -422,16 +452,83 @@ if (isset($_REQUEST['action'])) {
         .bg-danger-custom {
             background-color: #dc3545 !important;
         }
-        /* Threshold setting */
-        .threshold-setting {
-            background-color: #fff3cd;
-            border: 1px solid #ffeaa7;
-            border-radius: 8px;
-            padding: 10px 15px;
-            margin-bottom: 15px;
+        .badge-status-pending {
+            background-color: #ffc107;
+            color: #212529;
+        }
+        .badge-status-completed {
+            background-color: #28a745;
+            color: white;
+        }
+        .low-stock {
+            background-color: #ffdddd;
+        }
+        .warning {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        .product-link {
+            color: var(--secondary-color);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+        .product-link:hover {
+            color: var(--primary-color);
+            text-decoration: underline;
+        }
+        .modal-header {
+            background-color: var(--secondary-color);
+            color: var(--light-color);
+            border-bottom: none;
+        }
+        .modal-header .btn-close {
+            filter: invert(1);
+        }
+        .avatar-btn {
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+            transition: transform 0.2s;
+        }
+        .avatar-btn:hover {
+            transform: scale(1.05);
+        }
+        .avatar-btn i {
+            font-size: 2rem;
+            color: var(--primary-color);
+        }
+        .profile-avatar {
+            width: 100px;
+            height: 100px;
+            background-color: var(--primary-color);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+        }
+        .profile-avatar i {
+            font-size: 3rem;
+            color: var(--dark-color);
+        }
+        .profile-info-item {
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .profile-info-item:last-child {
+            border-bottom: none;
+        }
+        .profile-info-label {
+            font-weight: 600;
+            color: var(--secondary-color);
+            width: 120px;
             display: inline-block;
         }
-        /* Detail search sections */
+        .profile-info-value {
+            color: #555;
+        }
         .detail-search-section {
             background-color: #e9ecef;
             padding: 20px;
@@ -463,95 +560,6 @@ if (isset($_REQUEST['action'])) {
         .summary-card.stock {
             background-color: #6c757d;
         }
-        .low-stock {
-            background-color: #ffdddd;
-        }
-        .warning {
-            color: #dc3545;
-            font-weight: bold;
-        }
-        .product-link {
-            color: var(--secondary-color);
-            text-decoration: none;
-            font-weight: 500;
-            transition: color 0.3s;
-        }
-        .product-link:hover {
-            color: var(--primary-color);
-            text-decoration: underline;
-        }
-        /* Modal */
-        .modal-header {
-            background-color: var(--secondary-color);
-            color: var(--light-color);
-            border-bottom: none;
-        }
-        .modal-header .btn-close {
-            filter: invert(1);
-        }
-        .modal-content {
-            border-radius: 16px;
-            overflow: hidden;
-        }
-        .info-card {
-            background: #f8f9fa;
-            border-radius: 12px;
-            padding: 15px;
-            margin-bottom: 15px;
-            border: 1px solid #e9ecef;
-        }
-        .info-label {
-            font-weight: 600;
-            color: #495057;
-            font-size: 0.85rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .info-value {
-            font-size: 1rem;
-            font-weight: 500;
-            color: #212529;
-            word-break: break-word;
-        }
-        .stock-summary {
-            background-color: #fff3cd;
-            border-radius: 10px;
-            padding: 12px;
-            margin-bottom: 10px;
-        }
-        .stock-summary .row > div {
-            text-align: center;
-            border-right: 1px solid #dee2e6;
-        }
-        .stock-summary .row > div:last-child {
-            border-right: none;
-        }
-        .stock-summary-label {
-            font-size: 0.8rem;
-            color: #856404;
-        }
-        .stock-summary-value {
-            font-size: 1.2rem;
-            font-weight: bold;
-            color: #856404;
-        }
-        .transaction-table th {
-            background-color: #f2f2f2;
-            border-top: none;
-        }
-        .user-avatar {
-            width: 40px;
-            height: 40px;
-            background-color: var(--primary-color);
-            color: var(--dark-color);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: 1.2rem;
-            margin-right: 12px;
-        }
     </style>
 </head>
 <body>
@@ -561,38 +569,39 @@ if (isset($_REQUEST['action'])) {
                 <h4 class="text-center mb-4"><i class="fas fa-utensils"></i> Feane Admin</h4>
             </div>
             <ul class="nav flex-column">
-                <li class="nav-item"><a class="nav-link" href="admin.html"><i class="fas fa-tachometer-alt"></i> <span>Dashboard</span></a></li>
-                <li class="nav-item"><a class="nav-link" href="users.html"><i class="fas fa-users"></i> <span>Quản lý người dùng</span></a></li>
-                <li class="nav-item"><a class="nav-link" href="categories.html"><i class="fas fa-tags"></i> <span>Loại sản phẩm</span></a></li>
-                <li class="nav-item"><a class="nav-link" href="products.html"><i class="fas fa-hamburger"></i> <span>Sản phẩm</span></a></li>
+                <li class="nav-item"><a class="nav-link" href="admin.php"><i class="fas fa-tachometer-alt"></i> <span>Dashboard</span></a></li>
+                <li class="nav-item"><a class="nav-link" href="users.php"><i class="fas fa-users"></i> <span>Quản lý người dùng</span></a></li>
+                <li class="nav-item"><a class="nav-link" href="categories.php"><i class="fas fa-tags"></i> <span>Loại sản phẩm</span></a></li>
+                <li class="nav-item"><a class="nav-link" href="products.php"><i class="fas fa-hamburger"></i> <span>Sản phẩm</span></a></li>
                 <li class="nav-item"><a class="nav-link" href="imports.php"><i class="fas fa-arrow-down"></i> <span>Nhập sản phẩm</span></a></li>
                 <li class="nav-item"><a class="nav-link" href="pricing.php"><i class="fas fa-dollar-sign"></i> <span>Giá bán</span></a></li>
                 <li class="nav-item"><a class="nav-link" href="orders.php"><i class="fas fa-shopping-cart"></i> <span>Đơn hàng</span></a></li>
                 <li class="nav-item"><a class="nav-link active" href="inventory.php"><i class="fas fa-boxes"></i> <span>Tồn kho</span></a></li>
-                <li class="nav-item mt-4"><a class="nav-link" href="adminlogin.html" id="logout-btn"><i class="fas fa-sign-out-alt"></i> <span>Đăng xuất</span></a></li>
+                <li class="nav-item mt-4"><a class="nav-link" href="logout.php"><i class="fas fa-sign-out-alt"></i> <span>Đăng xuất</span></a></li>
             </ul>
         </div>
 
         <div class="main-content">
             <nav class="navbar navbar-expand-lg navbar-custom mb-4">
-            <div class="container-fluid">
-                <button class="btn toggle-sidebar" id="toggle-sidebar">
-                    <i class="fas fa-bars"></i>
-                </button>
-                <div class="d-flex align-items-center">
-                    <div class="user-avatar">A</div>
-                    <div>
-                        <div class="fw-bold">Admin</div>
-                        <small class="text-muted">Quản trị viên</small>
+                <div class="container-fluid">
+                    <button class="btn toggle-sidebar" id="toggle-sidebar">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <div class="d-flex align-items-center ms-auto">
+                        <span class="navbar-text me-3">
+                            Xin chào, <strong><?php echo htmlspecialchars($admin_info['full_name'] ?: $admin_info['username']); ?></strong>
+                        </span>
+                        <button class="avatar-btn" data-bs-toggle="modal" data-bs-target="#profileModal">
+                            <i class="fas fa-user-circle fa-2x"></i>
+                        </button>
                     </div>
                 </div>
-            </div>
-        </nav>
+            </nav>
 
             <div id="stock-management-page" class="page-content">
                 <h2 class="mb-4">Quản lý Tồn kho</h2>
 
-                <!-- Bộ lọc tồn kho -->
+                <!-- Filter Section -->
                 <div class="filter-section">
                     <h3><i class="fas fa-filter me-2"></i>Bộ lọc tồn kho</h3>
                     <form id="stock-filter-form">
@@ -633,7 +642,7 @@ if (isset($_REQUEST['action'])) {
                     </form>
                 </div>
 
-                <!-- Thống kê (giữ kiểu, đổi màu) -->
+                <!-- Statistics Cards -->
                 <div class="stats-row">
                     <div class="stat-card bg-primary-custom" data-status="total">
                         <div class="card-body">
@@ -746,7 +755,7 @@ if (isset($_REQUEST['action'])) {
                                     <th>Ngày</th><th>Loại giao dịch</th><th>Số lượng</th><th>Đơn vị</th><th>Ghi chú</th>
                                 </thead>
                                 <tbody id="detail-result-body"></tbody>
-                            </div>
+                            </table>
                         </div>
                     </div>
                 </div>
@@ -782,13 +791,38 @@ if (isset($_REQUEST['action'])) {
         </div>
     </div>
 
+    <!-- Modal Thông tin cá nhân -->
+    <div class="modal fade" id="profileModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-user-circle me-2"></i> Thông tin cá nhân</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="profile-avatar"><i class="fas fa-user-circle"></i></div>
+                    <div class="profile-info-item"><span class="profile-info-label"><i class="fas fa-user me-2"></i> Họ tên:</span><span class="profile-info-value"><?php echo htmlspecialchars($admin_info['full_name'] ?: 'Chưa cập nhật'); ?></span></div>
+                    <div class="profile-info-item"><span class="profile-info-label"><i class="fas fa-at me-2"></i> Tên đăng nhập:</span><span class="profile-info-value"><?php echo htmlspecialchars($admin_info['username']); ?></span></div>
+                    <div class="profile-info-item"><span class="profile-info-label"><i class="fas fa-envelope me-2"></i> Email:</span><span class="profile-info-value"><?php echo htmlspecialchars($admin_info['email']); ?></span></div>
+                    <div class="profile-info-item"><span class="profile-info-label"><i class="fas fa-phone me-2"></i> Điện thoại:</span><span class="profile-info-value"><?php echo htmlspecialchars($admin_info['phone'] ?: 'Chưa cập nhật'); ?></span></div>
+                    <div class="profile-info-item"><span class="profile-info-label"><i class="fas fa-map-marker-alt me-2"></i> Địa chỉ:</span><span class="profile-info-value"><?php echo htmlspecialchars($admin_info['address'] ?: 'Chưa cập nhật'); ?></span></div>
+                    <div class="profile-info-item"><span class="profile-info-label"><i class="fas fa-calendar-alt me-2"></i> Ngày sinh:</span><span class="profile-info-value"><?php echo $admin_info['birthday'] && $admin_info['birthday'] !== '0000-00-00' ? date('d/m/Y', strtotime($admin_info['birthday'])) : 'Chưa cập nhật'; ?></span></div>
+                    <div class="profile-info-item"><span class="profile-info-label"><i class="fas fa-calendar-plus me-2"></i> Ngày đăng ký:</span><span class="profile-info-value"><?php echo date('d/m/Y', strtotime($admin_info['register_date'])); ?></span></div>
+                    <div class="profile-info-item"><span class="profile-info-label"><i class="fas fa-shield-alt me-2"></i> Vai trò:</span><span class="profile-info-value">Quản trị viên</span></div>
+                    <div class="profile-info-item"><span class="profile-info-label"><i class="fas fa-clock me-2"></i> Lần đăng nhập cuối:</span><span class="profile-info-value"><?php echo $admin_info['last_login'] ? date('d/m/Y H:i:s', strtotime($admin_info['last_login'])) : 'Chưa có dữ liệu'; ?></span></div>
+                </div>
+                <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button></div>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal chi tiết sản phẩm -->
     <div class="modal fade" id="productDetailModal" tabindex="-1">
         <div class="modal-dialog modal-lg modal-dialog-scrollable">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">Chi tiết sản phẩm</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body" id="product-detail-content"></div>
                 <div class="modal-footer">
@@ -805,7 +839,6 @@ if (isset($_REQUEST['action'])) {
         let currentFilters = { search: '', type: '', stock_status: '', sort: '' };
         let threshold = 10;
 
-        // Toggle sidebar
         $('#toggle-sidebar').click(function() {
             const sidebar = $('.sidebar');
             const mainContent = $('.main-content');
@@ -819,6 +852,21 @@ if (isset($_REQUEST['action'])) {
                 $('.sidebar .nav-link span').hide();
             }
         });
+
+        function adjustSidebar() {
+            if (window.innerWidth <= 768) {
+                $('.sidebar').width(70);
+                $('.main-content').css('margin-left', '70px');
+                $('.sidebar .nav-link span').hide();
+            } else {
+                $('.sidebar').width(250);
+                $('.main-content').css('margin-left', '250px');
+                $('.sidebar .nav-link span').show();
+            }
+        }
+
+        adjustSidebar();
+        $(window).resize(adjustSidebar);
 
         function loadCategories() {
             $.getJSON('inventory.php', { action: 'get_categories' }, function(data) {
@@ -861,7 +909,7 @@ if (isset($_REQUEST['action'])) {
         function renderStockTable(products) {
             const tbody = $('#stock-table-body');
             if (!products.length) {
-                tbody.html('<tr><td colspan="8" class="text-center">Không có sản phẩm nào</td></tr>');
+                tbody.html('运转<td colspan="8" class="text-center">Không có sản phẩm nào</td>');
                 return;
             }
             let html = '';
@@ -878,11 +926,7 @@ if (isset($_REQUEST['action'])) {
                         <td>--</td>
                         <td>${p.stock_quantity}</td>
                         <td>${statusHtml}</td>
-                        <td>
-                            <button class="btn btn-sm btn-custom view-detail" data-id="${p.id}">
-                                <i class="fas fa-eye me-1"></i>Xem
-                            </button>
-                        </td>
+                        <td><button class="btn btn-sm btn-custom view-detail" data-id="${p.id}"><i class="fas fa-eye me-1"></i>Xem</button></td>
                     </tr>
                 `;
             });
@@ -924,7 +968,6 @@ if (isset($_REQUEST['action'])) {
             $('#low-stock-products').text(stats.low_stock || 0);
         }
 
-        // Tra cứu tồn tại thời điểm
         $('#check-stock-date').click(function() {
             const productId = $('#stock-date-product').val();
             const date = $('#stock-date').val();
@@ -939,7 +982,6 @@ if (isset($_REQUEST['action'])) {
             });
         });
 
-        // Tra cứu chi tiết nhập xuất
         $('#detail-search-form').submit(function(e) {
             e.preventDefault();
             const productId = $('#detail-product').val();
@@ -977,14 +1019,6 @@ if (isset($_REQUEST['action'])) {
             });
         });
 
-        // Áp dụng ngưỡng
-        $('#apply-threshold').click(function() {
-            threshold = parseInt($('#threshold-input').val());
-            if (isNaN(threshold) || threshold < 0) threshold = 0;
-            loadStock();
-        });
-
-        // Bộ lọc
         $('#stock-filter-form').submit(function(e) {
             e.preventDefault();
             currentFilters.search = $('#search-name').val();
@@ -994,6 +1028,7 @@ if (isset($_REQUEST['action'])) {
             currentPage = 1;
             loadStock();
         });
+        
         $('#stock-filter-form button[type="reset"]').click(function() {
             $('#search-name').val('');
             $('#filter-type').val('');
@@ -1004,12 +1039,12 @@ if (isset($_REQUEST['action'])) {
             loadStock();
         });
 
-        // Tìm kiếm nhanh
         $('#search-stock-btn').click(function() {
             currentFilters.search = $('#search-stock-input').val();
             currentPage = 1;
             loadStock();
         });
+        
         $('#search-stock-input').keypress(function(e) {
             if (e.which === 13) {
                 currentFilters.search = $(this).val();
@@ -1018,7 +1053,6 @@ if (isset($_REQUEST['action'])) {
             }
         });
 
-        // Click thống kê để lọc
         $('.stat-card').click(function() {
             const status = $(this).data('status');
             if (status === 'adequate' || status === 'low') {
@@ -1027,9 +1061,7 @@ if (isset($_REQUEST['action'])) {
             }
         });
 
-        // Xem chi tiết sản phẩm (modal)
         function showProductDetail(productId) {
-            // Lấy thông tin sản phẩm
             $.getJSON('inventory.php', { action: 'get_product_info', id: productId })
                 .done(function(productRes) {
                     if (!productRes.success) {
@@ -1037,7 +1069,6 @@ if (isset($_REQUEST['action'])) {
                         return;
                     }
                     const product = productRes.product;
-                    // Lấy lịch sử giao dịch
                     $.getJSON('inventory.php', { action: 'get_transactions', product_id: productId })
                         .done(function(transRes) {
                             if (!transRes.success) {
@@ -1053,70 +1084,20 @@ if (isset($_REQUEST['action'])) {
 
                             let html = `
                                 <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        <div class="info-card">
-                                            <div class="info-label">Mã sản phẩm</div>
-                                            <div class="info-value">${product.code}</div>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="info-card">
-                                            <div class="info-label">Tên sản phẩm</div>
-                                            <div class="info-value">${escapeHtml(product.name)}</div>
-                                        </div>
-                                    </div>
+                                    <div class="col-md-6"><div class="info-card"><div class="info-label">Mã sản phẩm</div><div class="info-value">${product.code}</div></div></div>
+                                    <div class="col-md-6"><div class="info-card"><div class="info-label">Tên sản phẩm</div><div class="info-value">${escapeHtml(product.name)}</div></div></div>
                                 </div>
                                 <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        <div class="info-card">
-                                            <div class="info-label">Loại sản phẩm</div>
-                                            <div class="info-value">${escapeHtml(product.category_name || 'Không xác định')}</div>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="info-card">
-                                            <div class="info-label">Giá vốn (VNĐ)</div>
-                                            <div class="info-value">${formatMoney(product.cost_price)}</div>
-                                        </div>
-                                    </div>
+                                    <div class="col-md-6"><div class="info-card"><div class="info-label">Loại sản phẩm</div><div class="info-value">${escapeHtml(product.category_name || 'Không xác định')}</div></div></div>
+                                    <div class="col-md-6"><div class="info-card"><div class="info-label">Giá vốn (VNĐ)</div><div class="info-value">${formatMoney(product.cost_price)}</div></div></div>
                                 </div>
                                 <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        <div class="info-card">
-                                            <div class="info-label">Giá bán (VNĐ)</div>
-                                            <div class="info-value">${formatMoney(product.selling_price)}</div>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="info-card">
-                                            <div class="info-label">Tồn kho hiện tại</div>
-                                            <div class="info-value">${product.stock_quantity}</div>
-                                        </div>
-                                    </div>
+                                    <div class="col-md-6"><div class="info-card"><div class="info-label">Giá bán (VNĐ)</div><div class="info-value">${formatMoney(product.selling_price)}</div></div></div>
+                                    <div class="col-md-6"><div class="info-card"><div class="info-label">Tồn kho hiện tại</div><div class="info-value">${product.stock_quantity}</div></div></div>
                                 </div>
-                                <div class="stock-summary mb-4">
-                                    <div class="row text-center">
-                                        <div class="col-4">
-                                            <div class="stock-summary-label">Tổng nhập</div>
-                                            <div class="stock-summary-value">${totalImport}</div>
-                                        </div>
-                                        <div class="col-4">
-                                            <div class="stock-summary-label">Tổng xuất</div>
-                                            <div class="stock-summary-value">${totalExport}</div>
-                                        </div>
-                                        <div class="col-4">
-                                            <div class="stock-summary-label">Tồn cuối kỳ</div>
-                                            <div class="stock-summary-value">${endStock}</div>
-                                        </div>
-                                    </div>
-                                </div>
+                                <div class="stock-summary mb-4"><div class="row text-center"><div class="col-4"><div class="stock-summary-label">Tổng nhập</div><div class="stock-summary-value">${totalImport}</div></div><div class="col-4"><div class="stock-summary-label">Tổng xuất</div><div class="stock-summary-value">${totalExport}</div></div><div class="col-4"><div class="stock-summary-label">Tồn cuối kỳ</div><div class="stock-summary-value">${endStock}</div></div></div></div>
                                 <h5 class="mt-3 mb-3"><i class="fas fa-history me-2"></i>Lịch sử nhập - xuất</h5>
-                                <div class="table-responsive">
-                                    <table class="table table-bordered transaction-table">
-                                        <thead>
-                                            <tr><th>Ngày</th><th>Loại giao dịch</th><th>Số lượng</th><th>Đơn vị</th><th>Ghi chú</th></tr>
-                                        </thead>
-                                        <tbody>
+                                <div class="table-responsive"><table class="table table-bordered transaction-table"><thead><tr><th>Ngày</th><th>Loại giao dịch</th><th>Số lượng</th><th>Đơn vị</th><th>Ghi chú</th></tr></thead><tbody>
                             `;
                             if (transactions.length === 0) {
                                 html += '<tr><td colspan="5" class="text-center">Không có giao dịch nào</td></tr>';
@@ -1124,42 +1105,20 @@ if (isset($_REQUEST['action'])) {
                                 transactions.forEach(t => {
                                     const typeText = t.type === 'import' ? 'Nhập hàng' : 'Xuất hàng';
                                     const typeClass = t.type === 'import' ? 'text-success' : 'text-danger';
-                                    html += `
-                                        <tr>
-                                            <td>${new Date(t.date).toLocaleDateString('vi-VN')}</td>
-                                            <td><span class="${typeClass}">${typeText}</span></td>
-                                            <td>${t.quantity}</td>
-                                            <td>${t.unit}</td>
-                                            <td>${t.note}</td>
-                                        </tr>
-                                    `;
+                                    html += `<tr><td>${new Date(t.date).toLocaleDateString('vi-VN')}</td><td><span class="${typeClass}">${typeText}</span></td><td>${t.quantity}</td><td>${t.unit}</td><td>${t.note}</td></tr>`;
                                 });
                             }
-                            html += `
-                                        </tbody>
-                                    </table>
-                                </div>
-                            `;
+                            html += `</tbody></table></div>`;
                             $('#product-detail-content').html(html);
                             $('#productDetailModal').modal('show');
-                        })
-                        .fail(function() {
-                            alert('Lỗi kết nối khi lấy lịch sử giao dịch');
                         });
-                })
-                .fail(function() {
-                    alert('Lỗi kết nối khi lấy thông tin sản phẩm');
                 });
         }
 
         $(document).on('click', '.view-detail', function(e) {
             e.preventDefault();
             const productId = $(this).data('id');
-            if (productId) {
-                showProductDetail(productId);
-            } else {
-                alert('Không tìm thấy ID sản phẩm');
-            }
+            if (productId) showProductDetail(productId);
         });
 
         function escapeHtml(str) {
@@ -1172,10 +1131,10 @@ if (isset($_REQUEST['action'])) {
             });
         }
 
-        // Khởi tạo
         loadCategories();
         loadProductSelects();
         loadStock();
+        
         const today = new Date();
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(today.getDate() - 30);
