@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Máy chủ: 127.0.0.1
--- Thời gian đã tạo: Th3 23, 2026 lúc 05:20 PM
+-- Thời gian đã tạo: Th3 24, 2026 lúc 01:04 AM
 -- Phiên bản máy phục vụ: 10.4.32-MariaDB
 -- Phiên bản PHP: 8.0.30
 
@@ -353,7 +353,7 @@ INSERT INTO `users` (`id`, `full_name`, `username`, `email`, `phone`, `password`
 (4, 'Lê Văn C', 'levanc', 'levanc@example.com', '0123456789', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '78 Pasteur, Quận 1, TP.HCM', '1995-12-10', '2026-03-21', 'user', 'locked', 'Tài khoản bị khóa do vi phạm', NULL, '2026-03-20 08:00:00', '2026-03-21 05:52:21', '2026-03-23 07:30:00'),
 (5, 'Trần Minh Triết', 'triet', 'triet@gmail.com', '0339111480', '$2y$10$eN/XTYaJJ.T8OcnygzYAmu/vVRn2pMdzUlV3T6MJWIvny39r5/B0y', '123 Đường ABC, Phường XYZ, Quận 1, TP.HCM', '2006-07-13', '2026-03-22', 'user', 'active', 'Khách hàng mới', '../images/about-img.png', '2026-03-23 12:00:00', '2026-03-22 02:27:33', '2026-03-23 07:30:00'),
 (6, 'Phạm Thị D', 'phamthid', 'phamthid@gmail.com', '0909888777', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '222 Lý Tự Trọng, Quận 1, TP.HCM', '1992-03-18', '2026-03-23', 'user', 'active', 'Khách hàng mới', NULL, NULL, '2026-03-23 07:30:00', '2026-03-23 07:30:00'),
-(7, 'Lê Đỗ Hoài Thương', 'thuong', 'thuong@gmail.com', '0909876543', 'thuong123', '456 Đường X, Phường Y, Quận Z, TP.HCM', '1996-03-02', '2026-03-12', 'admin', 'active', 'Admin phụ trách marketing', NULL, '2026-03-23 14:00:00', '2026-03-23 01:22:11', '2026-03-23 07:30:00');
+(7, 'Lê Đỗ Hoà Thương', 'thuong', 'thuong@gmail.com', '0909876543', 'thuong123', '456 Đường X, Phường Y, Quận Z, TP.HCM', '1996-03-02', '2026-03-12', 'admin', 'active', 'Admin phụ trách marketing', NULL, '2026-03-24 07:03:02', '2026-03-23 01:22:11', '2026-03-24 00:03:43');
 
 --
 -- Chỉ mục cho các bảng đã đổ
