@@ -67,6 +67,18 @@ if (isset($_SESSION['cart'])) {
 
 // Check if user is logged in
 $is_logged_in = isset($_SESSION['user_id']);
+
+// Lấy thông tin user cho dropdown (nếu đã đăng nhập)
+$user_info = null;
+if ($is_logged_in) {
+    try {
+        $stmt = $pdo->prepare("SELECT id, username, full_name, email FROM users WHERE id = ?");
+        $stmt->execute([$_SESSION['user_id']]);
+        $user_info = $stmt->fetch(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        // Bỏ qua
+    }
+}
 ?>
 
 <!DOCTYPE html>
@@ -191,7 +203,7 @@ $is_logged_in = isset($_SESSION['user_id']);
       }
     }
     
-    /* New Add to Cart Button Styles */
+    /* Add to Cart Button Styles */
     .add-to-cart-btn {
       background: #ffbe33;
       border: none;
@@ -399,6 +411,146 @@ $is_logged_in = isset($_SESSION['user_id']);
       color: #888;
       font-size: 13px;
     }
+    
+    /* User dropdown styles - giống order_history */
+    .user-dropdown {
+      position: relative;
+      display: inline-block;
+    }
+    
+    .user-dropdown-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 10px;
+      border-radius: 30px;
+      transition: all 0.3s;
+    }
+    
+    .user-dropdown-btn:hover {
+      background-color: rgba(255,255,255,0.1);
+    }
+    
+    .user-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background-color: #ffbe33;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #222;
+      font-weight: bold;
+      font-size: 14px;
+    }
+    
+    .user-name {
+      color: white;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    
+    .dropdown-menu-custom {
+      position: absolute;
+      top: 45px;
+      right: 0;
+      background: white;
+      min-width: 280px;
+      border-radius: 10px;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+      z-index: 1000;
+      display: none;
+      animation: fadeIn 0.2s ease;
+    }
+    
+    .dropdown-menu-custom.show {
+      display: block;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .dropdown-header {
+      padding: 15px;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    .dropdown-header-icon {
+      width: 45px;
+      height: 45px;
+      border-radius: 50%;
+      background-color: #ffbe33;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      font-weight: bold;
+      color: #222;
+    }
+    
+    .dropdown-header-info h6 {
+      margin: 0;
+      font-weight: 600;
+      color: #333;
+    }
+    
+    .dropdown-header-info p {
+      margin: 0;
+      font-size: 12px;
+      color: #666;
+    }
+    
+    .dropdown-item-custom {
+      padding: 12px 15px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: #333;
+      text-decoration: none;
+      transition: background 0.2s;
+    }
+    
+    .dropdown-item-custom:hover {
+      background-color: #f5f5f5;
+      color: #333;
+      text-decoration: none;
+    }
+    
+    .dropdown-item-custom i {
+      width: 20px;
+      color: #ffbe33;
+    }
+    
+    .dropdown-divider {
+      height: 1px;
+      background-color: #eee;
+      margin: 5px 0;
+    }
+    
+    .text-danger {
+      color: #dc3545 !important;
+    }
+    
+    .text-danger:hover {
+      background-color: #fff5f5 !important;
+    }
+    
+    @media (max-width: 768px) {
+      .user-name {
+        display: none;
+      }
+      .dropdown-menu-custom {
+        right: -50px;
+      }
+    }
   </style>
 </head>
 
@@ -440,23 +592,59 @@ $is_logged_in = isset($_SESSION['user_id']);
               <a class="nav-link" href="about.php">About</a>
             </li>
             <li class="nav-item">
-              <?php if ($is_logged_in): ?>
-                <a class="nav-link" href="order_history.php">Order history</a>
-              <?php else: ?>
-                <a class="nav-link" href="user/login.php">Order history</a>
-              <?php endif; ?>
+              <a class="nav-link" href="order_history.php">Order History</a>
             </li>
           </ul>
           <div class="user_option">
-            <?php if ($is_logged_in): ?>
-              <a href="user/profile.php" class="user_link">
-                <i class="fa fa-user" aria-hidden="true"></i>
-              </a>
+            <?php if ($is_logged_in && $user_info): ?>
+              <div class="user-dropdown">
+                <button class="user-dropdown-btn" id="userDropdownBtn">
+                  <div class="user-icon">
+                    <?= strtoupper(substr($user_info['full_name'] ?? $user_info['username'], 0, 1)) ?>
+                  </div>
+                  <span class="user-name">
+                    <?= htmlspecialchars($user_info['full_name'] ?: $user_info['username']) ?>
+                  </span>
+                  <i class="fa fa-chevron-down" style="color: white; font-size: 12px;"></i>
+                </button>
+                <div class="dropdown-menu-custom" id="userDropdownMenu">
+                  <div class="dropdown-header">
+                    <div class="dropdown-header-icon">
+                      <?= strtoupper(substr($user_info['full_name'] ?? $user_info['username'], 0, 1)) ?>
+                    </div>
+                    <div class="dropdown-header-info">
+                      <h6><?= htmlspecialchars($user_info['full_name'] ?: $user_info['username']) ?></h6>
+                      <p><?= htmlspecialchars($user_info['email']) ?></p>
+                    </div>
+                  </div>
+                  <a href="user/profile.php" class="dropdown-item-custom">
+                    <i class="fa fa-user"></i>
+                    <span>Thông tin tài khoản</span>
+                  </a>
+                  <a href="order_history.php" class="dropdown-item-custom">
+                    <i class="fa fa-shopping-bag"></i>
+                    <span>Lịch sử đơn hàng</span>
+                  </a>
+                  <a href="cart.php" class="dropdown-item-custom">
+                    <i class="fa fa-shopping-cart"></i>
+                    <span>Giỏ hàng của tôi</span>
+                    <?php if ($cart_count > 0): ?>
+                      <span class="badge" style="background: #ffbe33; color: #222; margin-left: auto;"><?= $cart_count ?></span>
+                    <?php endif; ?>
+                  </a>
+                  <div class="dropdown-divider"></div>
+                  <a href="user/logout.php" class="dropdown-item-custom text-danger">
+                    <i class="fa fa-sign-out-alt"></i>
+                    <span>Đăng xuất</span>
+                  </a>
+                </div>
+              </div>
             <?php else: ?>
               <a href="user/login.php" class="user_link">
                 <i class="fa fa-user" aria-hidden="true"></i>
               </a>
             <?php endif; ?>
+            
             <a class="cart_link" href="cart.php">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 456.029 456.029" xml:space="preserve">
                 <g><path d="M345.6,338.862c-29.184,0-53.248,23.552-53.248,53.248c0,29.184,23.552,53.248,53.248,53.248c29.184,0,53.248-23.552,53.248-53.248C398.336,362.926,374.784,338.862,345.6,338.862z"/></g>
@@ -768,6 +956,23 @@ $is_logged_in = isset($_SESSION['user_id']);
 <script src="js/custom.js"></script>
 
 <script>
+  // User Dropdown functionality
+  var dropdownBtn = document.getElementById('userDropdownBtn');
+  var dropdownMenu = document.getElementById('userDropdownMenu');
+  
+  if (dropdownBtn && dropdownMenu) {
+    dropdownBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      dropdownMenu.classList.toggle('show');
+    });
+    
+    document.addEventListener('click', function(e) {
+      if (!dropdownBtn.contains(e.target) && !dropdownMenu.contains(e.target)) {
+        dropdownMenu.classList.remove('show');
+      }
+    });
+  }
+  
   // Toast notification function
   function showToast(message) {
     var toast = document.getElementById('toast-message');
