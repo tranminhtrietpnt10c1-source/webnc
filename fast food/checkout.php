@@ -115,8 +115,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirm_order'])) {
         // Clear cart
         $_SESSION['cart'] = [];
         
-        // Set success flag
-        $order_success = true;
+        // SỬA: Chuyển hướng đến order_success.php thay vì hiển thị modal
+        header('Location: order_success.php?code=' . urlencode($order_code));
+        exit;
         
     } catch (PDOException $e) {
         $pdo->rollBack();
@@ -242,100 +243,126 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirm_order'])) {
       margin-right: 10px;
     }
     
-    /* Success Modal Styles */
-    .success-modal {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.7);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 9999;
-      animation: fadeIn 0.3s ease;
-    }
-    
-    .success-content {
-      background: white;
-      border-radius: 15px;
-      padding: 40px;
-      text-align: center;
-      max-width: 500px;
-      width: 90%;
-      animation: slideUp 0.4s ease;
-    }
-    
-    .success-icon {
-      width: 80px;
-      height: 80px;
-      background: #28a745;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0 auto 20px;
-    }
-    
-    .success-icon i {
-      font-size: 40px;
-      color: white;
-    }
-    
-    .success-content h3 {
-      color: #28a745;
-      margin-bottom: 15px;
-      font-size: 24px;
-    }
-    
-    .success-content p {
-      color: #666;
-      margin-bottom: 10px;
-    }
-    
-    .order-code {
-      background: #f8f9fa;
-      padding: 10px;
-      border-radius: 5px;
-      font-size: 18px;
-      font-weight: bold;
-      color: #ffbe33;
-      margin: 15px 0;
-    }
-    
-    .btn-home {
-      background-color: #ffbe33;
-      color: white;
-      padding: 12px 30px;
-      border-radius: 30px;
-      text-decoration: none;
+    /* User dropdown styles */
+    .user-dropdown {
+      position: relative;
       display: inline-block;
-      margin-top: 20px;
+    }
+    .user-dropdown-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 10px;
+      border-radius: 30px;
       transition: all 0.3s;
+    }
+    .user-dropdown-btn:hover {
+      background-color: rgba(255,255,255,0.1);
+    }
+    .user-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background-color: #ffbe33;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #222;
       font-weight: bold;
+      font-size: 14px;
     }
-    
-    .btn-home:hover {
-      background-color: #e69c00;
+    .user-name {
       color: white;
-      text-decoration: none;
-      transform: translateY(-2px);
+      font-size: 14px;
+      font-weight: 500;
     }
-    
+    .dropdown-menu-custom {
+      position: absolute;
+      top: 45px;
+      right: 0;
+      background: white;
+      min-width: 280px;
+      border-radius: 10px;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+      z-index: 1000;
+      display: none;
+      animation: fadeIn 0.2s ease;
+    }
+    .dropdown-menu-custom.show {
+      display: block;
+    }
     @keyframes fadeIn {
-      from { opacity: 0; }
-      to { opacity: 1; }
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .dropdown-header {
+      padding: 15px;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .dropdown-header-icon {
+      width: 45px;
+      height: 45px;
+      border-radius: 50%;
+      background-color: #ffbe33;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      font-weight: bold;
+      color: #222;
+    }
+    .dropdown-header-info h6 {
+      margin: 0;
+      font-weight: 600;
+      color: #333;
+    }
+    .dropdown-header-info p {
+      margin: 0;
+      font-size: 12px;
+      color: #666;
+    }
+    .dropdown-item-custom {
+      padding: 12px 15px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: #333;
+      text-decoration: none;
+      transition: background 0.2s;
+    }
+    .dropdown-item-custom:hover {
+      background-color: #f5f5f5;
+      color: #333;
+      text-decoration: none;
+    }
+    .dropdown-item-custom i {
+      width: 20px;
+      color: #ffbe33;
+    }
+    .dropdown-divider {
+      height: 1px;
+      background-color: #eee;
+      margin: 5px 0;
+    }
+    .text-danger {
+      color: #dc3545 !important;
+    }
+    .text-danger:hover {
+      background-color: #fff5f5 !important;
     }
     
-    @keyframes slideUp {
-      from {
-        opacity: 0;
-        transform: translateY(30px);
+    @media (max-width: 768px) {
+      .user-name {
+        display: none;
       }
-      to {
-        opacity: 1;
-        transform: translateY(0);
+      .dropdown-menu-custom {
+        right: -50px;
       }
     }
   </style>
@@ -351,9 +378,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirm_order'])) {
       <div class="container">
         <nav class="navbar navbar-expand-lg custom_nav-container">
           <a class="navbar-brand" href="index.php">
-            <span>
-              Feane
-            </span>
+            <span>Feane</span>
           </a>
 
           <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
@@ -371,14 +396,60 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirm_order'])) {
               <li class="nav-item">
                 <a class="nav-link" href="about.php">About</a>
               </li>
-              <li class="nav-item active">
-                <a class="nav-link" href="cart.php">Giỏ Hàng <span class="sr-only">(current)</span></a>
+              <li class="nav-item">
+                <a class="nav-link" href="order_history.php">Order History</a>
               </li>
             </ul>
             <div class="user_option">
-              <a href="user/profile.php" class="user_link">
-                <i class="fa fa-user" aria-hidden="true"></i>
-              </a>
+              <?php if (isset($_SESSION['user_id']) && isset($user)): ?>
+                <div class="user-dropdown">
+                  <button class="user-dropdown-btn" id="userDropdownBtn">
+                    <div class="user-icon">
+                      <?= strtoupper(substr($user['full_name'] ?? $user['username'] ?? 'U', 0, 1)) ?>
+                    </div>
+                    <span class="user-name">
+                      <?= htmlspecialchars($user['full_name'] ?? $user['username'] ?? 'User') ?>
+                    </span>
+                    <i class="fa fa-chevron-down" style="color: white; font-size: 12px;"></i>
+                  </button>
+                  <div class="dropdown-menu-custom" id="userDropdownMenu">
+                    <div class="dropdown-header">
+                      <div class="dropdown-header-icon">
+                        <?= strtoupper(substr($user['full_name'] ?? $user['username'] ?? 'U', 0, 1)) ?>
+                      </div>
+                      <div class="dropdown-header-info">
+                        <h6><?= htmlspecialchars($user['full_name'] ?? $user['username'] ?? 'User') ?></h6>
+                        <p><?= htmlspecialchars($user['email'] ?? '') ?></p>
+                      </div>
+                    </div>
+                    <a href="user/profile.php" class="dropdown-item-custom">
+                      <i class="fa fa-user"></i>
+                      <span>Thông tin tài khoản</span>
+                    </a>
+                    <a href="order_history.php" class="dropdown-item-custom">
+                      <i class="fa fa-shopping-bag"></i>
+                      <span>Lịch sử đơn hàng</span>
+                    </a>
+                    <a href="cart.php" class="dropdown-item-custom">
+                      <i class="fa fa-shopping-cart"></i>
+                      <span>Giỏ hàng của tôi</span>
+                      <?php if ($cart_count > 0): ?>
+                        <span class="badge" style="background: #ffbe33; color: #222; margin-left: auto;"><?= $cart_count ?></span>
+                      <?php endif; ?>
+                    </a>
+                    <div class="dropdown-divider"></div>
+                    <a href="user/logout.php" class="dropdown-item-custom text-danger">
+                      <i class="fa fa-sign-out-alt"></i>
+                      <span>Đăng xuất</span>
+                    </a>
+                  </div>
+                </div>
+              <?php else: ?>
+                <a href="user/login.php" class="user_link">
+                  <i class="fa fa-user" aria-hidden="true"></i>
+                </a>
+              <?php endif; ?>
+              
               <a class="cart_link" href="cart.php">
                 <svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 456.029 456.029">
                   <g>
@@ -424,7 +495,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirm_order'])) {
         </div>
       <?php endif; ?>
 
-      <?php if (!$order_success): ?>
       <div class="row">
         <div class="col-md-8">
           <!-- Thông tin giao hàng -->
@@ -532,30 +602,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirm_order'])) {
           </div>
         </div>
       </div>
-      <?php endif; ?>
     </div>
   </section>
   <!-- end checkout section -->
-
-  <!-- Success Modal -->
-  <?php if ($order_success): ?>
-  <div class="success-modal" id="successModal">
-    <div class="success-content">
-      <div class="success-icon">
-        <i class="fa fa-check"></i>
-      </div>
-      <h3>Đặt hàng thành công!</h3>
-      <p>Cảm ơn bạn đã đặt hàng tại Feane. Đơn hàng của bạn đã được ghi nhận.</p>
-      <div class="order-code">
-        <i class="fa fa-ticket"></i> Mã đơn hàng: <strong><?php echo $order_code; ?></strong>
-      </div>
-      <p>Chúng tôi sẽ liên hệ với bạn trong thời gian sớm nhất để xác nhận đơn hàng.</p>
-      <a href="index.php" class="btn-home">
-        <i class="fa fa-home"></i> Quay về trang chủ
-      </a>
-    </div>
-  </div>
-  <?php endif; ?>
 
   <!-- footer section -->
   <footer class="footer_section">
@@ -563,77 +612,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirm_order'])) {
       <div class="row">
         <div class="col-md-4 footer-col">
           <div class="footer_contact">
-            <h4>
-              Contact Us
-            </h4>
+            <h4>Contact Us</h4>
             <div class="contact_link_box">
-              <a href="contact.html">
-                <i class="fa fa-map-marker" aria-hidden="true"></i>
-                <span>
-                  Location
-                </span>
-              </a>
-              <a href="contact.html">
-                <i class="fa fa-phone" aria-hidden="true"></i>
-                <span>
-                  Call +01 1234567890
-                </span>
-              </a>
-              <a href="contact.html">
-                <i class="fa fa-envelope" aria-hidden="true"></i>
-                <span>
-                  demo@gmail.com
-                </span>
-              </a>
+              <a href=""><i class="fa fa-map-marker"></i><span>Location</span></a>
+              <a href=""><i class="fa fa-phone"></i><span>Call +01 1234567890</span></a>
+              <a href=""><i class="fa fa-envelope"></i><span>demo@gmail.com</span></a>
             </div>
           </div>
         </div>
         <div class="col-md-4 footer-col">
           <div class="footer_detail">
-            <a href="index.php" class="footer-logo">
-              Feane
-            </a>
-            <p>
-              Necessary, making this the first true generator on the Internet. It uses a dictionary of over 200 Latin words, combined with
-            </p>
+            <a href="" class="footer-logo">Feane</a>
+            <p>Necessary, making this the first true generator on the Internet. It uses a dictionary of over 200 Latin words, combined with</p>
             <div class="footer_social">
-              <a href="social.html">
-                <i class="fa fa-facebook" aria-hidden="true"></i>
-              </a>
-              <a href="social.html">
-                <i class="fa fa-twitter" aria-hidden="true"></i>
-              </a>
-              <a href="social.html">
-                <i class="fa fa-linkedin" aria-hidden="true"></i>
-              </a>
-              <a href="social.html">
-                <i class="fa fa-instagram" aria-hidden="true"></i>
-              </a>
-              <a href="social.html">
-                <i class="fa fa-pinterest" aria-hidden="true"></i>
-              </a>
+              <a href=""><i class="fa fa-facebook"></i></a>
+              <a href=""><i class="fa fa-twitter"></i></a>
+              <a href=""><i class="fa fa-linkedin"></i></a>
+              <a href=""><i class="fa fa-instagram"></i></a>
             </div>
           </div>
         </div>
         <div class="col-md-4 footer-col">
-          <h4>
-            Opening Hours
-          </h4>
-          <p>
-            Everyday
-          </p>
-          <p>
-            10.00 Am -10.00 Pm
-          </p>
+          <h4>Opening Hours</h4>
+          <p>Everyday</p>
+          <p>10.00 Am -10.00 Pm</p>
         </div>
       </div>
       <div class="footer-info">
-        <p>
-          &copy; <span id="displayYear"></span> All Rights Reserved By
-          <a href="https://html.design/">Free Html Templates</a><br><br>
-          &copy; <span id="displayYear"></span> Distributed By
-          <a href="https://themewagon.com/" target="_blank">ThemeWagon</a>
-        </p>
+        <p>&copy; <span id="displayYear"></span> All Rights Reserved By <a href="https://html.design/">Free Html Templates</a></p>
       </div>
     </div>
   </footer>
@@ -649,20 +655,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirm_order'])) {
   <script src="js/custom.js"></script>
 
   <script>
+    // User Dropdown functionality
+    var dropdownBtn = document.getElementById('userDropdownBtn');
+    var dropdownMenu = document.getElementById('userDropdownMenu');
+    
+    if (dropdownBtn && dropdownMenu) {
+      dropdownBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        dropdownMenu.classList.toggle('show');
+      });
+      
+      document.addEventListener('click', function(e) {
+        if (!dropdownBtn.contains(e.target) && !dropdownMenu.contains(e.target)) {
+          dropdownMenu.classList.remove('show');
+        }
+      });
+    }
+    
     // Xử lý chọn phương thức thanh toán
     document.querySelectorAll('input[name="payment_method"]').forEach(radio => {
       radio.addEventListener('change', function() {
-        // Ẩn tất cả các chi tiết thanh toán
         document.querySelectorAll('.payment-details').forEach(detail => {
           detail.style.display = 'none';
         });
-        
-        // Xóa trạng thái active của tất cả các tùy chọn
         document.querySelectorAll('.payment-option').forEach(option => {
           option.classList.remove('active');
         });
         
-        // Hiển thị chi tiết thanh toán tương ứng và thêm lớp active
         if (this.id === 'transfer') {
           document.getElementById('transfer-details').style.display = 'block';
           document.getElementById('transfer-option').classList.add('active');
@@ -673,7 +692,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirm_order'])) {
           document.getElementById('cash-option').classList.add('active');
         }
         
-        // Cập nhật giá trị hidden input
         document.getElementById('selected_payment_method').value = this.value;
       });
     });
@@ -692,7 +710,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirm_order'])) {
         const radio = this.querySelector('input[type="radio"]');
         if (radio) {
           radio.checked = true;
-          // Trigger change event
           const event = new Event('change');
           radio.dispatchEvent(event);
         }

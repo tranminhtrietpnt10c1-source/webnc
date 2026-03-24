@@ -2,15 +2,35 @@
 session_start();
 require_once 'includes/db_connection.php';
 
+// Lấy thông tin user nếu đã đăng nhập
+$user_info = null;
+if (isset($_SESSION['user_id'])) {
+    try {
+        $stmt = $pdo->prepare("SELECT id, username, full_name, email, phone, role, status FROM users WHERE id = ?");
+        $stmt->execute([$_SESSION['user_id']]);
+        $user_info = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        // Kiểm tra tài khoản có bị khóa không
+        if ($user_info && $user_info['status'] === 'inactive') {
+            session_destroy();
+            header('Location: user/login.php?error=account_locked');
+            exit;
+        }
+    } catch (PDOException $e) {
+        // Bỏ qua lỗi nếu không có bảng users
+    }
+}
+
 $page = 1;
 $limit = 6;
 $offset = 0;
 
+// Đếm tổng số sản phẩm
 $totalStmt = $pdo->query("SELECT COUNT(*) FROM products WHERE status = 'active'");
 $totalProducts = $totalStmt->fetchColumn();
 $totalPages = ceil($totalProducts / $limit);
 
-// SỬA: Chỉ dùng 1 truy vấn tính selling_price từ cost_price và profit_percentage
+// Lấy sản phẩm cho trang hiện tại
 $stmt = $pdo->prepare("SELECT p.id, p.name, p.description, p.image, p.cost_price, p.profit_percentage,
                               (p.cost_price * (1 + p.profit_percentage/100)) AS selling_price
                        FROM products p
@@ -22,7 +42,7 @@ $stmt->bindParam(2, $offset, PDO::PARAM_INT);
 $stmt->execute();
 $featured = $stmt->fetchAll();
 
-// Get cart count for display
+// Lấy số lượng sản phẩm trong giỏ hàng
 $cart_count = 0;
 if (isset($_SESSION['cart'])) {
     foreach ($_SESSION['cart'] as $item) {
@@ -36,7 +56,7 @@ if (isset($_SESSION['cart'])) {
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
   <link rel="shortcut icon" href="images/favicon.png" type="">
-  <title>Feane</title>
+  <title>Feane - Fast Food Restaurant</title>
   <link rel="stylesheet" type="text/css" href="css/bootstrap.css" />
   <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/assets/owl.carousel.min.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jquery-nice-select/1.1.0/css/nice-select.min.css" />
@@ -47,12 +67,14 @@ if (isset($_SESSION['cart'])) {
     .hero_area { min-height: auto !important; }
     .view-more-container { display: flex; justify-content: center; margin-top: 40px; }
     .btn-view-more { background-color: #ffbe33; color: white; padding: 12px 30px; border-radius: 5px; text-decoration: none; font-weight: bold; transition: all 0.3s; }
-    .btn-view-more:hover { background-color: #e69c00; }
+    .btn-view-more:hover { background-color: #e69c00; color: white; }
     .pagination .page-link { color: #8B8000; background-color: #fff; border-color: #FFD700; }
     .pagination .page-link:hover { color: #fff; background-color: #FFD700; border-color: #FFD700; }
     .pagination .page-item.active .page-link { color: #fff; background-color: #FFD700; border-color: #FFD700; }
     .pagination .page-item.disabled .page-link { color: #ccc; background-color: #fff; border-color: #eee; }
     #product-grid { transition: opacity 0.4s ease; }
+    
+    /* Loader styles */
     .loader {
       position: fixed;
       top: 0;
@@ -84,6 +106,7 @@ if (isset($_SESSION['cart'])) {
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
+    
     /* Toast notification styles */
     .toast-notification {
       position: fixed;
@@ -108,6 +131,8 @@ if (isset($_SESSION['cart'])) {
         opacity: 1;
       }
     }
+    
+    /* Cart count styles */
     .cart-count {
       position: absolute;
       top: -8px;
@@ -137,6 +162,150 @@ if (isset($_SESSION['cart'])) {
     .add-to-cart-btn:hover svg {
       transform: scale(1.1);
     }
+    
+    /* User dropdown styles - không có ảnh */
+    .user-dropdown {
+      position: relative;
+      display: inline-block;
+    }
+    .user-dropdown-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 10px;
+      border-radius: 30px;
+      transition: all 0.3s;
+    }
+    .user-dropdown-btn:hover {
+      background-color: rgba(255,255,255,0.1);
+    }
+    .user-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background-color: #ffbe33;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #222;
+      font-weight: bold;
+      font-size: 14px;
+    }
+    .user-name {
+      color: white;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    .dropdown-menu-custom {
+      position: absolute;
+      top: 45px;
+      right: 0;
+      background: white;
+      min-width: 280px;
+      border-radius: 10px;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+      z-index: 1000;
+      display: none;
+      animation: fadeIn 0.2s ease;
+    }
+    .dropdown-menu-custom.show {
+      display: block;
+    }
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    .dropdown-header {
+      padding: 15px;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .dropdown-header-icon {
+      width: 45px;
+      height: 45px;
+      border-radius: 50%;
+      background-color: #ffbe33;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      font-weight: bold;
+      color: #222;
+    }
+    .dropdown-header-info h6 {
+      margin: 0;
+      font-weight: 600;
+      color: #333;
+    }
+    .dropdown-header-info p {
+      margin: 0;
+      font-size: 12px;
+      color: #666;
+    }
+    .dropdown-header-info .role-badge {
+      display: inline-block;
+      background: #ffbe33;
+      color: #222;
+      font-size: 10px;
+      padding: 2px 8px;
+      border-radius: 20px;
+      margin-top: 5px;
+    }
+    .dropdown-item-custom {
+      padding: 12px 15px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: #333;
+      text-decoration: none;
+      transition: background 0.2s;
+    }
+    .dropdown-item-custom:hover {
+      background-color: #f5f5f5;
+      color: #333;
+      text-decoration: none;
+    }
+    .dropdown-item-custom i {
+      width: 20px;
+      color: #ffbe33;
+    }
+    .dropdown-divider {
+      height: 1px;
+      background-color: #eee;
+      margin: 5px 0;
+    }
+    .text-danger {
+      color: #dc3545 !important;
+    }
+    .text-danger:hover {
+      background-color: #fff5f5 !important;
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+      .user-name {
+        display: none;
+      }
+      .dropdown-menu-custom {
+        right: -50px;
+      }
+      .user-icon {
+        width: 28px;
+        height: 28px;
+        font-size: 12px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -163,18 +332,52 @@ if (isset($_SESSION['cart'])) {
             <li class="nav-item"><a class="nav-link" href="about.php">About</a></li>
             <li class="nav-item">
               <?php if (isset($_SESSION['user_id'])): ?>
-                <a class="nav-link" href="order_history.php">Order history</a>
+                <a class="nav-link" href="order_history.php">Order History</a>
               <?php else: ?>
-                <a class="nav-link" href="user/login.php">Order history</a>
+                <a class="nav-link" href="user/login.php">Order History</a>
               <?php endif; ?>
             </li>
           </ul>
           <div class="user_option">
-            <?php if (isset($_SESSION['user_id'])): ?>
-              <a href="user/profile.php" class="user_link"><i class="fa fa-user" aria-hidden="true"></i></a>
+            <?php if (isset($_SESSION['user_id']) && $user_info): ?>
+              <!-- User Dropdown khi đã đăng nhập - Chỉ hiển thị tên -->
+              <div class="user-dropdown">
+                <button class="user-dropdown-btn" id="userDropdownBtn">
+                  <div class="user-icon">
+                    <?= strtoupper(substr($user_info['full_name'] ?? $user_info['username'], 0, 1)) ?>
+                  </div>
+                  <span class="user-name">
+                    <?= htmlspecialchars($user_info['full_name'] ?: $user_info['username']) ?>
+                  </span>
+                  <i class="fa fa-chevron-down" style="color: white; font-size: 12px;"></i>
+                </button>
+                <div class="dropdown-menu-custom" id="userDropdownMenu">
+                  <div class="dropdown-header">
+                    <div class="dropdown-header-icon">
+                      <?= strtoupper(substr($user_info['full_name'] ?? $user_info['username'], 0, 1)) ?>
+                    </div>
+                    <div class="dropdown-header-info">
+                      <h6><?= htmlspecialchars($user_info['full_name'] ?: $user_info['username']) ?></h6>
+                      <p><?= htmlspecialchars($user_info['email']) ?></p>
+                      <?php if ($user_info['role'] === 'admin'): ?>
+                        <span class="role-badge">Quản trị viên</span>
+                      <?php endif; ?>
+                    </div>
+                  </div>
+                  <a href="user/profile.php" class="dropdown-item-custom">
+                    <i class="fa fa-user"></i>
+                    <span>Thông tin tài khoản</span>
+                  </a>
+                 
+                </div>
+              </div>
             <?php else: ?>
-              <a href="user/login.php" class="user_link"><i class="fa fa-user" aria-hidden="true"></i></a>
+              <!-- Nút đăng nhập khi chưa đăng nhập -->
+              <a href="user/login.php" class="user_link">
+                <i class="fa fa-user" aria-hidden="true"></i>
+              </a>
             <?php endif; ?>
+            
             <a class="cart_link" href="cart.php">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 456.029 456.029" xml:space="preserve">
                 <g><path d="M345.6,338.862c-29.184,0-53.248,23.552-53.248,53.248c0,29.184,23.552,53.248,53.248,53.248c29.184,0,53.248-23.552,53.248-53.248C398.336,362.926,374.784,338.862,345.6,338.862z"/></g>
@@ -208,6 +411,9 @@ if (isset($_SESSION['cart'])) {
               <div class="col-md-7 col-lg-6">
                 <div class="detail-box">
                   <h1>Fast Food</h1>
+                  <p>
+                    Delicious food delivered to your doorstep. Enjoy the best burgers, pizzas, and more at Feane!
+                  </p>
                   <div class="btn-box">
                     <a href="<?= isset($_SESSION['user_id']) ? 'menu.php' : 'user/login.php' ?>" class="btn1">Order Now</a>
                   </div>
@@ -313,34 +519,32 @@ if (isset($_SESSION['cart'])) {
         <div class="footer_contact">
           <h4>Contact Us</h4>
           <div class="contact_link_box">
-            <a href=""><i class="fa fa-map-marker" aria-hidden="true"></i><span>Location</span></a>
-            <a href=""><i class="fa fa-phone" aria-hidden="true"></i><span>Call +01 1234567890</span></a>
-            <a href=""><i class="fa fa-envelope" aria-hidden="true"></i><span>demo@gmail.com</span></a>
+            <a href=""><i class="fa fa-map-marker" aria-hidden="true"></i><span>123 Đường Nguyễn Huệ, Quận 1, TP.HCM</span></a>
+            <a href=""><i class="fa fa-phone" aria-hidden="true"></i><span>Call +84 123 456 789</span></a>
+            <a href=""><i class="fa fa-envelope" aria-hidden="true"></i><span>info@feane.com</span></a>
           </div>
         </div>
       </div>
       <div class="col-md-4 footer-col">
         <div class="footer_detail">
           <a href="" class="footer-logo">Feane</a>
-          <p>Necessary, making this the first true generator on the Internet. It uses a dictionary of over 200 Latin words, combined with</p>
+          <p>Delicious fast food made with love. Quality ingredients, great taste, and fast delivery.</p>
           <div class="footer_social">
             <a href=""><i class="fa fa-facebook" aria-hidden="true"></i></a>
             <a href=""><i class="fa fa-twitter" aria-hidden="true"></i></a>
             <a href=""><i class="fa fa-linkedin" aria-hidden="true"></i></a>
             <a href=""><i class="fa fa-instagram" aria-hidden="true"></i></a>
-            <a href=""><i class="fa fa-pinterest" aria-hidden="true"></i></a>
           </div>
         </div>
       </div>
       <div class="col-md-4 footer-col">
         <h4>Opening Hours</h4>
         <p>Everyday</p>
-        <p>10.00 Am -10.00 Pm</p>
+        <p>10:00 AM - 10:00 PM</p>
       </div>
     </div>
     <div class="footer-info">
-      <p>&copy; <span id="displayYear"></span> All Rights Reserved By <a href="https://html.design/">Free Html Templates</a><br><br>
-      &copy; <span id="displayYear"></span> Distributed By <a href="https://themewagon.com/" target="_blank">ThemeWagon</a></p>
+      <p>&copy; <span id="displayYear"></span> Feane Restaurant. All Rights Reserved.</p>
     </div>
   </div>
 </footer>
@@ -364,9 +568,28 @@ if (isset($_SESSION['cart'])) {
     + '<g><path d="M215.04,389.55c-1.024-28.16-24.576-50.688-52.736-50.688c-29.696,1.536-52.224,26.112-51.2,55.296c1.024,28.16,24.064,50.688,52.224,50.688h1.024C193.536,443.31,216.576,418.734,215.04,389.55z"/></g>'
     + '</svg>';
 
+  // User Dropdown functionality
+  var dropdownBtn = document.getElementById('userDropdownBtn');
+  var dropdownMenu = document.getElementById('userDropdownMenu');
+  
+  if (dropdownBtn && dropdownMenu) {
+    dropdownBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      dropdownMenu.classList.toggle('show');
+    });
+    
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+      if (!dropdownBtn.contains(e.target) && !dropdownMenu.contains(e.target)) {
+        dropdownMenu.classList.remove('show');
+      }
+    });
+  }
+
   function renderPagination(page, total) {
     if (total <= 1) { 
-      document.getElementById('pagination-container').innerHTML = ''; 
+      var paginationContainer = document.getElementById('pagination-container');
+      if (paginationContainer) paginationContainer.innerHTML = ''; 
       return; 
     }
     var html = '<nav><ul class="pagination justify-content-center mt-4">';
@@ -385,7 +608,6 @@ if (isset($_SESSION['cart'])) {
   function loadProducts(page) {
     if (page < 1 || page > totalPages) return;
     
-    // Hiển thị loader và fade out
     if (loader) loader.classList.add('show');
     grid.style.opacity = '0';
     grid.style.transition = 'opacity 0.3s ease';
@@ -394,34 +616,35 @@ if (isset($_SESSION['cart'])) {
       .then(function(res) { return res.json(); })
       .then(function(data) {
         var html = '';
-        data.products.forEach(function(p) {
-          var price = parseInt(p.selling_price).toLocaleString('vi-VN');
-          html += '<div class="col-sm-6 col-lg-4"><div class="box">'
-                + '<a href="product_detail.php?id=' + p.id + '"><div class="img-box"><img src="' + p.image + '" alt="' + p.name + '"></div></a>'
-                + '<div class="detail-box"><h5>' + p.name + '</h5><p>' + p.description + '</p>'
-                + '<div class="options"><h6>' + price + 'đ</h6>'
-                + '<button class="add-to-cart-btn" data-id="' + p.id + '" data-name="' + p.name + '" data-price="' + p.selling_price + '" data-image="' + p.image + '">' + cartSvg + '</button>'
-                + '</div></div></div></div>';
-        });
+        if (data.products && data.products.length > 0) {
+          data.products.forEach(function(p) {
+            var price = parseInt(p.selling_price).toLocaleString('vi-VN');
+            html += '<div class="col-sm-6 col-lg-4"><div class="box">'
+                  + '<a href="product_detail.php?id=' + p.id + '"><div class="img-box"><img src="' + p.image + '" alt="' + p.name + '"></div></a>'
+                  + '<div class="detail-box"><h5>' + p.name + '</h5><p>' + (p.description || '') + '</p>'
+                  + '<div class="options"><h6>' + price + 'đ</h6>'
+                  + '<button class="add-to-cart-btn" data-id="' + p.id + '" data-name="' + p.name.replace(/'/g, "\\'") + '" data-price="' + p.selling_price + '" data-image="' + p.image + '">' + cartSvg + '</button>'
+                  + '</div></div></div></div>';
+          });
+        } else {
+          html = '<div class="col-12 text-center">Không có sản phẩm nào.</div>';
+        }
 
         grid.innerHTML = html;
         currentPage = data.currentPage;
         totalPages = data.totalPages;
         
-        // Re-attach event listeners to new buttons
         attachCartEvents();
 
-        // Fade in và ẩn loader
         setTimeout(function() { 
           grid.style.opacity = '1';
           if (loader) loader.classList.remove('show');
         }, 200);
 
-        // Cập nhật pagination
         renderPagination(data.currentPage, data.totalPages);
 
-        // Scroll mượt xuống menu
-        document.querySelector('.food_section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        var foodSection = document.querySelector('.food_section');
+        if (foodSection) foodSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
       })
       .catch(function(error) {
         console.error('Lỗi tải sản phẩm:', error);
@@ -431,7 +654,6 @@ if (isset($_SESSION['cart'])) {
       });
   }
 
-  // Function to show toast notification
   function showToast(message) {
     var toast = document.getElementById('toast-message');
     toast.textContent = message;
@@ -441,7 +663,6 @@ if (isset($_SESSION['cart'])) {
     }, 2000);
   }
 
-  // Function to update cart count in header
   function updateCartCount(count) {
     var cartLink = document.querySelector('.cart_link');
     var existingCount = cartLink.querySelector('.cart-count');
@@ -460,11 +681,18 @@ if (isset($_SESSION['cart'])) {
         existingCount.remove();
       }
     }
+    
+    var dropdownCartBadge = document.querySelector('.dropdown-item-custom .badge');
+    if (dropdownCartBadge) {
+      if (count > 0) {
+        dropdownCartBadge.textContent = count;
+      } else {
+        dropdownCartBadge.remove();
+      }
+    }
   }
 
-  // Function to add product to cart via AJAX
   function addToCart(productId, name, price, image) {
-    // Check if user is logged in
     <?php if (!isset($_SESSION['user_id'])): ?>
       if (confirm('Bạn cần đăng nhập để thêm sản phẩm vào giỏ hàng. Đăng nhập ngay?')) {
         window.location.href = 'user/login.php';
@@ -495,7 +723,7 @@ if (isset($_SESSION['cart'])) {
           updateCartCount(data.cart_count);
         }
       } else {
-        showToast('Có lỗi xảy ra, vui lòng thử lại!');
+        showToast(data.message || 'Có lỗi xảy ra, vui lòng thử lại!');
       }
     })
     .catch(function(error) {
@@ -504,11 +732,9 @@ if (isset($_SESSION['cart'])) {
     });
   }
 
-  // Attach event listeners to add-to-cart buttons
   function attachCartEvents() {
     var buttons = document.querySelectorAll('.add-to-cart-btn');
     buttons.forEach(function(button) {
-      // Remove existing listener to avoid duplicates
       var newButton = button.cloneNode(true);
       button.parentNode.replaceChild(newButton, button);
       
@@ -523,12 +749,11 @@ if (isset($_SESSION['cart'])) {
     });
   }
 
-  // Render pagination lần đầu và attach events
   renderPagination(currentPage, totalPages);
   attachCartEvents();
   
-  // Display current year
-  document.getElementById('displayYear').innerHTML = new Date().getFullYear();
+  var yearSpan = document.getElementById('displayYear');
+  if (yearSpan) yearSpan.innerHTML = new Date().getFullYear();
 </script>
 
 </body>
