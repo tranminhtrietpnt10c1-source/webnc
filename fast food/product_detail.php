@@ -664,23 +664,7 @@ if ($is_logged_in) {
           <p>
             Necessary, making this the first true generator on the Internet. It uses a dictionary of over 200 Latin words, combined with
           </p>
-          <div class="footer_social">
-            <a href="">
-              <i class="fa fa-facebook" aria-hidden="true"></i>
-            </a>
-            <a href="">
-              <i class="fa fa-twitter" aria-hidden="true"></i>
-            </a>
-            <a href="">
-              <i class="fa fa-linkedin" aria-hidden="true"></i>
-            </a>
-            <a href="">
-              <i class="fa fa-instagram" aria-hidden="true"></i>
-            </a>
-            <a href="">
-              <i class="fa fa-pinterest" aria-hidden="true"></i>
-            </a>
-          </div>
+          
         </div>
       </div>
       <div class="col-md-4 footer-col">
