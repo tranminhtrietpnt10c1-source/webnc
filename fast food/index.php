@@ -620,22 +620,17 @@ $is_logged_in = isset($_SESSION['user_id']);
         <div class="footer_contact">
           <h4>Contact Us</h4>
           <div class="contact_link_box">
-            <a href=""><i class="fa fa-map-marker" aria-hidden="true"></i><span>123 Đường Nguyễn Huệ, Quận 1, TP.HCM</span></a>
-            <a href=""><i class="fa fa-phone" aria-hidden="true"></i><span>Call +84 123 456 789</span></a>
-            <a href=""><i class="fa fa-envelope" aria-hidden="true"></i><span>info@feane.com</span></a>
-          </div>
+    <div><i class="fa fa-map-marker"></i><span>Location</span></div>
+    <div><i class="fa fa-phone"></i><span>Call +01 1234567890</span></div>
+    <div><i class="fa fa-envelope"></i><span>demo@gmail.com</span></div>
+</div>
         </div>
       </div>
       <div class="col-md-4 footer-col">
         <div class="footer_detail">
           <a href="" class="footer-logo">Feane</a>
           <p>Delicious fast food made with love. Quality ingredients, great taste, and fast delivery.</p>
-          <div class="footer_social">
-            <a href=""><i class="fa fa-facebook" aria-hidden="true"></i></a>
-            <a href=""><i class="fa fa-twitter" aria-hidden="true"></i></a>
-            <a href=""><i class="fa fa-linkedin" aria-hidden="true"></i></a>
-            <a href=""><i class="fa fa-instagram" aria-hidden="true"></i></a>
-          </div>
+          
         </div>
       </div>
       <div class="col-md-4 footer-col">

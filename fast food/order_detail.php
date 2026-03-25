@@ -623,23 +623,18 @@ $final_amount = $order_info['final_amount'] ?? ($order_info['total_amount'] + ($
             <div class="col-md-4 footer-col">
                 <div class="footer_contact">
                     <h4>Contact Us</h4>
-                    <div class="contact_link_box">
-                        <a href=""><i class="fa fa-map-marker"></i><span>Location</span></a>
-                        <a href=""><i class="fa fa-phone"></i><span>Call +01 1234567890</span></a>
-                        <a href=""><i class="fa fa-envelope"></i><span>demo@gmail.com</span></a>
-                    </div>
+                   <div class="contact_link_box">
+    <div><i class="fa fa-map-marker"></i><span>Location</span></div>
+    <div><i class="fa fa-phone"></i><span>Call +01 1234567890</span></div>
+    <div><i class="fa fa-envelope"></i><span>demo@gmail.com</span></div>
+</div>
                 </div>
             </div>
             <div class="col-md-4 footer-col">
                 <div class="footer_detail">
                     <a href="" class="footer-logo">Feane</a>
                     <p>Necessary, making this the first true generator on the Internet.</p>
-                    <div class="footer_social">
-                        <a href=""><i class="fa fa-facebook"></i></a>
-                        <a href=""><i class="fa fa-twitter"></i></a>
-                        <a href=""><i class="fa fa-linkedin"></i></a>
-                        <a href=""><i class="fa fa-instagram"></i></a>
-                    </div>
+                    
                 </div>
             </div>
             <div class="col-md-4 footer-col">
