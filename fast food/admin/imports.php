@@ -27,7 +27,6 @@ $stmt = $pdo->prepare("SELECT id, full_name, username, email, phone, address, bi
 $stmt->execute([$admin_id]);
 $admin_info = $stmt->fetch();
 
-// Nếu không tìm thấy admin, đăng xuất
 if (!$admin_info) {
     session_destroy();
     header('Location: adminlogin.php');
@@ -48,7 +47,7 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
                 $limit = 5;
                 $offset = ($page - 1) * $limit;
 
-                $sql = "SELECT i.id, i.import_code, i.import_date, i.status,
+                $sql = "SELECT i.id, i.import_code, i.import_date, i.supplier, i.status, i.notes,
                                COUNT(d.id) AS product_count,
                                SUM(d.quantity) AS total_quantity,
                                SUM(d.subtotal) AS total_value
@@ -58,7 +57,7 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
                 $params = [];
 
                 if ($search) {
-                    $sql .= " AND (i.import_code LIKE :search OR EXISTS (
+                    $sql .= " AND (i.import_code LIKE :search OR i.supplier LIKE :search OR i.notes LIKE :search OR EXISTS (
                                 SELECT 1 FROM import_details d2
                                 JOIN products p ON d2.product_id = p.id
                                 WHERE d2.import_id = i.id AND p.name LIKE :search2
@@ -81,8 +80,11 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
 
                 $stmt = $pdo->prepare($sql);
                 foreach ($params as $key => $val) {
-                    if (is_int($val)) $stmt->bindValue($key, $val, PDO::PARAM_INT);
-                    else $stmt->bindValue($key, $val);
+                    if (is_int($val)) {
+                        $stmt->bindValue($key, $val, PDO::PARAM_INT);
+                    } else {
+                        $stmt->bindValue($key, $val);
+                    }
                 }
                 $stmt->execute();
                 $imports = $stmt->fetchAll();
@@ -92,7 +94,7 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
                              LEFT JOIN import_details d ON i.id = d.import_id WHERE 1=1";
                 $countParams = [];
                 if ($search) {
-                    $countSql .= " AND (i.import_code LIKE :search OR EXISTS (
+                    $countSql .= " AND (i.import_code LIKE :search OR i.supplier LIKE :search OR i.notes LIKE :search OR EXISTS (
                                     SELECT 1 FROM import_details d2
                                     JOIN products p ON d2.product_id = p.id
                                     WHERE d2.import_id = i.id AND p.name LIKE :search2
@@ -131,7 +133,7 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
                 $import_id = (int)($_GET['id'] ?? 0);
                 if (!$import_id) throw new Exception('Missing import ID');
 
-                $stmt = $pdo->prepare("SELECT id, import_code, import_date, status FROM imports WHERE id = ?");
+                $stmt = $pdo->prepare("SELECT id, import_code, import_date, supplier, status, notes FROM imports WHERE id = ?");
                 $stmt->execute([$import_id]);
                 $import = $stmt->fetch();
                 if (!$import) throw new Exception('Import not found');
@@ -152,6 +154,7 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
 
             case 'add':
                 $import_date = $_POST['import_date'] ?? date('Y-m-d');
+                $supplier = trim($_POST['supplier'] ?? '');
                 $products = $_POST['products'] ?? [];
                 $quantities = $_POST['quantities'] ?? [];
                 $prices = $_POST['prices'] ?? [];
@@ -162,12 +165,14 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
                 $stmt = $pdo->prepare("SELECT id FROM imports WHERE import_code = ?");
                 $stmt->execute([$import_code]);
                 if ($stmt->fetch()) {
-                    $import_code .= '-' . rand(100,999);
+                    $import_code .= '-' . rand(100, 999);
                 }
 
+                $notes = "Đợt nhập " . date('d/m/Y H:i:s');
+
                 $pdo->beginTransaction();
-                $stmt = $pdo->prepare("INSERT INTO imports (import_code, import_date, status) VALUES (?, ?, 'pending')");
-                $stmt->execute([$import_code, $import_date]);
+                $stmt = $pdo->prepare("INSERT INTO imports (import_code, import_date, supplier, status, total_amount, notes, created_by) VALUES (?, ?, ?, 'pending', 0, ?, ?)");
+                $stmt->execute([$import_code, $import_date, $supplier, $notes, $admin_id]);
                 $import_id = $pdo->lastInsertId();
 
                 $stmt = $pdo->prepare("INSERT INTO import_details (import_id, product_id, quantity, unit_cost, subtotal) VALUES (?, ?, ?, ?, ?)");
@@ -188,6 +193,7 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
             case 'edit':
                 $import_id = (int)($_POST['import_id'] ?? 0);
                 $import_date = $_POST['import_date'] ?? date('Y-m-d');
+                $supplier = trim($_POST['supplier'] ?? '');
                 $products = $_POST['products'] ?? [];
                 $quantities = $_POST['quantities'] ?? [];
                 $prices = $_POST['prices'] ?? [];
@@ -200,8 +206,8 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
                 }
 
                 $pdo->beginTransaction();
-                $stmt = $pdo->prepare("UPDATE imports SET import_date = ? WHERE id = ?");
-                $stmt->execute([$import_date, $import_id]);
+                $stmt = $pdo->prepare("UPDATE imports SET import_date = ?, supplier = ? WHERE id = ?");
+                $stmt->execute([$import_date, $supplier, $import_id]);
 
                 $stmt = $pdo->prepare("DELETE FROM import_details WHERE import_id = ?");
                 $stmt->execute([$import_id]);
@@ -229,28 +235,55 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
                 if (!$import || $import['status'] != 'pending') {
                     throw new Exception('Chỉ có thể xóa phiếu nhập chưa hoàn thành');
                 }
+                $pdo->beginTransaction();
+                $stmt = $pdo->prepare("DELETE FROM import_details WHERE import_id = ?");
+                $stmt->execute([$import_id]);
                 $stmt = $pdo->prepare("DELETE FROM imports WHERE id = ?");
                 $stmt->execute([$import_id]);
+                $pdo->commit();
                 echo json_encode(['success' => true]);
                 exit;
 
             case 'complete':
                 $import_id = (int)($_POST['import_id'] ?? 0);
                 $pdo->beginTransaction();
-                $stmt = $pdo->prepare("SELECT status FROM imports WHERE id = ?");
+                $stmt = $pdo->prepare("SELECT status, import_code FROM imports WHERE id = ?");
                 $stmt->execute([$import_id]);
                 $import = $stmt->fetch();
                 if (!$import || $import['status'] != 'pending') {
                     throw new Exception('Không thể hoàn thành phiếu nhập này');
                 }
 
-                $stmt = $pdo->prepare("SELECT product_id, quantity FROM import_details WHERE import_id = ?");
+                $stmt = $pdo->prepare("SELECT product_id, quantity, unit_cost FROM import_details WHERE import_id = ?");
                 $stmt->execute([$import_id]);
                 $details = $stmt->fetchAll();
 
                 foreach ($details as $det) {
-                    $stmt = $pdo->prepare("UPDATE products SET stock_quantity = stock_quantity + ? WHERE id = ?");
-                    $stmt->execute([$det['quantity'], $det['product_id']]);
+                    $product_id = $det['product_id'];
+                    $new_qty = (int)$det['quantity'];
+                    $new_cost = (float)$det['unit_cost'];
+
+                    $stmtProd = $pdo->prepare("SELECT stock_quantity, cost_price FROM products WHERE id = ?");
+                    $stmtProd->execute([$product_id]);
+                    $prod = $stmtProd->fetch();
+
+                    $current_stock = $prod ? (int)$prod['stock_quantity'] : 0;
+                    $current_cost = $prod ? (float)$prod['cost_price'] : 0;
+
+                    $total_stock = $current_stock + $new_qty;
+                    if ($total_stock > 0) {
+                        $avg_cost = ($current_stock * $current_cost + $new_qty * $new_cost) / $total_stock;
+                    } else {
+                        $avg_cost = $new_cost;
+                    }
+
+                    $stmtLog = $pdo->prepare("INSERT INTO pricing_log (product_id, old_cost_price, new_cost_price, changed_by, change_reason) 
+                                              VALUES (?, ?, ?, ?, ?)");
+                    $reason = "Cập nhật từ phiếu nhập {$import['import_code']}";
+                    $stmtLog->execute([$product_id, $current_cost, $avg_cost, $admin_id, $reason]);
+
+                    $stmtUpdate = $pdo->prepare("UPDATE products SET stock_quantity = stock_quantity + ?, cost_price = ? WHERE id = ?");
+                    $stmtUpdate->execute([$new_qty, $avg_cost, $product_id]);
                 }
 
                 $stmt = $pdo->prepare("UPDATE imports SET status = 'completed' WHERE id = ?");
@@ -264,6 +297,23 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
                 $stmt = $pdo->query("SELECT id, name FROM products ORDER BY name");
                 $products = $stmt->fetchAll();
                 echo json_encode($products);
+                exit;
+
+            case 'getProductCosts':
+                $ids = $_GET['ids'] ?? '';
+                if (!$ids) {
+                    echo json_encode(['success' => true, 'costs' => []]);
+                    exit;
+                }
+                $idArray = explode(',', $ids);
+                $placeholders = implode(',', array_fill(0, count($idArray), '?'));
+                $stmt = $pdo->prepare("SELECT id, cost_price FROM products WHERE id IN ($placeholders)");
+                $stmt->execute($idArray);
+                $costs = [];
+                while ($row = $stmt->fetch()) {
+                    $costs[$row['id']] = (float)$row['cost_price'];
+                }
+                echo json_encode(['success' => true, 'costs' => $costs]);
                 exit;
 
             default:
@@ -529,7 +579,7 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
                     <div class="row g-3 align-items-end">
                         <div class="col-md-5">
                             <label class="form-label">Tìm kiếm</label>
-                            <input type="text" id="search-input" class="form-control" placeholder="Mã phiếu hoặc tên sản phẩm">
+                            <input type="text" id="search-input" class="form-control" placeholder="Mã phiếu, nhà cung cấp hoặc tên sản phẩm">
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Ngày nhập</label>
@@ -554,10 +604,10 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
                     <div class="table-responsive">
                         <table class="table table-hover" id="imports-table">
                             <thead>
-                                <tr><th>Mã phiếu</th><th>Ngày nhập</th><th>Số sản phẩm</th><th>Tổng số lượng</th><th>Tổng giá trị</th><th>Trạng thái</th><th>Thao tác</th></tr>
+                                <th>Mã phiếu</th><th>Ngày nhập</th><th>Nhà cung cấp</th><th>Số sản phẩm</th><th>Tổng số lượng</th><th>Tổng giá trị</th><th>Trạng thái</th><th>Thao tác</th>
                             </thead>
                             <tbody id="imports-tbody">
-                                <tr><td colspan="7" class="text-center">Đang tải...</td></tr>
+                                <td colspan="8" class="text-center">Đang tải...</td>
                             </tbody>
                         </table>
                     </div>
@@ -581,6 +631,10 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
                         <div class="mb-3">
                             <label class="form-label fw-bold">Ngày nhập</label>
                             <input type="date" name="import_date" id="import_date" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Nhà cung cấp</label>
+                            <input type="text" name="supplier" id="supplier" class="form-control" placeholder="Tên nhà cung cấp">
                         </div>
                         <div class="mb-2 fw-bold">Danh sách sản phẩm</div>
                         <div id="product-rows-container"></div>
@@ -677,7 +731,7 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
         function renderTable(imports) {
             const tbody = $('#imports-tbody');
             if (!imports.length) {
-                tbody.html('<tr><td colspan="7" class="text-center">Không có phiếu nhập nào</td></tr>');
+                tbody.html('<tr><td colspan="8" class="text-center">Không có phiếu nhập nào</td></tr>');
                 return;
             }
             let html = '';
@@ -689,6 +743,7 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
                     <tr>
                         <td><a href="#" class="view-detail" data-id="${item.id}">${escapeHtml(item.import_code)}</a></td>
                         <td>${new Date(item.import_date).toLocaleDateString('vi-VN')}</td>
+                        <td>${escapeHtml(item.supplier || '')}</td>
                         <td>${item.product_count || 0}</td>
                         <td>${item.total_quantity || 0}</td>
                         <td>${totalValue} ₫</td>
@@ -761,7 +816,7 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
                     </div>
                     <div class="col-md-3">
                         <label class="form-label small text-muted">Giá nhập (VNĐ)</label>
-                        <input type="number" name="prices[]" class="form-control" placeholder="Giá" step="10000" min="0" value="${price}" required>
+                        <input type="number" name="prices[]" class="form-control" placeholder="Giá" step="any" min="0" value="${price}" required>
                     </div>
                     <div class="col-md-1 text-center">
                         <button type="button" class="btn btn-sm btn-outline-danger remove-row mt-2">
@@ -788,12 +843,14 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
             $('#formModalTitle').text(isEdit ? 'Sửa phiếu nhập' : 'Thêm phiếu nhập');
             $('#import_id').val(importId || '');
             $('#import_date').val(new Date().toISOString().slice(0,10));
+            $('#supplier').val('');
             $('#product-rows-container').empty();
             addProductRow();
             if (isEdit) {
                 $.getJSON(window.location.href, { ajax: 1, action: 'get', id: importId }, function(res) {
                     if (res.success) {
                         $('#import_date').val(res.import.import_date);
+                        $('#supplier').val(res.import.supplier || '');
                         $('#product-rows-container').empty();
                         res.details.forEach(detail => {
                             addProductRow(detail.product_id, detail.quantity, detail.unit_cost);
@@ -862,41 +919,83 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
             const id = $(this).data('id');
             $.getJSON(window.location.href, { ajax: 1, action: 'get', id: id }, function(res) {
                 if (res.success) {
+                    let avgCosts = {};
+                    if (res.details.length) {
+                        const productIds = res.details.map(d => d.product_id).join(',');
+                        $.ajax({
+                            url: window.location.href,
+                            type: 'GET',
+                            data: { ajax: 1, action: 'getProductCosts', ids: productIds },
+                            async: false,
+                            dataType: 'json',
+                            success: function(data) {
+                                if (data.success) {
+                                    avgCosts = data.costs;
+                                }
+                            }
+                        });
+                    }
+
                     let detailHtml = `
                         <div class="mb-3">
                             <strong>Mã phiếu:</strong> ${escapeHtml(res.import.import_code)}<br>
                             <strong>Ngày nhập:</strong> ${new Date(res.import.import_date).toLocaleDateString('vi-VN')}<br>
+                            <strong>Nhà cung cấp:</strong> ${escapeHtml(res.import.supplier || '')}<br>
+                            <strong>Ghi chú:</strong> ${escapeHtml(res.import.notes || '')}<br>
                             <strong>Trạng thái:</strong> <span class="badge ${res.import.status === 'completed' ? 'badge-status-completed' : 'badge-status-pending'}">${res.import.status === 'completed' ? 'Đã hoàn thành' : 'Chờ xử lý'}</span>
                         </div>
-                        <table class="table table-bordered">
-                            <thead><tr><th>Sản phẩm</th><th class="text-center">SL</th><th class="text-end">Giá</th><th class="text-end">Thành tiền</th></tr></thead>
-                            <tbody>
+                        <div class="table-responsive">
+                            <table class="table table-bordered">
+                                <thead>
+                                    <tr>
+                                        <th>Sản phẩm</th>
+                                        <th class="text-center">SL</th>
+                                        <th class="text-end">Giá nhập (thực tế)</th>
+                                        <th class="text-end">Giá nhập (bình quân)</th>
+                                        <th class="text-end">Thành tiền</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
                     `;
                     let totalQty = 0, totalValue = 0;
                     res.details.forEach(d => {
-                        totalQty += d.quantity;
-                        totalValue += d.subtotal;
+                        const quantity = parseInt(d.quantity, 10) || 0;
+                        const unitCost = parseFloat(d.unit_cost) || 0;
+                        const subtotal = parseFloat(d.subtotal) || (quantity * unitCost);
+                        totalQty += quantity;
+                        totalValue += subtotal;
+
+                        const avgPrice = (avgCosts[d.product_id] !== undefined) ? new Intl.NumberFormat('vi-VN').format(avgCosts[d.product_id]) : '---';
                         detailHtml += `
                             <tr>
                                 <td>${escapeHtml(d.product_name)}</td>
-                                <td class="text-center">${d.quantity}</td>
-                                <td class="text-end">${new Intl.NumberFormat('vi-VN').format(d.unit_cost)} ₫</td>
-                                <td class="text-end">${new Intl.NumberFormat('vi-VN').format(d.subtotal)} ₫</td>
+                                <td class="text-center">${quantity}</td>
+                                <td class="text-end">${new Intl.NumberFormat('vi-VN').format(unitCost)} ₫</td>
+                                <td class="text-end">${avgPrice} ₫</td>
+                                <td class="text-end">${new Intl.NumberFormat('vi-VN').format(subtotal)} ₫</td>
                             </tr>
                         `;
                     });
                     detailHtml += `
-                            </tbody>
-                            <tfoot>
-                                <tr><th colspan="2" class="text-end">Tổng:</th><th class="text-end">${totalQty} sản phẩm</th><th class="text-end">${new Intl.NumberFormat('vi-VN').format(totalValue)} ₫</th></tr>
-                            </tfoot>
-                        </table>
+                                </tbody>
+                                <tfoot>
+                                    <tr>
+                                        <th colspan="2" class="text-end">Tổng:</th>
+                                        <th class="text-end">${totalQty} sản phẩm</th>
+                                        <th></th>
+                                        <th class="text-end">${new Intl.NumberFormat('vi-VN').format(totalValue)} ₫</th>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
                     `;
                     $('#detail-content').html(detailHtml);
                     $('#detailModal').modal('show');
                 } else {
-                    alert('Lỗi tải chi tiết: ' + res.error);
+                    alert('Lỗi tải chi tiết: ' + (res.error || 'Không xác định'));
                 }
+            }).fail(function() {
+                alert('Không thể kết nối đến máy chủ');
             });
         });
 

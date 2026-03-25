@@ -27,7 +27,6 @@ $stmt = $pdo->prepare("SELECT id, full_name, username, email, phone, address, bi
 $stmt->execute([$admin_id]);
 $admin_info = $stmt->fetch();
 
-// Nếu không tìm thấy admin, đăng xuất
 if (!$admin_info) {
     session_destroy();
     header('Location: adminlogin.php');
@@ -51,8 +50,21 @@ if (isset($_REQUEST['action'])) {
                 $offset = ($page - 1) * $limit;
                 $threshold = (int)($_GET['threshold'] ?? 10);
 
+                // Thêm subquery để tính tổng nhập và tổng xuất
                 $sql = "SELECT p.id, p.code, p.name, p.category_id, p.stock_quantity,
-                               c.name as category_name
+                               c.name as category_name,
+                               COALESCE((
+                                   SELECT SUM(d.quantity)
+                                   FROM import_details d
+                                   JOIN imports i ON d.import_id = i.id
+                                   WHERE d.product_id = p.id AND i.status = 'completed'
+                               ), 0) AS total_import,
+                               COALESCE((
+                                   SELECT SUM(od.quantity)
+                                   FROM order_details od
+                                   JOIN orders o ON od.order_id = o.id
+                                   WHERE od.product_id = p.id AND o.status != 'cancelled'
+                               ), 0) AS total_export
                         FROM products p
                         LEFT JOIN categories c ON p.category_id = c.id
                         WHERE p.status = 'active'";
@@ -74,7 +86,6 @@ if (isset($_REQUEST['action'])) {
                     case 'type': $sql .= "c.name"; break;
                     default: $sql .= "p.id";
                 }
-
                 $sql .= " LIMIT :limit OFFSET :offset";
                 $params[':limit'] = $limit;
                 $params[':offset'] = $offset;
@@ -100,6 +111,7 @@ if (isset($_REQUEST['action'])) {
                     $products = array_values($products);
                 }
 
+                // Count total records (without filtering by stock_status because it's post-filter)
                 $countSql = "SELECT COUNT(*) as total FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.status = 'active'";
                 $countParams = [];
                 if ($search) {
@@ -139,7 +151,6 @@ if (isset($_REQUEST['action'])) {
                 ]);
                 break;
 
-            // Các case khác giữ nguyên
             case 'get_transactions':
                 $product_id = (int)($_GET['product_id'] ?? 0);
                 $date_from = $_GET['date_from'] ?? '';
@@ -152,7 +163,8 @@ if (isset($_REQUEST['action'])) {
                 $product = $stmt->fetch();
                 if (!$product) throw new Exception('Sản phẩm không tồn tại');
 
-                $importSql = "SELECT id, import_date, quantity, unit_cost, subtotal
+                // Import transactions
+                $importSql = "SELECT i.import_date, d.quantity, d.unit_cost, d.subtotal
                               FROM import_details d
                               JOIN imports i ON d.import_id = i.id
                               WHERE d.product_id = :product_id AND i.status = 'completed'
@@ -163,6 +175,7 @@ if (isset($_REQUEST['action'])) {
                 $importStmt->execute([':product_id' => $product_id, ':date_from' => $date_from, ':date_to' => $date_to]);
                 $imports = $importStmt->fetchAll();
 
+                // Export transactions
                 $exportSql = "SELECT od.quantity, o.order_date
                               FROM order_details od
                               JOIN orders o ON od.order_id = o.id
@@ -177,6 +190,7 @@ if (isset($_REQUEST['action'])) {
                 $total_import = array_sum(array_column($imports, 'quantity'));
                 $total_export = array_sum(array_column($exports, 'quantity'));
 
+                // Stock before date_from
                 $startStock = 0;
                 if ($date_from) {
                     $stmt = $pdo->prepare("SELECT SUM(d.quantity) as total_import_before
@@ -194,10 +208,6 @@ if (isset($_REQUEST['action'])) {
                     $exportBefore = $stmt->fetch()['total_export_before'] ?? 0;
 
                     $startStock = $importBefore - $exportBefore;
-                } else {
-                    $stmt = $pdo->prepare("SELECT stock_quantity FROM products WHERE id = ?");
-                    $stmt->execute([$product_id]);
-                    $endStock = $stmt->fetchColumn();
                 }
 
                 $endStock = $startStock + $total_import - $total_export;
@@ -306,6 +316,7 @@ if (isset($_REQUEST['action'])) {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
+        /* Giữ nguyên CSS như file cũ, không thay đổi */
         :root {
             --primary-color: #ffbe33;
             --secondary-color: #222831;
@@ -452,14 +463,6 @@ if (isset($_REQUEST['action'])) {
         .bg-danger-custom {
             background-color: #dc3545 !important;
         }
-        .badge-status-pending {
-            background-color: #ffc107;
-            color: #212529;
-        }
-        .badge-status-completed {
-            background-color: #28a745;
-            color: white;
-        }
         .low-stock {
             background-color: #ffdddd;
         }
@@ -560,6 +563,41 @@ if (isset($_REQUEST['action'])) {
         .summary-card.stock {
             background-color: #6c757d;
         }
+        .info-card {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+        }
+        .info-label {
+            font-weight: 600;
+            color: #6c757d;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+        }
+        .info-value {
+            font-size: 1.1rem;
+            font-weight: 500;
+            color: var(--secondary-color);
+        }
+        .stock-summary {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        .stock-summary-label {
+            font-size: 0.85rem;
+            color: #6c757d;
+        }
+        .stock-summary-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--secondary-color);
+        }
+        .transaction-table th {
+            background-color: #e9ecef;
+        }
     </style>
 </head>
 <body>
@@ -620,8 +658,8 @@ if (isset($_REQUEST['action'])) {
                                 <label for="stock-status" class="form-label">Trạng thái tồn kho</label>
                                 <select class="form-select" id="stock-status" name="stock-status">
                                     <option value="">Tất cả</option>
-                                    <option value="low">Sắp hết hàng</option>
-                                    <option value="adequate">Đủ hàng</option>
+                                    <option value="low">Sắp hết hàng (≤10)</option>
+                                    <option value="adequate">Đủ hàng (>10)</option>
                                 </select>
                             </div>
                             <div class="col-md-3 mb-3">
@@ -755,7 +793,7 @@ if (isset($_REQUEST['action'])) {
                                     <th>Ngày</th><th>Loại giao dịch</th><th>Số lượng</th><th>Đơn vị</th><th>Ghi chú</th>
                                 </thead>
                                 <tbody id="detail-result-body"></tbody>
-                            </table>
+                              </table>
                         </div>
                     </div>
                 </div>
@@ -909,21 +947,21 @@ if (isset($_REQUEST['action'])) {
         function renderStockTable(products) {
             const tbody = $('#stock-table-body');
             if (!products.length) {
-                tbody.html('运转<td colspan="8" class="text-center">Không có sản phẩm nào</td>');
+                tbody.html('<tr><td colspan="8" class="text-center">Không có sản phẩm nào</td></tr>');
                 return;
             }
             let html = '';
             products.forEach(p => {
                 const isLow = p.stock_quantity <= threshold;
                 const rowClass = isLow ? 'low-stock' : '';
-                const statusHtml = isLow ? '<span class="warning">Sắp hết hàng!</span>' : '';
+                const statusHtml = isLow ? '<span class="warning">Sắp hết hàng!</span>' : 'Đủ hàng';
                 html += `
                     <tr class="${rowClass}">
                         <td>${p.code}</td>
                         <td><a href="#" class="product-link view-detail" data-id="${p.id}">${escapeHtml(p.name)}</a></td>
                         <td>${p.category_name || ''}</td>
-                        <td>--</td>
-                        <td>--</td>
+                        <td>${p.total_import}</td>
+                        <td>${p.total_export}</td>
                         <td>${p.stock_quantity}</td>
                         <td>${statusHtml}</td>
                         <td><button class="btn btn-sm btn-custom view-detail" data-id="${p.id}"><i class="fas fa-eye me-1"></i>Xem</button></td>
@@ -1033,8 +1071,8 @@ if (isset($_REQUEST['action'])) {
             $('#search-name').val('');
             $('#filter-type').val('');
             $('#stock-status').val('');
-            $('#sort-by').val('');
-            currentFilters = { search: '', type: '', stock_status: '', sort: '' };
+            $('#sort-by').val('name');
+            currentFilters = { search: '', type: '', stock_status: '', sort: 'name' };
             currentPage = 1;
             loadStock();
         });
@@ -1062,17 +1100,20 @@ if (isset($_REQUEST['action'])) {
         });
 
         function showProductDetail(productId) {
+            $('#product-detail-content').html('<div class="text-center"><i class="fas fa-spinner fa-spin fa-2x"></i> Đang tải...</div>');
+            $('#productDetailModal').modal('show');
+
             $.getJSON('inventory.php', { action: 'get_product_info', id: productId })
                 .done(function(productRes) {
                     if (!productRes.success) {
-                        alert('Lỗi tải thông tin sản phẩm: ' + productRes.error);
+                        $('#product-detail-content').html('<div class="alert alert-danger">Lỗi: ' + (productRes.error || 'Không tìm thấy sản phẩm') + '</div>');
                         return;
                     }
                     const product = productRes.product;
                     $.getJSON('inventory.php', { action: 'get_transactions', product_id: productId })
                         .done(function(transRes) {
                             if (!transRes.success) {
-                                alert('Lỗi tải lịch sử giao dịch: ' + transRes.error);
+                                $('#product-detail-content').html('<div class="alert alert-danger">Lỗi tải lịch sử: ' + (transRes.error || '') + '</div>');
                                 return;
                             }
                             const transactions = transRes.transactions;
@@ -1110,7 +1151,6 @@ if (isset($_REQUEST['action'])) {
                             }
                             html += `</tbody></table></div>`;
                             $('#product-detail-content').html(html);
-                            $('#productDetailModal').modal('show');
                         });
                 });
         }
@@ -1144,4 +1184,4 @@ if (isset($_REQUEST['action'])) {
         $('#stock-date').val(formatDate(today));
     </script>
 </body>
-</html>
+</html>z
