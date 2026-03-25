@@ -551,6 +551,15 @@ if ($is_logged_in) {
         right: -50px;
       }
     }
+
+    /* Description styling */
+    /* Description styling */
+    .detail-box p {
+      color: white !important;
+      line-height: 1.5;
+      margin-bottom: 10px;
+      font-size: 14px;
+    }
   </style>
 </head>
 
@@ -621,22 +630,7 @@ if ($is_logged_in) {
                     <i class="fa fa-user"></i>
                     <span>Thông tin tài khoản</span>
                   </a>
-                  <a href="order_history.php" class="dropdown-item-custom">
-                    <i class="fa fa-shopping-bag"></i>
-                    <span>Lịch sử đơn hàng</span>
-                  </a>
-                  <a href="cart.php" class="dropdown-item-custom">
-                    <i class="fa fa-shopping-cart"></i>
-                    <span>Giỏ hàng của tôi</span>
-                    <?php if ($cart_count > 0): ?>
-                      <span class="badge" style="background: #ffbe33; color: #222; margin-left: auto;"><?= $cart_count ?></span>
-                    <?php endif; ?>
-                  </a>
-                  <div class="dropdown-divider"></div>
-                  <a href="user/logout.php" class="dropdown-item-custom text-danger">
-                    <i class="fa fa-sign-out-alt"></i>
-                    <span>Đăng xuất</span>
-                  </a>
+                  
                 </div>
               </div>
             <?php else: ?>
@@ -734,7 +728,7 @@ if ($is_logged_in) {
                 </a>
                 <div class="detail-box">
                   <h5><?php echo htmlspecialchars($product['name']); ?></h5>
-                  <p><?php echo htmlspecialchars(substr($product['description'], 0, 100)) . (strlen($product['description']) > 100 ? '...' : ''); ?></p>
+                  <p><?php echo htmlspecialchars($product['description']); ?></p>
                   <div class="options">
                     <h6><?php echo number_format($product['selling_price'], 0, ',', '.'); ?>đ</h6>
                     <?php if ($is_logged_in): ?>
