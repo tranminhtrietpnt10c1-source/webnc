@@ -551,6 +551,15 @@ if ($is_logged_in) {
         right: -50px;
       }
     }
+
+    /* Description styling */
+    /* Description styling */
+    .detail-box p {
+      color: white !important;
+      line-height: 1.5;
+      margin-bottom: 10px;
+      font-size: 14px;
+    }
   </style>
 </head>
 
@@ -719,7 +728,7 @@ if ($is_logged_in) {
                 </a>
                 <div class="detail-box">
                   <h5><?php echo htmlspecialchars($product['name']); ?></h5>
-                  <p><?php echo htmlspecialchars(substr($product['description'], 0, 100)) . (strlen($product['description']) > 100 ? '...' : ''); ?></p>
+                  <p><?php echo htmlspecialchars($product['description']); ?></p>
                   <div class="options">
                     <h6><?php echo number_format($product['selling_price'], 0, ',', '.'); ?>đ</h6>
                     <?php if ($is_logged_in): ?>
