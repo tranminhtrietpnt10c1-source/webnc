@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Máy chủ: 127.0.0.1
--- Thời gian đã tạo: Th3 24, 2026 lúc 01:04 AM
+-- Thời gian đã tạo: Th3 25, 2026 lúc 03:30 PM
 -- Phiên bản máy phục vụ: 10.4.32-MariaDB
 -- Phiên bản PHP: 8.0.30
 
@@ -73,7 +73,7 @@ INSERT INTO `categories` (`id`, `name`, `description`, `image`, `status`, `creat
 (1, 'Pizza', 'Đế bánh giòn tan, phủ phô mai béo ngậy, hương vị thơm ngon', 'images/f6.png', 'active', '2026-03-21 05:41:38', '2026-03-23 07:30:00'),
 (2, 'Burger', 'Burger đa dạng loại thịt, sốt đặc biệt, rau tươi ngon', 'images/f7.png', 'active', '2026-03-21 05:41:38', '2026-03-23 07:30:00'),
 (3, 'Pasta', 'Mì mềm mịn, sốt kem thơm ngon, hương vị Ý đặc trưng', 'images/f9.png', 'active', '2026-03-21 05:41:38', '2026-03-23 07:30:00'),
-(4, 'Fries', 'Khoai tây chiên giòn rụm, vàng ươm, thơm ngon', 'images/f5.png', 'active', '2026-03-21 05:41:38', '2026-03-23 07:30:00');
+(4, 'Fries', 'Khoai tây chiên giòn rụm, vàng ươm, thơm ngon', 'images/f5.png', 'active', '2026-03-21 05:41:38', '2026-03-24 00:08:20');
 
 -- --------------------------------------------------------
 
@@ -99,10 +99,13 @@ CREATE TABLE `imports` (
 --
 
 INSERT INTO `imports` (`id`, `import_code`, `import_date`, `supplier`, `total_amount`, `status`, `notes`, `created_by`, `created_at`, `updated_at`) VALUES
-(1, 'IMP20260321001', '2026-03-21', 'Công ty Thực phẩm ABC', 9900000.00, 'completed', 'Nhập hàng đợt 1 - Tháng 3', 1, '2026-03-21 05:52:57', '2026-03-21 05:52:57'),
-(2, 'IMP20260321002', '2026-03-21', 'Công ty Thực phẩm XYZ', 3020000.00, 'completed', 'Nhập hàng đợt 2 - Tháng 3', 1, '2026-03-21 05:52:57', '2026-03-21 05:52:57'),
-(3, 'IMP20260322001', '2026-03-22', 'Công ty Thực phẩm DEF', 5160000.00, 'completed', 'Nhập hàng đợt 3 - Bổ sung', 1, '2026-03-22 07:00:00', '2026-03-22 07:00:00'),
-(4, 'IMP20260323001', '2026-03-23', 'Công ty Thực phẩm GHI', 4250000.00, 'pending', 'Nhập hàng đợt 4 - Chờ xử lý', 1, '2026-03-23 07:00:00', '2026-03-23 07:00:00');
+(1, 'IMP20260321001', '2026-03-21', 'Công ty Thực phẩm ABC', 9900000.00, 'completed', 'Nhập hàng đợt 1 - Pizza', 1, '2026-03-21 05:52:57', '2026-03-21 05:52:57'),
+(2, 'IMP20260321002', '2026-03-21', 'Công ty Thực phẩm XYZ', 3020000.00, 'completed', 'Nhập hàng đợt 2 - Burger', 1, '2026-03-21 05:52:57', '2026-03-21 05:52:57'),
+(3, 'IMP20260322001', '2026-03-22', 'Công ty Thực phẩm DEF', 5160000.00, 'completed', 'Nhập hàng đợt 3 - Pasta, Fries và Pizza hải sản lần 2', 1, '2026-03-22 07:00:00', '2026-03-22 07:00:00'),
+(4, 'IMP20260323001', '2026-03-23', 'Công ty Thực phẩm GHI', 4620000.00, 'completed', 'Nhập hàng đợt 4 - Pizza phô mai và Burger bò lần 2', 1, '2026-03-23 07:00:00', '2026-03-23 07:00:00'),
+(5, 'IMP20260324001', '2026-03-24', 'Công ty Thực phẩm JKL', 5700000.00, 'completed', 'Nhập hàng đợt 5 - Pizza 3 vị, Burger ức gà, Burger gà chiên lần 2', 1, '2026-03-24 07:00:00', '2026-03-24 07:00:00'),
+(6, 'IMP20260325001', '2026-03-25', 'Công ty Thực phẩm MNO', 4960000.00, 'completed', 'Nhập hàng đợt 6 - Pasta và Fries lần 2', 1, '2026-03-25 07:00:00', '2026-03-25 07:00:00'),
+(7, 'PN-20260325-69C3EE39', '2026-03-25', 'Công ty TNHH Huỳnh Ngọc Quí', 1630000.00, 'pending', 'Đợt nhập 25/03/2026 15:16:25', 7, '2026-03-25 14:16:25', '2026-03-25 14:16:25');
 
 -- --------------------------------------------------------
 
@@ -136,7 +139,15 @@ INSERT INTO `import_details` (`id`, `import_id`, `product_id`, `quantity`, `unit
 (10, 3, 1, 20, 105000.00, 2100000.00),
 (11, 4, 2, 25, 95000.00, 2375000.00),
 (12, 4, 4, 30, 36000.00, 1080000.00),
-(13, 4, 5, 25, 33000.00, 825000.00);
+(13, 4, 5, 15, 35000.00, 525000.00),
+(14, 5, 3, 25, 115000.00, 2875000.00),
+(15, 5, 6, 25, 34500.00, 862500.00),
+(16, 5, 5, 25, 34000.00, 850000.00),
+(17, 6, 7, 30, 58000.00, 1740000.00),
+(18, 6, 8, 30, 62000.00, 1860000.00),
+(19, 6, 9, 80, 12500.00, 1000000.00),
+(20, 7, 6, 15, 32000.00, 480000.00),
+(21, 7, 3, 10, 115000.00, 1150000.00);
 
 -- --------------------------------------------------------
 
@@ -278,7 +289,17 @@ INSERT INTO `pricing_log` (`id`, `product_id`, `old_cost_price`, `new_cost_price
 (7, 6, NULL, 33000.00, NULL, 44550.00, 1, 'Nhập lần 1: 20 sp x 33,000 = 660,000 (Giá bán 35% lợi nhuận)', '2026-03-21 05:54:48'),
 (8, 7, NULL, 55000.00, NULL, 77000.00, 1, 'Nhập lần 1: 35 sp x 55,000 = 1,925,000 (Giá bán 40% lợi nhuận)', '2026-03-21 05:54:48'),
 (9, 8, NULL, 60000.00, NULL, 84000.00, 1, 'Nhập lần 1: 25 sp x 60,000 = 1,500,000 (Giá bán 40% lợi nhuận)', '2026-03-21 05:54:48'),
-(10, 9, NULL, 12000.00, NULL, 18000.00, 1, 'Nhập lần 1: 100 sp x 12,000 = 1,200,000 (Giá bán 50% lợi nhuận)', '2026-03-21 05:54:48');
+(10, 9, NULL, 12000.00, NULL, 18000.00, 1, 'Nhập lần 1: 100 sp x 12,000 = 1,200,000 (Giá bán 50% lợi nhuận)', '2026-03-21 05:54:48'),
+(11, 2, 90000.00, 91785.71, 117000.00, 119321.43, 1, 'Nhập lần 2: Tồn 30 sp, giá 90,000. Nhập thêm 25 sp x 95,000. Giá bq = (30*90k + 25*95k)/(55) = 91,785.71', '2026-03-23 07:00:00'),
+(12, 3, 110000.00, 112777.78, 143000.00, 146611.11, 1, 'Nhập lần 2: Tồn 20 sp, giá 110,000. Nhập thêm 25 sp x 115,000. Giá bq = (20*110k + 25*115k)/(45) = 112,777.78', '2026-03-24 07:00:00'),
+(13, 4, 35000.00, 35428.57, 47250.00, 47828.57, 1, 'Nhập lần 2: Tồn 40 sp, giá 35,000. Nhập thêm 30 sp x 36,000. Giá bq = (40*35k + 30*36k)/(70) = 35,428.57', '2026-03-23 07:00:00'),
+(14, 5, 32000.00, 32571.43, 43200.00, 43971.43, 1, 'Nhập lần 2: Tồn 30 sp, giá 32,000. Nhập thêm 15 sp x 35,000. Giá bq = (30*32k + 15*35k)/(45) = 32,571.43', '2026-03-23 07:00:00'),
+(15, 5, 32571.43, 33125.00, 43971.43, 44718.75, 1, 'Nhập lần 3: Tồn 45 sp, giá 32,571.43. Nhập thêm 25 sp x 34,000. Giá bq = (45*32,571.43 + 25*34,000)/(70) = 33,125.00', '2026-03-24 07:00:00'),
+(16, 6, 33000.00, 33833.33, 44550.00, 45675.00, 1, 'Nhập lần 2: Tồn 20 sp, giá 33,000. Nhập thêm 25 sp x 34,500. Giá bq = (20*33k + 25*34.5k)/(45) = 33,833.33', '2026-03-24 07:00:00'),
+(17, 7, 55000.00, 56538.46, 77000.00, 79153.85, 1, 'Nhập lần 2: Tồn 35 sp, giá 55,000. Nhập thêm 30 sp x 58,000. Giá bq = (35*55k + 30*58k)/(65) = 56,538.46', '2026-03-25 07:00:00'),
+(18, 8, 60000.00, 61090.91, 84000.00, 85527.27, 1, 'Nhập lần 2: Tồn 25 sp, giá 60,000. Nhập thêm 30 sp x 62,000. Giá bq = (25*60k + 30*62k)/(55) = 61,090.91', '2026-03-25 07:00:00'),
+(19, 9, 12000.00, 12166.67, 18000.00, 18250.00, 1, 'Nhập lần 2: Tồn 100 sp, giá 12,000. Nhập thêm 80 sp x 12,500. Giá bq = (100*12k + 80*12.5k)/(180) = 12,166.67', '2026-03-25 07:00:00'),
+(20, 4, NULL, NULL, 47828.57, 48000.00, 7, 'Cập nhật tỷ lệ lợi nhuận từ 35% lên 36%', '2026-03-25 14:14:26');
 
 -- --------------------------------------------------------
 
@@ -307,15 +328,15 @@ CREATE TABLE `products` (
 --
 
 INSERT INTO `products` (`id`, `code`, `name`, `category_id`, `description`, `image`, `cost_price`, `selling_price`, `stock_quantity`, `status`, `created_at`, `updated_at`, `profit_percentage`) VALUES
-(1, 'PZ001', 'Pizza hải sản', 1, 'Đế bánh giòn tan, phủ hải sản tươi ngon (tôm, mực, nghêu), phô mai béo mịn, sốt cà chua đậm đà', 'images/f1.png', 101612.90, 132096.77, 70, 'active', '2026-03-21 05:51:52', '2026-03-23 07:30:00', 30),
-(2, 'PZ002', 'Pizza phô mai', 1, 'Đế giòn vàng, phô mai mozzarella béo ngậy tan chảy, sốt cà chua, hương vị thơm lừng', 'images/f3.png', 90000.00, 117000.00, 30, 'active', '2026-03-21 05:51:52', '2026-03-23 07:30:00', 30),
-(3, 'PZ003', 'Pizza 3 vị', 1, 'Đế pizza giòn thơm, kết hợp ba hương vị: hải sản, phô mai, pepperoni, hấp dẫn mọi thực khách', 'images/f6.png', 110000.00, 143000.00, 20, 'active', '2026-03-21 05:51:52', '2026-03-23 07:30:00', 30),
-(4, 'BG001', 'Burger bò', 2, 'Thịt bò Úc nướng than hoa, rau tươi, sốt đặc trưng, phô mai cheddar tan chảy', 'images/f2.png', 35000.00, 47250.00, 80, 'active', '2026-03-21 05:51:52', '2026-03-23 07:30:00', 35),
-(5, 'BG002', 'Burger gà chiên', 2, 'Ức gà chiên giòn, sốt bơ tỏi, rau tươi, phô mai, bánh mì mềm', 'images/f7.png', 32000.00, 43200.00, 60, 'active', '2026-03-21 05:51:52', '2026-03-23 07:30:00', 35),
-(6, 'BG003', 'Burger ức gà', 2, 'Burger ức gà mềm, sốt mật ong, rau tươi, phô mai, bánh mì đen', 'images/f8.png', 33000.00, 44550.00, 40, 'active', '2026-03-21 05:51:52', '2026-03-23 07:30:00', 35),
-(7, 'PA001', 'Pasta rau củ', 3, 'Sợi mì spaghetti mềm mịn hòa quyện sốt kem béo ngậy, rau củ tươi (bông cải, cà rốt, nấm)', 'images/f4.png', 55000.00, 77000.00, 35, 'active', '2026-03-21 05:51:52', '2026-03-23 07:30:00', 40),
-(8, 'PA002', 'Pasta phô mai', 3, 'Sợi mì fettuccine hòa quyện sốt kem phô mai Parmesan, thịt xông khói, hương vị Ý đậm đà', 'images/f9.png', 60000.00, 84000.00, 25, 'active', '2026-03-21 05:51:52', '2026-03-23 07:30:00', 40),
-(9, 'FR001', 'Khoai tây chiên', 4, 'Khoai tây chiên vàng giòn, muối vừa, thơm ngon, chấm sốt cà chua hoặc sốt mayonnaise', 'images/f5.png', 12000.00, 18000.00, 100, 'active', '2026-03-21 05:51:52', '2026-03-23 07:30:00', 50);
+(1, 'PZ001', 'Pizza hải sản', 1, 'Đế bánh giòn tan, phủ hải sản tươi ngon (tôm, mực, nghêu), phô mai béo mịn, sốt cà chua đậm đà', 'images/f1.png', 101612.90, 132096.77, 70, 'active', '2026-03-21 05:51:52', '2026-03-22 07:00:00', 30),
+(2, 'PZ002', 'Pizza phô mai', 1, 'Đế giòn vàng, phô mai mozzarella béo ngậy tan chảy, sốt cà chua, hương vị thơm lừng', 'images/f3.png', 91785.71, 119321.43, 55, 'active', '2026-03-21 05:51:52', '2026-03-23 07:00:00', 30),
+(3, 'PZ003', 'Pizza 3 vị', 1, 'Đế pizza giòn thơm, kết hợp ba hương vị: hải sản, phô mai, pepperoni, hấp dẫn mọi thực khách', 'images/f6.png', 112777.78, 146611.11, 45, 'active', '2026-03-21 05:51:52', '2026-03-24 07:00:00', 30),
+(4, 'BG001', 'Burger bò', 2, 'Thịt bò Úc nướng than hoa, rau tươi, sốt đặc trưng, phô mai cheddar tan chảy', 'images/f2.png', 35428.57, 48000.00, 70, 'active', '2026-03-21 05:51:52', '2026-03-25 14:14:26', 36),
+(5, 'BG002', 'Burger gà chiên', 2, 'Ức gà chiên giòn, sốt bơ tỏi, rau tươi, phô mai, bánh mì mềm', 'images/f7.png', 33125.00, 44718.75, 70, 'active', '2026-03-21 05:51:52', '2026-03-24 07:00:00', 35),
+(6, 'BG003', 'Burger ức gà', 2, 'Burger ức gà mềm, sốt mật ong, rau tươi, phô mai, bánh mì đen', 'images/f8.png', 33833.33, 45675.00, 45, 'active', '2026-03-21 05:51:52', '2026-03-24 07:00:00', 35),
+(7, 'PA001', 'Pasta rau củ', 3, 'Sợi mì spaghetti mềm mịn hòa quyện sốt kem béo ngậy, rau củ tươi (bông cải, cà rốt, nấm)', 'images/f4.png', 56538.46, 79153.85, 65, 'active', '2026-03-21 05:51:52', '2026-03-25 07:00:00', 40),
+(8, 'PA002', 'Pasta phô mai', 3, 'Sợi mì fettuccine hòa quyện sốt kem phô mai Parmesan, thịt xông khói, hương vị Ý đậm đà', 'images/f9.png', 61090.91, 85527.27, 55, 'active', '2026-03-21 05:51:52', '2026-03-25 07:00:00', 40),
+(9, 'FR001', 'Khoai tây chiên', 4, 'Khoai tây chiên vàng giòn, muối vừa, thơm ngon, chấm sốt cà chua hoặc sốt mayonnaise', 'images/f5.png', 12166.67, 18000.00, 180, 'inactive', '2026-03-21 05:51:52', '2026-03-25 14:17:34', 50);
 
 -- --------------------------------------------------------
 
@@ -347,13 +368,15 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`id`, `full_name`, `username`, `email`, `phone`, `password`, `address`, `birthday`, `register_date`, `role`, `status`, `notes`, `avatar`, `last_login`, `created_at`, `updated_at`) VALUES
-(1, 'Admin Feane', 'admin', 'admin@feane.com', '0901234567', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '123 Đường Admin, Quận 1, TP.HCM', NULL, '2026-03-21', 'admin', 'active', 'Quản trị viên hệ thống', NULL, '2026-03-23 14:30:00', '2026-03-21 05:52:21', '2026-03-23 07:30:00'),
+(1, 'Admin Feane', 'admin', 'admin@feane.com', '0901234567', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '123 Đường Admin, Quận 1, TP.HCM', NULL, '2026-03-21', 'admin', 'active', 'Quản trị viên hệ thống', NULL, '2026-03-25 09:30:00', '2026-03-21 05:52:21', '2026-03-25 02:30:00'),
 (2, 'Nguyễn Văn A', 'nguyenvana', 'nguyenvana@example.com', '0912345678', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '12 Nguyễn Huệ, Quận 1, TP.HCM', '1990-05-15', '2026-03-21', 'user', 'active', 'Khách hàng thân thiết', NULL, '2026-03-23 10:00:00', '2026-03-21 05:52:21', '2026-03-23 07:30:00'),
 (3, 'Trần Thị B', 'tranthib', 'tranthib@example.com', '0987654321', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '45 Lê Lợi, Quận 3, TP.HCM', '1988-08-22', '2026-03-21', 'user', 'active', 'Khách hàng VIP', NULL, '2026-03-22 15:30:00', '2026-03-21 05:52:21', '2026-03-23 07:30:00'),
 (4, 'Lê Văn C', 'levanc', 'levanc@example.com', '0123456789', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '78 Pasteur, Quận 1, TP.HCM', '1995-12-10', '2026-03-21', 'user', 'locked', 'Tài khoản bị khóa do vi phạm', NULL, '2026-03-20 08:00:00', '2026-03-21 05:52:21', '2026-03-23 07:30:00'),
 (5, 'Trần Minh Triết', 'triet', 'triet@gmail.com', '0339111480', '$2y$10$eN/XTYaJJ.T8OcnygzYAmu/vVRn2pMdzUlV3T6MJWIvny39r5/B0y', '123 Đường ABC, Phường XYZ, Quận 1, TP.HCM', '2006-07-13', '2026-03-22', 'user', 'active', 'Khách hàng mới', '../images/about-img.png', '2026-03-23 12:00:00', '2026-03-22 02:27:33', '2026-03-23 07:30:00'),
-(6, 'Phạm Thị D', 'phamthid', 'phamthid@gmail.com', '0909888777', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '222 Lý Tự Trọng, Quận 1, TP.HCM', '1992-03-18', '2026-03-23', 'user', 'active', 'Khách hàng mới', NULL, NULL, '2026-03-23 07:30:00', '2026-03-23 07:30:00'),
-(7, 'Lê Đỗ Hoà Thương', 'thuong', 'thuong@gmail.com', '0909876543', 'thuong123', '456 Đường X, Phường Y, Quận Z, TP.HCM', '1996-03-02', '2026-03-12', 'admin', 'active', 'Admin phụ trách marketing', NULL, '2026-03-24 07:03:02', '2026-03-23 01:22:11', '2026-03-24 00:03:43');
+(6, 'Phạm Thị D', 'phamthid', 'phamthid@gmail.com', '0909888777', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '222 Lý Tự Trọng, Quận 1, TP.HCM', '1992-03-18', '2026-03-23', 'user', 'locked', 'Khách hàng mới', NULL, NULL, '2026-03-23 07:30:00', '2026-03-24 00:07:07'),
+(7, 'Lê Đỗ Hoà Thương', 'thuong', 'thuong@gmail.com', '0909876543', 'thuong123', '456 Đường X, Phường Y, Quận Z, TP.HCM', '1996-03-02', '2026-03-12', 'admin', 'active', 'Admin phụ trách marketing', NULL, '2026-03-25 09:27:29', '2026-03-23 01:22:11', '2026-03-25 02:27:29'),
+(8, 'khánh ly', 'ly', 'ly@gmail.com', '0123 456 789', '$2y$10$oRy2FK/vJPbz.tFQHP8D2O7LOqy9tJWPrm2vzA.PKr5KpW88quhOe', '123 đường A, phường B, quận C', '2012-02-22', '2026-03-24', 'user', 'active', NULL, NULL, NULL, '2026-03-24 00:06:10', '2026-03-24 00:07:00'),
+(9, 'nguyen thi t', 'nguyen@gmail.com', 'nguyen@gmail.com', '0395489754', '$2y$10$llY0kUa4v7CpQxmv5Jq93.BOlgZKG4a11KLJWYYCsoFEDT.7KarYm', '789 Đường DEF, Quận 3, TP.HCM', '2009-07-09', '2026-03-25', 'user', 'active', NULL, NULL, NULL, '2026-03-25 14:25:29', '2026-03-25 14:25:29');
 
 --
 -- Chỉ mục cho các bảng đã đổ
@@ -457,13 +480,13 @@ ALTER TABLE `categories`
 -- AUTO_INCREMENT cho bảng `imports`
 --
 ALTER TABLE `imports`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
 -- AUTO_INCREMENT cho bảng `import_details`
 --
 ALTER TABLE `import_details`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=22;
 
 --
 -- AUTO_INCREMENT cho bảng `loyalty_points`
@@ -475,19 +498,19 @@ ALTER TABLE `loyalty_points`
 -- AUTO_INCREMENT cho bảng `orders`
 --
 ALTER TABLE `orders`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- AUTO_INCREMENT cho bảng `order_details`
 --
 ALTER TABLE `order_details`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=22;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=25;
 
 --
 -- AUTO_INCREMENT cho bảng `pricing_log`
 --
 ALTER TABLE `pricing_log`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
 
 --
 -- AUTO_INCREMENT cho bảng `products`
@@ -499,7 +522,7 @@ ALTER TABLE `products`
 -- AUTO_INCREMENT cho bảng `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 
 --
 -- Các ràng buộc cho các bảng đã đổ

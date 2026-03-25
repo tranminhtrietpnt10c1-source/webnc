@@ -27,127 +27,75 @@ $stmt = $pdo->prepare("SELECT id, full_name, username, email, phone, address, bi
 $stmt->execute([$admin_id]);
 $admin_info = $stmt->fetch();
 
-// Nếu không tìm thấy admin, đăng xuất
 if (!$admin_info) {
     session_destroy();
     header('Location: adminlogin.php');
     exit;
 }
 
-// Xử lý AJAX request
-if (isset($_REQUEST['action'])) {
-    header('Content-Type: application/json');
-    $action = $_REQUEST['action'];
+// Hàm định dạng tiền VNĐ
+function formatVND($amount) {
+    return number_format($amount, 0, ',', '.') . ' ₫';
+}
 
+// Xử lý AJAX request
+if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
+    header('Content-Type: application/json');
+    $action = $_POST['action'] ?? $_GET['action'] ?? '';
+    
     try {
         switch ($action) {
-            case 'getProducts':
-                $search = $_GET['search'] ?? '';
-                $category_id = $_GET['category_id'] ?? '';
-                $min_cost = $_GET['min_cost'] ?? null;
-                $max_cost = $_GET['max_cost'] ?? null;
-                $min_profit_percent = $_GET['min_profit_percent'] ?? null;
-                $max_profit_percent = $_GET['max_profit_percent'] ?? null;
-                $min_selling = $_GET['min_selling'] ?? null;
-                $max_selling = $_GET['max_selling'] ?? null;
-                $sort_by = $_GET['sort_by'] ?? 'name';
-                $sort_order = $_GET['sort_order'] ?? 'ASC';
-
-                $sql = "SELECT p.id, p.code, p.name, p.cost_price, p.selling_price,
-                               c.name as category_name, c.id as category_id,
-                               ((p.selling_price - p.cost_price) / p.cost_price * 100) as profit_percent
-                        FROM products p
-                        JOIN categories c ON p.category_id = c.id
-                        WHERE 1=1";
-                $params = [];
-
-                if ($search) { $sql .= " AND (p.name LIKE :search OR p.code LIKE :search)"; $params[':search'] = "%$search%"; }
-                if ($category_id) { $sql .= " AND p.category_id = :category_id"; $params[':category_id'] = $category_id; }
-                if ($min_cost !== null) { $sql .= " AND p.cost_price >= :min_cost"; $params[':min_cost'] = (float)$min_cost; }
-                if ($max_cost !== null) { $sql .= " AND p.cost_price <= :max_cost"; $params[':max_cost'] = (float)$max_cost; }
-                if ($min_profit_percent !== null) { $sql .= " AND ((p.selling_price - p.cost_price) / p.cost_price * 100) >= :min_profit_percent"; $params[':min_profit_percent'] = (float)$min_profit_percent; }
-                if ($max_profit_percent !== null) { $sql .= " AND ((p.selling_price - p.cost_price) / p.cost_price * 100) <= :max_profit_percent"; $params[':max_profit_percent'] = (float)$max_profit_percent; }
-                if ($min_selling !== null) { $sql .= " AND p.selling_price >= :min_selling"; $params[':min_selling'] = (float)$min_selling; }
-                if ($max_selling !== null) { $sql .= " AND p.selling_price <= :max_selling"; $params[':max_selling'] = (float)$max_selling; }
-
-                $sql .= " ORDER BY $sort_by $sort_order";
-                $stmt = $pdo->prepare($sql);
-                foreach ($params as $key => $val) $stmt->bindValue($key, $val);
-                $stmt->execute();
-                $products = $stmt->fetchAll();
-                echo json_encode(['success' => true, 'data' => $products]);
-                break;
-
-            case 'getCategories':
-                $sql = "SELECT c.id, c.name,
-                               AVG(p.cost_price) as avg_cost_price,
-                               AVG(p.selling_price) as avg_selling_price,
-                               AVG((p.selling_price - p.cost_price) / p.cost_price * 100) as avg_profit_percent,
-                               COUNT(p.id) as product_count
-                        FROM categories c
-                        LEFT JOIN products p ON c.id = p.category_id
-                        GROUP BY c.id, c.name
-                        ORDER BY c.name";
-                $stmt = $pdo->query($sql);
-                $categories = $stmt->fetchAll();
-                echo json_encode(['success' => true, 'data' => $categories]);
-                break;
-
             case 'updateProfit':
                 $product_id = (int)($_POST['product_id'] ?? 0);
                 $profit_percent = (float)($_POST['profit_percent'] ?? 0);
-                if (!$product_id) throw new Exception('Missing product ID');
-
-                $stmt = $pdo->prepare("SELECT cost_price, selling_price FROM products WHERE id = ?");
+                
+                if (!$product_id) throw new Exception('Thiếu ID sản phẩm');
+                if ($profit_percent < 0) throw new Exception('Tỷ lệ lợi nhuận phải lớn hơn hoặc bằng 0');
+                if ($profit_percent > 100) throw new Exception('Tỷ lệ lợi nhuận không được vượt quá 100%');
+                
+                // Lấy thông tin sản phẩm hiện tại
+                $stmt = $pdo->prepare("SELECT cost_price, selling_price, profit_percentage FROM products WHERE id = ?");
                 $stmt->execute([$product_id]);
                 $product = $stmt->fetch();
-                if (!$product) throw new Exception('Product not found');
-
+                if (!$product) throw new Exception('Không tìm thấy sản phẩm');
+                
+                $old_selling_price = $product['selling_price'];
+                $old_profit_rate = $product['profit_percentage'] ?? 0;
+                
+                // Tính giá bán mới
                 $new_selling_price = $product['cost_price'] * (1 + $profit_percent / 100);
                 $new_selling_price = round($new_selling_price / 1000) * 1000;
-
-                $stmt = $pdo->prepare("UPDATE products SET selling_price = ? WHERE id = ?");
-                $stmt->execute([$new_selling_price, $product_id]);
-
-                echo json_encode(['success' => true, 'new_selling_price' => $new_selling_price]);
+                
+                // Cập nhật sản phẩm
+                $stmt = $pdo->prepare("UPDATE products SET selling_price = ?, profit_percentage = ?, updated_at = NOW() WHERE id = ?");
+                $stmt->execute([$new_selling_price, $profit_percent, $product_id]);
+                
+                // Ghi log vào pricing_log
+                $user_id = $_SESSION['admin_id'];
+                $change_reason = "Cập nhật tỷ lệ lợi nhuận từ " . $old_profit_rate . "% lên " . $profit_percent . "%";
+                $stmt = $pdo->prepare("INSERT INTO pricing_log (product_id, old_selling_price, new_selling_price, changed_by, change_reason, changed_at) 
+                                       VALUES (?, ?, ?, ?, ?, NOW())");
+                $stmt->execute([$product_id, $old_selling_price, $new_selling_price, $user_id, $change_reason]);
+                
+                echo json_encode([
+                    'success' => true, 
+                    'new_selling_price' => $new_selling_price,
+                    'new_selling_price_formatted' => formatVND($new_selling_price)
+                ]);
                 break;
-
-            case 'getImportLots':
-                $product_id = $_GET['product_id'] ?? null;
-                $sql = "SELECT d.id, d.import_id, d.product_id, d.quantity, d.unit_cost, d.subtotal,
-                               i.import_date, i.import_code, p.name as product_name
-                        FROM import_details d
-                        JOIN imports i ON d.import_id = i.id
-                        JOIN products p ON d.product_id = p.id
-                        WHERE 1=1";
-                $params = [];
-                if ($product_id) { $sql .= " AND d.product_id = :product_id"; $params[':product_id'] = $product_id; }
-                $sql .= " ORDER BY i.import_date DESC, d.id DESC";
-                $stmt = $pdo->prepare($sql);
-                foreach ($params as $key => $val) $stmt->bindValue($key, $val);
-                $stmt->execute();
-                $lots = $stmt->fetchAll();
-
-                $selling_prices = [];
-                if ($product_id) {
-                    $stmt = $pdo->prepare("SELECT id, selling_price FROM products WHERE id = ?");
-                    $stmt->execute([$product_id]);
-                    $prod = $stmt->fetch();
-                    $selling_prices[$product_id] = $prod['selling_price'];
-                } else {
-                    $stmt = $pdo->query("SELECT id, selling_price FROM products");
-                    $all = $stmt->fetchAll();
-                    foreach ($all as $p) $selling_prices[$p['id']] = $p['selling_price'];
-                }
-
-                foreach ($lots as &$lot) {
-                    $sp = $selling_prices[$lot['product_id']] ?? 0;
-                    $lot['selling_price'] = $sp;
-                    $lot['profit_percent'] = $lot['unit_cost'] > 0 ? (($sp - $lot['unit_cost']) / $lot['unit_cost'] * 100) : 0;
-                }
-                echo json_encode(['success' => true, 'data' => $lots]);
+                
+            case 'getProfitStats':
+                $stmt = $pdo->query("
+                    SELECT 
+                        MIN(((selling_price - cost_price) / cost_price * 100)) as min_profit,
+                        MAX(((selling_price - cost_price) / cost_price * 100)) as max_profit,
+                        AVG(((selling_price - cost_price) / cost_price * 100)) as avg_profit
+                    FROM products WHERE status = 'active' AND cost_price > 0
+                ");
+                $stats = $stmt->fetch();
+                echo json_encode(['success' => true, 'stats' => $stats]);
                 break;
-
+                
             default:
                 throw new Exception('Invalid action');
         }
@@ -158,9 +106,51 @@ if (isset($_REQUEST['action'])) {
     exit;
 }
 
+// Lấy danh sách sản phẩm với giá nhập bình quân, giá bán, tỷ lệ lợi nhuận
+$stmt = $pdo->query("
+    SELECT p.id, p.code, p.name, p.cost_price, p.selling_price, 
+           p.profit_percentage, c.name as category_name
+    FROM products p
+    JOIN categories c ON p.category_id = c.id
+    WHERE p.status = 'active'
+    ORDER BY c.name, p.name
+");
+$products = $stmt->fetchAll();
+
+// Lấy danh sách lô hàng nhập (import details)
+$stmt = $pdo->query("
+    SELECT d.id, d.import_id, d.product_id, d.quantity, d.unit_cost, d.subtotal,
+           i.import_code, i.import_date, i.supplier,
+           p.name as product_name, p.code as product_code, p.selling_price,
+           c.name as category_name
+    FROM import_details d
+    JOIN imports i ON d.import_id = i.id
+    JOIN products p ON d.product_id = p.id
+    JOIN categories c ON p.category_id = c.id
+    WHERE i.status = 'completed'
+    ORDER BY i.import_date DESC, d.id DESC
+");
+$import_lots = $stmt->fetchAll();
+
+// Tính % lợi nhuận cho từng lô hàng
+foreach ($import_lots as &$lot) {
+    $lot['profit_percent'] = $lot['unit_cost'] > 0 ? 
+        (($lot['selling_price'] - $lot['unit_cost']) / $lot['unit_cost'] * 100) : 0;
+}
+
 // Lấy danh sách categories cho dropdown
-$stmt = $pdo->query("SELECT id, name FROM categories ORDER BY name");
+$stmt = $pdo->query("SELECT id, name FROM categories WHERE status = 'active' ORDER BY name");
 $categories = $stmt->fetchAll();
+
+// Lấy thống kê lợi nhuận
+$stmt = $pdo->query("
+    SELECT 
+        MIN(((selling_price - cost_price) / cost_price * 100)) as min_profit,
+        MAX(((selling_price - cost_price) / cost_price * 100)) as max_profit,
+        AVG(((selling_price - cost_price) / cost_price * 100)) as avg_profit
+    FROM products WHERE status = 'active' AND cost_price > 0
+");
+$profit_stats = $stmt->fetch();
 ?>
 <!DOCTYPE html>
 <html lang="vi">
@@ -177,11 +167,13 @@ $categories = $stmt->fetchAll();
             --light-color: #ffffff;
             --dark-color: #121618;
         }
+        
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: #f8f9fa;
             overflow-x: hidden;
         }
+        
         .sidebar {
             min-height: 100vh;
             background-color: var(--secondary-color);
@@ -191,6 +183,7 @@ $categories = $stmt->fetchAll();
             z-index: 100;
             width: 250px;
         }
+        
         .sidebar .nav-link {
             color: rgba(255, 255, 255, 0.8);
             padding: 0.75rem 1rem;
@@ -198,32 +191,43 @@ $categories = $stmt->fetchAll();
             border-radius: 0.25rem;
             transition: all 0.2s;
         }
-        .sidebar .nav-link:hover, .sidebar .nav-link.active {
+        
+        .sidebar .nav-link:hover, 
+        .sidebar .nav-link.active {
             background-color: var(--primary-color);
             color: var(--dark-color);
         }
+        
         .sidebar .nav-link i {
             width: 20px;
             margin-right: 10px;
         }
+        
         .main-content {
             margin-left: 250px;
             padding: 20px;
             transition: all 0.3s;
         }
+        
         .navbar-custom {
             background-color: var(--light-color);
             box-shadow: 0 2px 4px rgba(0,0,0,.1);
+            border-radius: 10px;
+            padding: 12px 20px;
+            margin-bottom: 20px;
         }
+        
         .card-custom {
             border: none;
             border-radius: 10px;
             box-shadow: 0 4px 6px rgba(0,0,0,.1);
             transition: transform 0.3s;
         }
+        
         .card-custom:hover {
             transform: translateY(-5px);
         }
+        
         .btn-custom {
             background-color: var(--primary-color);
             color: var(--dark-color);
@@ -232,67 +236,291 @@ $categories = $stmt->fetchAll();
             padding: 8px 15px;
             transition: all 0.3s;
         }
+        
         .btn-custom:hover {
             background-color: #e6a500;
             transform: translateY(-2px);
         }
+        
         .toggle-sidebar {
             display: none;
         }
+        
         @media (max-width: 768px) {
             .sidebar {
                 width: 70px;
                 text-align: center;
             }
+            
             .sidebar .nav-link span {
                 display: none;
             }
+            
             .sidebar .nav-link i {
                 margin-right: 0;
             }
+            
             .main-content {
                 margin-left: 70px;
             }
+            
             .toggle-sidebar {
                 display: block;
             }
         }
-        .profit-percentage { font-weight: bold; color: #28a745; }
-        .cost-price { color: #6c757d; font-weight: 600; }
-        .selling-price { font-weight: bold; color: #dc3545; }
-        .editable-field { cursor: pointer; padding: 5px; border-radius: 3px; transition: background-color 0.2s; }
-        .editable-field:hover { background-color: #f8f9fa; }
-        .editable-input { width: 80px; padding: 4px 8px; border: 1px solid #ffbe33; border-radius: 3px; font-size: 14px; text-align: center; }
-        .save-btn { background-color: #28a745; color: white; border: none; border-radius: 3px; padding: 5px 10px; font-size: 12px; cursor: pointer; margin-top: 5px; }
-        .save-btn:hover { background-color: #218838; }
-        .cancel-btn { background-color: #6c757d; color: white; border: none; border-radius: 3px; padding: 5px 10px; font-size: 12px; cursor: pointer; margin-top: 5px; margin-left: 5px; }
-        .cancel-btn:hover { background-color: #5a6268; }
-        .edit-form { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; }
-        .profit-cell { display: flex; align-items: center; gap: 10px; }
-        .global-search-container { background-color: white; border-radius: 10px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,.1); }
-        .search-form { display: flex; gap: 10px; align-items: center; }
-        .search-input-container { flex-grow: 1; position: relative; }
-        .search-input { padding-right: 45px; }
-        .search-icon { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: #6c757d; }
-        .nav-tabs .nav-link.active { background-color: var(--primary-color); color: var(--dark-color); border-color: var(--primary-color); }
-        .nav-tabs .nav-link { color: var(--secondary-color); }
-        .table th { background-color: var(--secondary-color); color: var(--light-color); }
-        .avatar-btn { background: transparent; border: none; cursor: pointer; padding: 0; transition: transform 0.2s; }
-        .avatar-btn:hover { transform: scale(1.05); }
-        .avatar-btn i { font-size: 2rem; color: var(--primary-color); }
-        .profile-avatar { width: 100px; height: 100px; background-color: var(--primary-color); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; }
-        .profile-avatar i { font-size: 3rem; color: var(--dark-color); }
-        .profile-info-item { padding: 10px 0; border-bottom: 1px solid #eee; }
-        .profile-info-item:last-child { border-bottom: none; }
-        .profile-info-label { font-weight: 600; color: var(--secondary-color); width: 120px; display: inline-block; }
-        .profile-info-value { color: #555; }
-        .modal-header { background-color: var(--secondary-color); color: var(--light-color); border-bottom: none; }
-        .modal-header .btn-close { filter: invert(1); }
+        
+        .avatar-btn {
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+            transition: transform 0.2s;
+        }
+        
+        .avatar-btn:hover {
+            transform: scale(1.05);
+        }
+        
+        .avatar-btn i {
+            font-size: 2rem;
+            color: var(--primary-color);
+        }
+        
+        .profile-avatar {
+            width: 100px;
+            height: 100px;
+            background-color: var(--primary-color);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+        }
+        
+        .profile-avatar i {
+            font-size: 3rem;
+            color: var(--dark-color);
+        }
+        
+        .profile-info-item {
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .profile-info-item:last-child {
+            border-bottom: none;
+        }
+        
+        .profile-info-label {
+            font-weight: 600;
+            color: var(--secondary-color);
+            width: 120px;
+            display: inline-block;
+        }
+        
+        .profile-info-value {
+            color: #555;
+        }
+        
+        .modal-header {
+            background-color: var(--secondary-color);
+            color: white;
+            border-bottom: none;
+        }
+        
+        .modal-header .btn-close {
+            filter: invert(1);
+        }
+        
+        .profit-percentage {
+            font-weight: bold;
+            color: #28a745;
+        }
+        
+        .cost-price {
+            color: #6c757d;
+            font-weight: 600;
+        }
+        
+        .selling-price {
+            font-weight: bold;
+            color: #dc3545;
+        }
+        
+        .global-search-container {
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,.1);
+        }
+        
+        .search-form {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .search-input-container {
+            flex-grow: 1;
+            position: relative;
+            min-width: 200px;
+        }
+        
+        .search-input {
+            padding-right: 45px;
+        }
+        
+        .search-icon {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #6c757d;
+        }
+        
+        .nav-tabs .nav-link.active {
+            background-color: var(--primary-color);
+            color: var(--dark-color);
+            border-color: var(--primary-color);
+        }
+        
+        .nav-tabs .nav-link {
+            color: var(--secondary-color);
+        }
+        
+        .table th {
+            background-color: var(--secondary-color);
+            color: var(--light-color);
+            vertical-align: middle;
+        }
+        
+        .table td {
+            vertical-align: middle;
+        }
+        
+        .edit-profit-btn {
+            background-color: var(--primary-color);
+            color: var(--dark-color);
+            border: none;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .edit-profit-btn:hover {
+            background-color: #e6a500;
+            transform: translateY(-1px);
+        }
+        
+        .edit-form {
+            display: inline-flex;
+            gap: 5px;
+            align-items: center;
+        }
+        
+        .edit-input {
+            width: 80px;
+            padding: 4px 8px;
+            border: 1px solid var(--primary-color);
+            border-radius: 4px;
+            text-align: center;
+        }
+        
+        .save-profit-btn {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            cursor: pointer;
+        }
+        
+        .cancel-profit-btn {
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            cursor: pointer;
+        }
+        
+        .stat-badge {
+            background-color: var(--primary-color);
+            color: var(--dark-color);
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .filter-card {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .profit-range {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .profit-range input {
+            width: 100px;
+        }
+        
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        
+        .page-header h2 {
+            margin: 0;
+            color: var(--secondary-color);
+        }
+        
+        .loading-spinner {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 0.6s linear infinite;
+            margin-right: 4px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .text-warning {
+            color: #ffc107 !important;
+            font-weight: bold;
+        }
+        
+        .text-danger {
+            color: #dc3545 !important;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
+    <!-- Sidebar -->
     <div class="sidebar">
-        <div class="p-3"><h4 class="text-center mb-4"><i class="fas fa-utensils"></i> Feane Admin</h4></div>
+        <div class="p-3">
+            <h4 class="text-center mb-4"><i class="fas fa-utensils"></i> Feane Admin</h4>
+        </div>
         <ul class="nav flex-column">
             <li class="nav-item"><a class="nav-link" href="admin.php"><i class="fas fa-tachometer-alt"></i> <span>Dashboard</span></a></li>
             <li class="nav-item"><a class="nav-link" href="users.php"><i class="fas fa-users"></i> <span>Quản lý người dùng</span></a></li>
@@ -306,108 +534,194 @@ $categories = $stmt->fetchAll();
         </ul>
     </div>
 
+    <!-- Main Content -->
     <div class="main-content">
-        <nav class="navbar navbar-expand-lg navbar-custom mb-4">
+        <nav class="navbar navbar-expand-lg navbar-custom">
             <div class="container-fluid">
-                <button class="btn toggle-sidebar" id="toggle-sidebar"><i class="fas fa-bars"></i></button>
+                <button class="btn toggle-sidebar" id="toggle-sidebar">
+                    <i class="fas fa-bars"></i>
+                </button>
                 <div class="d-flex align-items-center ms-auto">
-                    <span class="navbar-text me-3">Xin chào, <strong><?php echo htmlspecialchars($admin_info['full_name'] ?: $admin_info['username']); ?></strong></span>
-                    <button class="avatar-btn" data-bs-toggle="modal" data-bs-target="#profileModal"><i class="fas fa-user-circle fa-2x"></i></button>
+                    <span class="navbar-text me-3">
+                        Xin chào, <strong><?php echo htmlspecialchars($admin_info['full_name'] ?: $admin_info['username']); ?></strong>
+                    </span>
+                    <button class="avatar-btn" data-bs-toggle="modal" data-bs-target="#profileModal">
+                        <i class="fas fa-user-circle fa-2x"></i>
+                    </button>
                 </div>
             </div>
         </nav>
 
-        <div id="pricing-page" class="page-content">
-            <h2 class="mb-4">Quản lý giá bán</h2>
+        <!-- Page Header -->
+        <div class="page-header">
+            <h2><i class="fas fa-dollar-sign me-2"></i>Quản lý giá bán</h2>
+        </div>
 
-            <div class="global-search-container">
-                <h5 class="mb-3"><i class="fas fa-search me-2"></i>Tra cứu</h5>
-                <form class="search-form" id="global-search-form">
-                    <div class="search-input-container">
-                        <input type="text" class="form-control search-input" id="global-search-input" placeholder="Nhập tên hoặc mã sản phẩm...">
-                        <i class="fas fa-search search-icon"></i>
+        <!-- Search Container -->
+        <div class="global-search-container">
+            <h5 class="mb-3"><i class="fas fa-search me-2"></i>Tra cứu sản phẩm</h5>
+            <form class="search-form" id="global-search-form">
+                <div class="search-input-container">
+                    <input type="text" class="form-control search-input" id="global-search-input" placeholder="Nhập tên hoặc mã sản phẩm...">
+                    <i class="fas fa-search search-icon"></i>
+                </div>
+                <div class="search-input-container">
+                    <select class="form-select" id="category-filter">
+                        <option value="">Tất cả loại</option>
+                        <?php foreach ($categories as $cat): ?>
+                            <option value="<?php echo $cat['id']; ?>"><?php echo htmlspecialchars($cat['name']); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-custom search-btn"><i class="fas fa-check me-2"></i>Tìm kiếm</button>
+                <button type="button" class="btn btn-secondary" id="reset-search"><i class="fas fa-redo me-2"></i>Đặt lại</button>
+            </form>
+        </div>
+
+        <!-- Tabs Navigation -->
+        <ul class="nav nav-tabs" id="pricingTabs" role="tablist">
+            <li class="nav-item">
+                <a class="nav-link active" id="product-tab" data-bs-toggle="tab" href="#product">Tỷ lệ lợi nhuận theo sản phẩm</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" id="import-tab" data-bs-toggle="tab" href="#import">Tra cứu theo lô hàng</a>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="pricingTabsContent">
+            <!-- Tab 1: Product Profit -->
+            <div class="tab-pane fade show active" id="product">
+                <div class="card card-custom mt-4">
+                    <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
+                        <h5 class="card-title mb-0">Tỷ lệ lợi nhuận theo sản phẩm</h5>
+                        <div class="mt-2 mt-sm-0">
+                            <span class="stat-badge">
+                                📉 Thấp: <?php echo number_format($profit_stats['min_profit'] ?? 0, 2); ?>% | 
+                                📊 TB: <?php echo number_format($profit_stats['avg_profit'] ?? 0, 2); ?>% | 
+                                📈 Cao: <?php echo number_format($profit_stats['max_profit'] ?? 0, 2); ?>%
+                            </span>
+                        </div>
                     </div>
-                    <button type="submit" class="btn btn-custom search-btn"><i class="fas fa-check me-2"></i>OK</button>
-                </form>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th class="text-center">Mã SP</th>
+                                        <th>Tên sản phẩm</th>
+                                        <th>Loại</th>
+                                        <th class="text-end">Giá vốn (VNĐ)</th>
+                                        <th class="text-end">Giá bán (VNĐ)</th>
+                                        <th class="text-center">Tỷ lệ lợi nhuận (%)</th>
+                                        <th class="text-center">Thao tác</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($products as $product): ?>
+                                    <tr data-id="<?php echo $product['id']; ?>" data-cost="<?php echo $product['cost_price']; ?>">
+                                        <td class="text-center"><strong><?php echo htmlspecialchars($product['code']); ?></strong></td>
+                                        <td><?php echo htmlspecialchars($product['name']); ?></td>
+                                        <td><?php echo htmlspecialchars($product['category_name']); ?></td>
+                                        <td class="cost-price text-end"><?php echo formatVND($product['cost_price']); ?></td>
+                                        <td class="selling-price text-end"><?php echo formatVND($product['selling_price']); ?></td>
+                                        <td class="text-center">
+                                            <div id="profit-cell-<?php echo $product['id']; ?>">
+                                                <span class="profit-percentage"><?php echo $product['profit_percentage']; ?>%</span>
+                                                <button class="edit-profit-btn ms-2" data-id="<?php echo $product['id']; ?>" data-profit="<?php echo $product['profit_percentage']; ?>">
+                                                    <i class="fas fa-edit"></i> Sửa
+                                                </button>
+                                            </div>
+                                        </td>
+                                        <td class="text-center">
+                                            <button class="btn btn-sm btn-info view-lots" data-id="<?php echo $product['id']; ?>" data-name="<?php echo htmlspecialchars($product['name']); ?>">
+                                                <i class="fas fa-boxes"></i> Xem lô nhập
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <ul class="nav nav-tabs" id="pricingTabs" role="tablist">
-                <li class="nav-item"><a class="nav-link active" id="category-tab" data-bs-toggle="tab" href="#category">Tỷ lệ lợi nhuận theo loại</a></li>
-                <li class="nav-item"><a class="nav-link" id="product-tab" data-bs-toggle="tab" href="#product">Tỷ lệ lợi nhuận theo sản phẩm</a></li>
-                <li class="nav-item"><a class="nav-link" id="import-tab" data-bs-toggle="tab" href="#import">Tra cứu theo lô hàng</a></li>
-            </ul>
-
-            <div class="tab-content" id="pricingTabsContent">
-                <div class="tab-pane fade show active" id="category">
-                    <div class="card card-custom mt-4">
-                        <div class="card-header d-flex justify-content-between align-items-center">
-                            <h5 class="card-title mb-0">Tỷ lệ lợi nhuận theo loại sản phẩm</h5>
-                            <div class="dropdown filter-dropdown">
-                                <button class="btn btn-custom dropdown-toggle" type="button" data-bs-toggle="dropdown"><i class="fas fa-filter me-2"></i>Lọc & Tra cứu</button>
-                                <ul class="dropdown-menu">
-                                    <li><a class="dropdown-item filter-option" href="#" data-filter-type="cost-price-cat"><i class="fas fa-money-bill-wave me-2"></i>Tra cứu giá vốn</a></li>
-                                    <li><a class="dropdown-item filter-option" href="#" data-filter-type="profit-cat"><i class="fas fa-chart-line me-2"></i>Tra cứu lợi nhuận</a></li>
-                                    <li><a class="dropdown-item filter-option" href="#" data-filter-type="selling-price-cat"><i class="fas fa-tag me-2"></i>Tra cứu giá bán</a></li>
-                                </ul>
-                            </div>
-                        </div>
-                        <div class="card-body">
-                            <div class="table-responsive">
-                                <table class="table table-hover" id="category-table">
-                                    <thead><th>Mã loại</th><th>Tên loại</th><th>Giá vốn TB (VNĐ)</th><th>Giá bán TB (VNĐ)</th><th>Số lượng SP</th><th>Tỷ lệ lợi nhuận TB (%)</th></thead>
-                                    <tbody id="category-tbody"><tr><td colspan="6" class="text-center">Đang tải...</td></tr></tbody>
-                                </table>
-                            </div>
-                        </div>
+            <!-- Tab 2: Import Lots -->
+            <div class="tab-pane fade" id="import">
+                <div class="card card-custom mt-4">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Tra cứu giá vốn, % lợi nhuận theo lô hàng nhập</h5>
                     </div>
-                </div>
-
-                <div class="tab-pane fade" id="product">
-                    <div class="card card-custom mt-4">
-                        <div class="card-header d-flex justify-content-between align-items-center">
-                            <h5 class="card-title mb-0">Tỷ lệ lợi nhuận theo sản phẩm</h5>
-                            <div class="dropdown filter-dropdown">
-                                <button class="btn btn-custom dropdown-toggle" type="button" data-bs-toggle="dropdown"><i class="fas fa-filter me-2"></i>Lọc & Tra cứu</button>
-                                <ul class="dropdown-menu">
-                                    <li><a class="dropdown-item filter-option" href="#" data-filter-type="cost-price-prod"><i class="fas fa-money-bill-wave me-2"></i>Tra cứu giá vốn</a></li>
-                                    <li><a class="dropdown-item filter-option" href="#" data-filter-type="profit-prod"><i class="fas fa-chart-line me-2"></i>Tra cứu lợi nhuận</a></li>
-                                    <li><a class="dropdown-item filter-option" href="#" data-filter-type="selling-price-prod"><i class="fas fa-tag me-2"></i>Tra cứu giá bán</a></li>
-                                </ul>
-                            </div>
-                        </div>
-                        <div class="card-body">
-                            <div class="table-responsive">
-                                <table class="table table-hover" id="product-table">
-                                    <thead><th>Mã SP</th><th>Tên sản phẩm</th><th>Loại</th><th>Giá vốn (VNĐ)</th><th>Giá bán (VNĐ)</th><th>Tỷ lệ lợi nhuận (%)</th><th>Thao tác</th></thead>
-                                    <tbody id="product-tbody"><tr><td colspan="7" class="text-center">Đang tải...</td></tr></tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="tab-pane fade" id="import">
-                    <div class="card card-custom mt-4">
-                        <div class="card-header d-flex justify-content-between align-items-center">
-                            <h5 class="card-title mb-0">Tra cứu giá vốn, % lợi nhuận theo lô hàng nhập</h5>
-                            <select id="product-filter-import" class="form-select" style="width: 250px;">
-                                <option value="">Tất cả sản phẩm</option>
-                                <?php foreach ($categories as $cat): ?>
-                                    <optgroup label="<?= htmlspecialchars($cat['name']) ?>">
-                                        <?php $stmt = $pdo->prepare("SELECT id, name FROM products WHERE category_id = ? ORDER BY name"); $stmt->execute([$cat['id']]); $prods = $stmt->fetchAll(); foreach ($prods as $prod): ?>
-                                            <option value="<?= $prod['id'] ?>"><?= htmlspecialchars($prod['name']) ?></option>
+                    <div class="card-body">
+                        <div class="filter-card">
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label">Sản phẩm</label>
+                                    <select id="product-filter-import" class="form-select">
+                                        <option value="">Tất cả sản phẩm</option>
+                                        <?php foreach ($products as $prod): ?>
+                                            <option value="<?php echo $prod['id']; ?>"><?php echo htmlspecialchars($prod['name']); ?></option>
                                         <?php endforeach; ?>
-                                    </optgroup>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                        <div class="card-body">
-                            <div class="table-responsive">
-                                <table class="table table-hover" id="import-table">
-                                    <thead><th>Mã phiếu</th><th>Ngày nhập</th><th>Sản phẩm</th><th>Số lượng</th><th>Giá nhập (VNĐ)</th><th>Giá bán hiện tại (VNĐ)</th><th>Lợi nhuận (%)</th></thead>
-                                    <tbody id="import-tbody"><tr><td colspan="7" class="text-center">Đang tải...</td></tr></tbody>
-                                </table>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Từ ngày</label>
+                                    <input type="date" id="import-date-from" class="form-control">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Đến ngày</label>
+                                    <input type="date" id="import-date-to" class="form-control">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">&nbsp;</label>
+                                    <button id="search-import-lots" class="btn btn-custom w-100"><i class="fas fa-search me-1"></i>Tìm</button>
+                                </div>
                             </div>
+                            <div class="row mt-3">
+                                <div class="col-md-12">
+                                    <label class="form-label">Lọc theo % lợi nhuận</label>
+                                    <div class="profit-range">
+                                        <input type="number" id="min-profit" class="form-control" placeholder="Tối thiểu" step="5">
+                                        <span>-</span>
+                                        <input type="number" id="max-profit" class="form-control" placeholder="Tối đa" step="5">
+                                        <button id="apply-profit-filter" class="btn btn-sm btn-secondary">Áp dụng</button>
+                                        <button id="clear-profit-filter" class="btn btn-sm btn-outline-secondary">Xóa</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Mã phiếu</th>
+                                        <th>Ngày nhập</th>
+                                        <th>Sản phẩm</th>
+                                        <th class="text-center">Số lượng</th>
+                                        <th class="text-end">Giá nhập (VNĐ)</th>
+                                        <th class="text-end">Giá bán hiện tại (VNĐ)</th>
+                                        <th class="text-center">Lợi nhuận (%)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="import-tbody">
+                                    <?php foreach ($import_lots as $lot): ?>
+                                    <tr data-product-id="<?php echo $lot['product_id']; ?>" data-date="<?php echo $lot['import_date']; ?>">
+                                        <td><?php echo htmlspecialchars($lot['import_code']); ?></td>
+                                        <td class="text-center"><?php echo date('d/m/Y', strtotime($lot['import_date'])); ?></td>
+                                        <td><?php echo htmlspecialchars($lot['product_name']); ?></td>
+                                        <td class="text-center"><?php echo number_format($lot['quantity']); ?></td>
+                                        <td class="cost-price text-end"><?php echo formatVND($lot['unit_cost']); ?></td>
+                                        <td class="selling-price text-end"><?php echo formatVND($lot['selling_price']); ?></td>
+                                        <td class="text-center">
+                                            <?php 
+                                            $profit_class = $lot['profit_percent'] >= 30 ? 'profit-percentage' : ($lot['profit_percent'] >= 15 ? 'text-warning' : 'text-danger');
+                                            ?>
+                                            <span class="<?php echo $profit_class; ?>"><?php echo number_format($lot['profit_percent'], 2); ?>%</span>
+                                        </td>
+                                    </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
@@ -415,7 +729,7 @@ $categories = $stmt->fetchAll();
         </div>
     </div>
 
-    <!-- Modal Thông tin cá nhân -->
+    <!-- Modal Thông tin cá nhân Admin -->
     <div class="modal fade" id="profileModal" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
@@ -443,135 +757,244 @@ $categories = $stmt->fetchAll();
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        let productsList = [];
-
+        // Toggle sidebar
         $('#toggle-sidebar').click(function() {
             const sidebar = $('.sidebar');
             const mainContent = $('.main-content');
-            if (sidebar.width() === 70) { sidebar.width(250); mainContent.css('margin-left', '250px'); $('.sidebar .nav-link span').show(); }
-            else { sidebar.width(70); mainContent.css('margin-left', '70px'); $('.sidebar .nav-link span').hide(); }
+            if (sidebar.width() === 70) {
+                sidebar.width(250);
+                mainContent.css('margin-left', '250px');
+                $('.sidebar .nav-link span').show();
+            } else {
+                sidebar.width(70);
+                mainContent.css('margin-left', '70px');
+                $('.sidebar .nav-link span').hide();
+            }
         });
 
         function adjustSidebar() {
-            if (window.innerWidth <= 768) { $('.sidebar').width(70); $('.main-content').css('margin-left', '70px'); $('.sidebar .nav-link span').hide(); }
-            else { $('.sidebar').width(250); $('.main-content').css('margin-left', '250px'); $('.sidebar .nav-link span').show(); }
+            if (window.innerWidth <= 768) {
+                $('.sidebar').width(70);
+                $('.main-content').css('margin-left', '70px');
+                $('.sidebar .nav-link span').hide();
+            } else {
+                $('.sidebar').width(250);
+                $('.main-content').css('margin-left', '250px');
+                $('.sidebar .nav-link span').show();
+            }
         }
         adjustSidebar();
         $(window).resize(adjustSidebar);
 
-        function loadCategories() {
-            $.getJSON('pricing.php', { action: 'getCategories' }, function(res) {
-                if (res.success) renderCategories(res.data);
-                else $('#category-tbody').html('<tr><td colspan="6" class="text-center text-danger">Lỗi tải dữ liệu</td></tr>');
-            });
+        // Format tiền VNĐ
+        function formatVND(amount) {
+            return new Intl.NumberFormat('vi-VN').format(amount) + ' ₫';
         }
 
-        function renderCategories(data) {
-            if (!data.length) { $('#category-tbody').html('<tr><td colspan="6" class="text-center">Không có dữ liệu</td></tr>'); return; }
-            let html = '';
-            data.forEach(cat => {
-                const avgCost = new Intl.NumberFormat('vi-VN').format(cat.avg_cost_price || 0);
-                const avgSelling = new Intl.NumberFormat('vi-VN').format(cat.avg_selling_price || 0);
-                const avgProfit = (cat.avg_profit_percent || 0).toFixed(2);
-                html += `<tr><td>CAT${String(cat.id).padStart(3, '0')}</td><td>${escapeHtml(cat.name)}</td><td class="cost-price">${avgCost}</td><td class="selling-price">${avgSelling}</td><td>${cat.product_count || 0}</td><td><span class="profit-percentage">${avgProfit}%</span></td></tr>`;
-            });
-            $('#category-tbody').html(html);
+        // Hiển thị thông báo
+        function showNotification(message, type = 'success') {
+            const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+            const alertDiv = $(`
+                <div class="alert ${alertClass} alert-dismissible fade show position-fixed top-0 end-0 m-3" role="alert" style="z-index: 9999; min-width: 300px;">
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `);
+            $('body').append(alertDiv);
+            setTimeout(() => alertDiv.fadeOut(() => alertDiv.remove()), 3000);
         }
 
-        function loadProducts(filters = {}) {
-            $.getJSON('pricing.php', { action: 'getProducts', ...filters }, function(res) {
-                if (res.success) renderProducts(res.data);
-                else $('#product-tbody').html('<tr><td colspan="7" class="text-center text-danger">Lỗi tải dữ liệu</td></tr>');
-            });
-        }
-
-        function renderProducts(products) {
-            if (!products.length) { $('#product-tbody').html('<tr><td colspan="7" class="text-center">Không có sản phẩm nào</td></tr>'); return; }
-            let html = '';
-            products.forEach(p => {
-                const cost = new Intl.NumberFormat('vi-VN').format(p.cost_price);
-                const selling = new Intl.NumberFormat('vi-VN').format(p.selling_price);
-                const profitPercent = p.profit_percent ? p.profit_percent.toFixed(2) : '0.00';
-                html += `<tr data-id="${p.id}"><td>${escapeHtml(p.code)}</td><td>${escapeHtml(p.name)}</td><td>${escapeHtml(p.category_name)}</td><td class="cost-price">${cost}</td><td class="selling-price">${selling}</td><td><div class="profit-cell" id="profit-cell-${p.id}"><span class="profit-percentage">${profitPercent}%</span><button class="btn btn-sm btn-custom edit-profit" data-id="${p.id}" data-profit="${profitPercent}"><i class="fas fa-edit"></i> Sửa</button></div></td><td><button class="btn btn-sm btn-info view-lots" data-id="${p.id}"><i class="fas fa-boxes"></i> Xem lô nhập</button></td></tr>`;
-            });
-            $('#product-tbody').html(html);
-        }
-
+        // Chỉnh sửa tỷ lệ lợi nhuận
         function editProfit(productId, currentProfit) {
             const profitCell = $(`#profit-cell-${productId}`);
             const originalHtml = profitCell.html();
+            const row = $(`tr[data-id="${productId}"]`);
+            const costPrice = parseFloat(row.data('cost'));
+            
             const editForm = $('<div class="edit-form"></div>');
-            const input = $('<input type="number" class="editable-input" step="0.5" min="0" max="100">').val(currentProfit);
-            const actions = $('<div class="edit-actions"></div>');
-            const saveBtn = $('<button class="save-btn">Lưu</button>');
-            const cancelBtn = $('<button class="cancel-btn">Hủy</button>');
+            const input = $('<input type="number" class="edit-input" step="0.5" min="0" max="100">').val(currentProfit);
+            const saveBtn = $('<button class="save-profit-btn ms-1">Lưu</button>');
+            const cancelBtn = $('<button class="cancel-profit-btn ms-1">Hủy</button>');
+            
             saveBtn.click(function() {
                 const newProfit = parseFloat(input.val());
-                if (isNaN(newProfit) || newProfit < 0) { alert('Vui lòng nhập tỷ lệ hợp lệ (>=0)'); return; }
-                $.post('pricing.php', { action: 'updateProfit', product_id: productId, profit_percent: newProfit }, function(res) {
+                if (isNaN(newProfit) || newProfit < 0) {
+                    showNotification('Vui lòng nhập tỷ lệ hợp lệ (>=0)', 'danger');
+                    return;
+                }
+                if (newProfit > 100) {
+                    showNotification('Tỷ lệ lợi nhuận không được vượt quá 100%', 'danger');
+                    return;
+                }
+                
+                saveBtn.prop('disabled', true);
+                saveBtn.html('<span class="loading-spinner"></span> Đang lưu...');
+                
+                $.post(window.location.href, { 
+                    ajax: 1, 
+                    action: 'updateProfit', 
+                    product_id: productId, 
+                    profit_percent: newProfit 
+                }, function(res) {
                     if (res.success) {
-                        const newSelling = new Intl.NumberFormat('vi-VN').format(res.new_selling_price);
-                        $(`tr[data-id="${productId}"] .selling-price`).text(newSelling);
-                        profitCell.html(`<span class="profit-percentage">${newProfit}%</span> <button class="btn btn-sm btn-custom edit-profit" data-id="${productId}" data-profit="${newProfit}"><i class="fas fa-edit"></i> Sửa</button>`);
-                        profitCell.find('.edit-profit').click(function() { editProfit(productId, newProfit); });
-                        showNotification('Đã cập nhật tỷ lệ lợi nhuận');
-                    } else alert('Lỗi: ' + res.error);
-                }, 'json');
+                        const newSellingFormatted = formatVND(res.new_selling_price);
+                        row.find('.selling-price').text(newSellingFormatted);
+                        
+                        profitCell.html(`
+                            <span class="profit-percentage">${newProfit}%</span>
+                            <button class="edit-profit-btn ms-2" data-id="${productId}" data-profit="${newProfit}">
+                                <i class="fas fa-edit"></i> Sửa
+                            </button>
+                        `);
+                        
+                        profitCell.find('.edit-profit-btn').click(function() { 
+                            editProfit(productId, newProfit); 
+                        });
+                        
+                        showNotification('Đã cập nhật tỷ lệ lợi nhuận thành công', 'success');
+                    } else {
+                        showNotification('Lỗi: ' + (res.error || 'Không xác định'), 'danger');
+                        profitCell.html(originalHtml);
+                        profitCell.find('.edit-profit-btn').click(function() { 
+                            editProfit(productId, currentProfit); 
+                        });
+                    }
+                }, 'json').fail(function() {
+                    showNotification('Có lỗi xảy ra khi kết nối máy chủ', 'danger');
+                    profitCell.html(originalHtml);
+                    profitCell.find('.edit-profit-btn').click(function() { 
+                        editProfit(productId, currentProfit); 
+                    });
+                }).always(function() {
+                    saveBtn.prop('disabled', false);
+                    saveBtn.html('Lưu');
+                });
             });
-            cancelBtn.click(function() { profitCell.html(originalHtml); profitCell.find('.edit-profit').click(function() { editProfit(productId, currentProfit); }); });
-            actions.append(saveBtn, cancelBtn);
-            editForm.append(input, actions);
+            
+            cancelBtn.click(function() { 
+                profitCell.html(originalHtml); 
+                profitCell.find('.edit-profit-btn').click(function() { 
+                    editProfit(productId, currentProfit); 
+                });
+            });
+            
+            editForm.append(input, saveBtn, cancelBtn);
             profitCell.empty().append(editForm);
             input.focus();
         }
 
-        function loadImportLots(filters = {}) {
-            $.getJSON('pricing.php', { action: 'getImportLots', ...filters }, function(res) {
-                if (res.success) renderImportLots(res.data);
-                else $('#import-tbody').html('<tr><td colspan="7" class="text-center text-danger">Lỗi tải dữ liệu</td></tr>');
+        // Filter products (Tab 1)
+        function filterProducts() {
+            const searchTerm = $('#global-search-input').val().toLowerCase();
+            const categoryId = $('#category-filter').val();
+            
+            $('#product-tbody tr').each(function() {
+                const code = $(this).find('td:first').text().toLowerCase();
+                const name = $(this).find('td:eq(1)').text().toLowerCase();
+                const category = $(this).find('td:eq(2)').text().toLowerCase();
+                const matchesSearch = searchTerm === '' || code.includes(searchTerm) || name.includes(searchTerm);
+                
+                let matchesCategory = true;
+                if (categoryId) {
+                    const categoryName = $(this).find('td:eq(2)').text();
+                    const categories = <?php echo json_encode($categories); ?>;
+                    const cat = categories.find(c => c.name === categoryName);
+                    matchesCategory = cat && cat.id == categoryId;
+                }
+                
+                if (matchesSearch && matchesCategory) {
+                    $(this).show();
+                } else {
+                    $(this).hide();
+                }
             });
         }
 
-        function renderImportLots(lots) {
-            if (!lots.length) { $('#import-tbody').html('<tr><td colspan="7" class="text-center">Không có dữ liệu lô nhập</td></tr>'); return; }
-            let html = '';
-            lots.forEach(lot => {
-                const profitPercent = lot.profit_percent.toFixed(2);
-                html += `<tr><td>${escapeHtml(lot.import_code)}</td><td>${new Date(lot.import_date).toLocaleDateString('vi-VN')}</td><td>${escapeHtml(lot.product_name)}</td><td>${lot.quantity}</td><td class="cost-price">${new Intl.NumberFormat('vi-VN').format(lot.unit_cost)}</td><td class="selling-price">${new Intl.NumberFormat('vi-VN').format(lot.selling_price)}</td><td><span class="profit-percentage">${profitPercent}%</span></td></tr>`;
+        // Filter import lots (Tab 2)
+        function filterImportLots() {
+            const productId = $('#product-filter-import').val();
+            const dateFrom = $('#import-date-from').val();
+            const dateTo = $('#import-date-to').val();
+            const minProfit = $('#min-profit').val() ? parseFloat($('#min-profit').val()) : null;
+            const maxProfit = $('#max-profit').val() ? parseFloat($('#max-profit').val()) : null;
+            
+            $('#import-tbody tr').each(function() {
+                const lotProductId = $(this).data('product-id');
+                const lotDate = $(this).data('date');
+                const profitText = $(this).find('td:last span').text().replace('%', '');
+                const profit = parseFloat(profitText);
+                
+                let show = true;
+                if (productId && lotProductId != productId) show = false;
+                if (dateFrom && lotDate < dateFrom) show = false;
+                if (dateTo && lotDate > dateTo) show = false;
+                if (minProfit !== null && profit < minProfit) show = false;
+                if (maxProfit !== null && profit > maxProfit) show = false;
+                
+                if (show) {
+                    $(this).show();
+                } else {
+                    $(this).hide();
+                }
             });
-            $('#import-tbody').html(html);
         }
 
+        // Search products
         $('#global-search-form').submit(function(e) {
             e.preventDefault();
-            const searchTerm = $('#global-search-input').val().trim();
-            $('#product-tab').tab('show');
-            loadProducts({ search: searchTerm });
+            filterProducts();
         });
 
-        $('.filter-option').click(function(e) {
-            e.preventDefault();
-            const type = $(this).data('filter-type');
-            if (type === 'cost-price-prod' || type === 'cost-price-cat') { alert('Tính năng đang phát triển - Vui lòng nhập trực tiếp vào ô tìm kiếm'); }
-            else if (type === 'profit-prod' || type === 'profit-cat') { alert('Tính năng đang phát triển - Vui lòng nhập trực tiếp vào ô tìm kiếm'); }
-            else if (type === 'selling-price-prod' || type === 'selling-price-cat') { alert('Tính năng đang phát triển - Vui lòng nhập trực tiếp vào ô tìm kiếm'); }
+        $('#reset-search').click(function() {
+            $('#global-search-input').val('');
+            $('#category-filter').val('');
+            $('#product-tbody tr').show();
+        });
+
+        // Import lots search
+        $('#search-import-lots').click(function() {
+            filterImportLots();
+        });
+
+        $('#apply-profit-filter').click(function() {
+            filterImportLots();
+        });
+
+        $('#clear-profit-filter').click(function() {
+            $('#min-profit').val('');
+            $('#max-profit').val('');
+            filterImportLots();
         });
 
         $('#product-filter-import').change(function() {
-            const productId = $(this).val();
-            if (productId) loadImportLots({ product_id: productId });
-            else loadImportLots();
+            filterImportLots();
         });
 
-        $(document).on('click', '.edit-profit', function() { const productId = $(this).data('id'); const currentProfit = $(this).data('profit'); editProfit(productId, currentProfit); });
-        $(document).on('click', '.view-lots', function() { const productId = $(this).data('id'); $('#import-tab').tab('show'); loadImportLots({ product_id: productId }); });
+        // Event handlers
+        $(document).on('click', '.edit-profit-btn', function() { 
+            const productId = $(this).data('id'); 
+            const currentProfit = $(this).data('profit'); 
+            editProfit(productId, currentProfit); 
+        });
+        
+        $(document).on('click', '.view-lots', function() { 
+            const productId = $(this).data('id'); 
+            const productName = $(this).data('name');
+            $('#import-tab').tab('show'); 
+            $('#product-filter-import').val(productId);
+            filterImportLots();
+            showNotification(`Đang hiển thị lô nhập của sản phẩm: ${productName}`, 'success');
+        });
 
-        function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, function(m) { if (m === '&') return '&amp;'; if (m === '<') return '&lt;'; if (m === '>') return '&gt;'; return m; }); }
-        function showNotification(message) { const alertDiv = $('<div class="alert alert-success alert-dismissible fade show" role="alert">' + message + '<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>'); $('.page-content').prepend(alertDiv); setTimeout(() => alertDiv.remove(), 3000); }
-
-        loadCategories();
-        loadProducts();
-        loadImportLots();
+        // Set data attributes for filtering
+        $('#product-tbody tr').each(function() {
+            const categoryName = $(this).find('td:eq(2)').text();
+            const categories = <?php echo json_encode($categories); ?>;
+            const category = categories.find(c => c.name === categoryName);
+            if (category) {
+                $(this).attr('data-category-id', category.id);
+            }
+        });
     </script>
 </body>
 </html>
