@@ -317,22 +317,7 @@ if (isset($_SESSION['cart'])) {
                       <i class="fa fa-user"></i>
                       <span>Thông tin tài khoản</span>
                     </a>
-                    <a href="order_history.php" class="dropdown-item-custom">
-                      <i class="fa fa-shopping-bag"></i>
-                      <span>Lịch sử đơn hàng</span>
-                    </a>
-                    <a href="cart.php" class="dropdown-item-custom">
-                      <i class="fa fa-shopping-cart"></i>
-                      <span>Giỏ hàng của tôi</span>
-                      <?php if ($cart_count > 0): ?>
-                        <span class="badge" style="background: #ffbe33; color: #222; margin-left: auto;"><?= $cart_count ?></span>
-                      <?php endif; ?>
-                    </a>
-                    <div class="dropdown-divider"></div>
-                    <a href="user/logout.php" class="dropdown-item-custom text-danger">
-                      <i class="fa fa-sign-out-alt"></i>
-                      <span>Đăng xuất</span>
-                    </a>
+                  
                   </div>
                 </div>
               <?php else: ?>
