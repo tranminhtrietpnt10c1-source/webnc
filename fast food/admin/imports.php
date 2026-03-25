@@ -80,11 +80,8 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
 
                 $stmt = $pdo->prepare($sql);
                 foreach ($params as $key => $val) {
-                    if (is_int($val)) {
-                        $stmt->bindValue($key, $val, PDO::PARAM_INT);
-                    } else {
-                        $stmt->bindValue($key, $val);
-                    }
+                    if (is_int($val)) $stmt->bindValue($key, $val, PDO::PARAM_INT);
+                    else $stmt->bindValue($key, $val);
                 }
                 $stmt->execute();
                 $imports = $stmt->fetchAll();
@@ -322,8 +319,8 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
     } catch (Exception $e) {
         http_response_code(400);
         echo json_encode(['success' => false, 'error' => $e->getMessage()]);
-        exit;
     }
+    exit;
 }
 ?>
 <!DOCTYPE html>
@@ -607,8 +604,7 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
                                 <th>Mã phiếu</th><th>Ngày nhập</th><th>Nhà cung cấp</th><th>Số sản phẩm</th><th>Tổng số lượng</th><th>Tổng giá trị</th><th>Trạng thái</th><th>Thao tác</th>
                             </thead>
                             <tbody id="imports-tbody">
-                                <td colspan="8" class="text-center">Đang tải...</td>
-                            </tbody>
+                                <td colspan="8" class="text-center">Đang tải...</tbody>
                         </table>
                     </div>
                     <div class="pagination-container" id="pagination-container"></div>
@@ -919,23 +915,6 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
             const id = $(this).data('id');
             $.getJSON(window.location.href, { ajax: 1, action: 'get', id: id }, function(res) {
                 if (res.success) {
-                    let avgCosts = {};
-                    if (res.details.length) {
-                        const productIds = res.details.map(d => d.product_id).join(',');
-                        $.ajax({
-                            url: window.location.href,
-                            type: 'GET',
-                            data: { ajax: 1, action: 'getProductCosts', ids: productIds },
-                            async: false,
-                            dataType: 'json',
-                            success: function(data) {
-                                if (data.success) {
-                                    avgCosts = data.costs;
-                                }
-                            }
-                        });
-                    }
-
                     let detailHtml = `
                         <div class="mb-3">
                             <strong>Mã phiếu:</strong> ${escapeHtml(res.import.import_code)}<br>
@@ -951,7 +930,6 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
                                         <th>Sản phẩm</th>
                                         <th class="text-center">SL</th>
                                         <th class="text-end">Giá nhập (thực tế)</th>
-                                        <th class="text-end">Giá nhập (bình quân)</th>
                                         <th class="text-end">Thành tiền</th>
                                     </tr>
                                 </thead>
@@ -965,13 +943,11 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
                         totalQty += quantity;
                         totalValue += subtotal;
 
-                        const avgPrice = (avgCosts[d.product_id] !== undefined) ? new Intl.NumberFormat('vi-VN').format(avgCosts[d.product_id]) : '---';
                         detailHtml += `
                             <tr>
                                 <td>${escapeHtml(d.product_name)}</td>
                                 <td class="text-center">${quantity}</td>
                                 <td class="text-end">${new Intl.NumberFormat('vi-VN').format(unitCost)} ₫</td>
-                                <td class="text-end">${avgPrice} ₫</td>
                                 <td class="text-end">${new Intl.NumberFormat('vi-VN').format(subtotal)} ₫</td>
                             </tr>
                         `;
@@ -982,7 +958,6 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
                                     <tr>
                                         <th colspan="2" class="text-end">Tổng:</th>
                                         <th class="text-end">${totalQty} sản phẩm</th>
-                                        <th></th>
                                         <th class="text-end">${new Intl.NumberFormat('vi-VN').format(totalValue)} ₫</th>
                                     </tr>
                                 </tfoot>
