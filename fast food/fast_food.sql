@@ -3,9 +3,9 @@
 -- https://www.phpmyadmin.net/
 --
 -- Máy chủ: 127.0.0.1
--- Thời gian đã tạo: Th3 25, 2026 lúc 03:30 PM
+-- Thời gian đã tạo: Th3 26, 2026 lúc 02:06 AM
 -- Phiên bản máy phục vụ: 10.4.32-MariaDB
--- Phiên bản PHP: 8.0.30
+-- Phiên bản PHP: 8.2.12
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -213,7 +213,9 @@ INSERT INTO `orders` (`id`, `order_code`, `user_id`, `customer_name`, `customer_
 (6, 'ORD006', 5, 'Trần Minh Triết', '0339111480', 'triet@gmail.com', '123 Đường ABC, Quận 1, TP.HCM', '2026-03-22', 102000.00, 30000.00, 0.00, 132000.00, 'new', 'cash', 'Giao hàng tận nơi', '2026-03-22 06:47:26', '2026-03-23 07:00:00'),
 (7, 'ORD007', 5, 'Trần Minh Triết', '0339111480', 'triet@gmail.com', '123 Đường ABC, Quận 1, TP.HCM', '2026-03-22', 105750.00, 30000.00, 0.00, 135750.00, 'processing', 'cash', '', '2026-03-22 06:50:26', '2026-03-23 07:00:00'),
 (8, 'ORD008', 5, 'Trần Minh Triết', '0339111480', 'triet@gmail.com', '123 Đường ABC, Quận 1, TP.HCM', '2026-03-22', 179000.00, 30000.00, 0.00, 209000.00, 'shipped', 'cash', 'Đã giao thành công', '2026-03-22 06:54:46', '2026-03-23 07:00:00'),
-(9, 'ORD009', 2, 'Nguyễn Văn A', '0912345678', 'nguyenvana@example.com', '12 Nguyễn Huệ, Quận 1, TP.HCM', '2026-03-23', 445500.00, 30000.00, 20000.00, 455500.00, 'new', 'transfer', 'Khách hàng thân thiết', '2026-03-23 08:00:00', '2026-03-23 08:00:00');
+(9, 'ORD009', 2, 'Nguyễn Văn A', '0912345678', 'nguyenvana@example.com', '12 Nguyễn Huệ, Quận 1, TP.HCM', '2026-03-23', 445500.00, 30000.00, 20000.00, 455500.00, 'new', 'transfer', 'Khách hàng thân thiết', '2026-03-23 08:00:00', '2026-03-23 08:00:00'),
+(12, 'ORD202603265005', 8, 'khánh ly', '0123 456 789', 'ly@gmail.com', '123 đường A, phường B, quận C', '2026-03-26', 535396.11, 30000.00, 0.00, 565396.11, 'new', 'cash', '', '2026-03-26 01:01:44', '2026-03-26 01:01:44'),
+(13, 'ORD202603268629', 10, 'hoang khoi', '0906985122', 'hoangkhoinpk@gmail.com', 'quận câm', '2026-03-26', 1090022.80, 30000.00, 0.00, 1120022.80, 'new', 'cash', '', '2026-03-26 01:04:30', '2026-03-26 01:04:30');
 
 -- --------------------------------------------------------
 
@@ -255,7 +257,17 @@ INSERT INTO `order_details` (`id`, `order_id`, `product_id`, `quantity`, `unit_p
 (18, 8, 7, 1, 77000.00, 77000.00),
 (19, 9, 1, 2, 136500.00, 273000.00),
 (20, 9, 4, 1, 47250.00, 47250.00),
-(21, 9, 8, 1, 84000.00, 84000.00);
+(21, 9, 8, 1, 84000.00, 84000.00),
+(31, 12, 8, 2, 85527.27, 171054.55),
+(32, 12, 7, 1, 79153.84, 79153.84),
+(33, 12, 6, 1, 45675.00, 45675.00),
+(34, 12, 4, 1, 48182.86, 48182.86),
+(35, 12, 5, 1, 44718.75, 44718.75),
+(36, 12, 3, 1, 146611.11, 146611.11),
+(37, 13, 8, 1, 85527.27, 85527.27),
+(38, 13, 7, 1, 79153.84, 79153.84),
+(39, 13, 6, 1, 45675.00, 45675.00),
+(40, 13, 3, 6, 146611.11, 879666.68);
 
 -- --------------------------------------------------------
 
@@ -374,9 +386,10 @@ INSERT INTO `users` (`id`, `full_name`, `username`, `email`, `phone`, `password`
 (4, 'Lê Văn C', 'levanc', 'levanc@example.com', '0123456789', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '78 Pasteur, Quận 1, TP.HCM', '1995-12-10', '2026-03-21', 'user', 'locked', 'Tài khoản bị khóa do vi phạm', NULL, '2026-03-20 08:00:00', '2026-03-21 05:52:21', '2026-03-23 07:30:00'),
 (5, 'Trần Minh Triết', 'triet', 'triet@gmail.com', '0339111480', '$2y$10$eN/XTYaJJ.T8OcnygzYAmu/vVRn2pMdzUlV3T6MJWIvny39r5/B0y', '123 Đường ABC, Phường XYZ, Quận 1, TP.HCM', '2006-07-13', '2026-03-22', 'user', 'active', 'Khách hàng mới', '../images/about-img.png', '2026-03-23 12:00:00', '2026-03-22 02:27:33', '2026-03-23 07:30:00'),
 (6, 'Phạm Thị D', 'phamthid', 'phamthid@gmail.com', '0909888777', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '222 Lý Tự Trọng, Quận 1, TP.HCM', '1992-03-18', '2026-03-23', 'user', 'locked', 'Khách hàng mới', NULL, NULL, '2026-03-23 07:30:00', '2026-03-24 00:07:07'),
-(7, 'Lê Đỗ Hoà Thương', 'thuong', 'thuong@gmail.com', '0909876543', 'thuong123', '456 Đường X, Phường Y, Quận Z, TP.HCM', '1996-03-02', '2026-03-12', 'admin', 'active', 'Admin phụ trách marketing', NULL, '2026-03-25 09:27:29', '2026-03-23 01:22:11', '2026-03-25 02:27:29'),
+(7, 'Lê Đỗ Hoà Thương', 'thuong', 'thuong@gmail.com', '0909876543', 'thuong123', '456 Đường X, Phường Y, Quận Z, TP.HCM', '1996-03-02', '2026-03-12', 'admin', 'active', 'Admin phụ trách marketing', NULL, '2026-03-26 08:04:54', '2026-03-23 01:22:11', '2026-03-26 01:04:54'),
 (8, 'khánh ly', 'ly', 'ly@gmail.com', '0123 456 789', '$2y$10$oRy2FK/vJPbz.tFQHP8D2O7LOqy9tJWPrm2vzA.PKr5KpW88quhOe', '123 đường A, phường B, quận C', '2012-02-22', '2026-03-24', 'user', 'active', NULL, NULL, NULL, '2026-03-24 00:06:10', '2026-03-24 00:07:00'),
-(9, 'nguyen thi t', 'nguyen@gmail.com', 'nguyen@gmail.com', '0395489754', '$2y$10$llY0kUa4v7CpQxmv5Jq93.BOlgZKG4a11KLJWYYCsoFEDT.7KarYm', '789 Đường DEF, Quận 3, TP.HCM', '2009-07-09', '2026-03-25', 'user', 'active', NULL, NULL, NULL, '2026-03-25 14:25:29', '2026-03-25 14:25:29');
+(9, 'nguyen thi t', 'nguyen@gmail.com', 'nguyen@gmail.com', '0395489754', '$2y$10$llY0kUa4v7CpQxmv5Jq93.BOlgZKG4a11KLJWYYCsoFEDT.7KarYm', '789 Đường DEF, Quận 3, TP.HCM', '2009-07-09', '2026-03-25', 'user', 'active', NULL, NULL, NULL, '2026-03-25 14:25:29', '2026-03-25 14:25:29'),
+(10, 'hoang khoi', 'hoangkhoinpk@gmail.com', 'hoangkhoinpk@gmail.com', '0906985122', '$2y$10$bbqRO3dMeYg17Vj/l.T1pOh8JjOD./r/Zb6qpM30hRwhWr.1v16aa', 'quận câm', '2006-06-12', '2026-03-26', 'user', 'active', NULL, NULL, NULL, '2026-03-26 01:04:13', '2026-03-26 01:04:13');
 
 --
 -- Chỉ mục cho các bảng đã đổ
@@ -498,13 +511,13 @@ ALTER TABLE `loyalty_points`
 -- AUTO_INCREMENT cho bảng `orders`
 --
 ALTER TABLE `orders`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
 
 --
 -- AUTO_INCREMENT cho bảng `order_details`
 --
 ALTER TABLE `order_details`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=25;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=41;
 
 --
 -- AUTO_INCREMENT cho bảng `pricing_log`
@@ -522,7 +535,7 @@ ALTER TABLE `products`
 -- AUTO_INCREMENT cho bảng `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- Các ràng buộc cho các bảng đã đổ

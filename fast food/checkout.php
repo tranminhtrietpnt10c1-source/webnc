@@ -60,7 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirm_order'])) {
         
         $pdo->beginTransaction();
         
-        // Insert order
+        // Insert order with status 'new' (mới)
         $stmt = $pdo->prepare("INSERT INTO orders (
             order_code, 
             user_id, 
@@ -78,7 +78,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirm_order'])) {
             notes,
             created_at,
             updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?, ?, 'pending', ?, ?, NOW(), NOW())");
+        ) VALUES (?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?, ?, 'new', ?, ?, NOW(), NOW())");
         
         $stmt->execute([
             $order_code,
@@ -115,7 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirm_order'])) {
         // Clear cart
         $_SESSION['cart'] = [];
         
-        // SỬA: Chuyển hướng đến order_success.php thay vì hiển thị modal
+        // Redirect to order_success.php
         header('Location: order_success.php?code=' . urlencode($order_code));
         exit;
         
@@ -124,6 +124,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirm_order'])) {
         $error = "Lỗi khi đặt hàng: " . $e->getMessage();
     }
 }
+
+// Define status labels for display
+$status_labels = [
+    'new' => 'Mới',
+    'processing' => 'Đang xử lý',
+    'delivered' => 'Đã giao',
+    'cancelled' => 'Đã hủy'
+];
+
+// Define status colors for display
+$status_colors = [
+    'new' => '#ffc107',      // warning - yellow
+    'processing' => '#17a2b8', // info - teal
+    'delivered' => '#28a745',   // success - green
+    'cancelled' => '#dc3545'    // danger - red
+];
 ?>
 
 <!DOCTYPE html>
@@ -355,6 +371,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirm_order'])) {
     }
     .text-danger:hover {
       background-color: #fff5f5 !important;
+    }
+    
+    /* Status badge styles */
+    .status-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+      text-align: center;
     }
     
     @media (max-width: 768px) {
@@ -591,6 +617,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirm_order'])) {
                 <div><strong>Tổng cộng</strong></div>
                 <span><strong><?php echo number_format($total, 0, ',', '.'); ?>đ</strong></span>
               </div>
+            </div>
+            
+            <div class="mt-3 p-2 bg-light rounded">
+              <small class="text-muted">
+                <i class="fa fa-info-circle"></i> 
+                Trạng thái đơn hàng: <span class="status-badge" style="background-color: #ffc107; color: #000;">Mới</span>
+              </small>
             </div>
             
             <form method="POST" action="">
