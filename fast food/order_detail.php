@@ -504,9 +504,7 @@ $final_amount = $order_info['final_amount'] ?? ($order_info['total_amount'] + ($
                         <a href="order_history.php" class="btn-view" style="background-color: #ffbe33; color: white; padding: 6px 15px; border-radius: 4px; text-decoration: none; display: inline-flex; align-items: center; gap: 5px;">
                             <i class="fa fa-arrow-left"></i> Quay lại
                         </a>
-                        <button onclick="window.print()" class="btn-view" style="background: transparent; border: 1px solid #ffbe33; color: #ffbe33; padding: 6px 15px; border-radius: 4px; cursor: pointer;">
-                            <i class="fa fa-print"></i> In đơn
-                        </button>
+                        
                     </div>
                 </div>
             </div>
