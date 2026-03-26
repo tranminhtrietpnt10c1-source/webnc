@@ -2,10 +2,10 @@
 -- version 5.2.1
 -- https://www.phpmyadmin.net/
 --
--- Máy chủ: 127.0.0.1
--- Thời gian đã tạo: Th3 26, 2026 lúc 02:06 AM
--- Phiên bản máy phục vụ: 10.4.32-MariaDB
--- Phiên bản PHP: 8.2.12
+-- Host: 127.0.0.1
+-- Generation Time: Mar 26, 2026 at 09:15 AM
+-- Server version: 10.4.32-MariaDB
+-- PHP Version: 8.2.12
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -18,13 +18,13 @@ SET time_zone = "+00:00";
 /*!40101 SET NAMES utf8mb4 */;
 
 --
--- Cơ sở dữ liệu: `fast_food`
+-- Database: `fast_food`
 --
 
 -- --------------------------------------------------------
 
 --
--- Cấu trúc bảng cho bảng `cart`
+-- Table structure for table `cart`
 --
 
 CREATE TABLE `cart` (
@@ -39,7 +39,7 @@ CREATE TABLE `cart` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
--- Đang đổ dữ liệu cho bảng `cart`
+-- Dumping data for table `cart`
 --
 
 INSERT INTO `cart` (`id`, `user_id`, `session_id`, `product_id`, `quantity`, `unit_price`, `created_at`, `updated_at`) VALUES
@@ -52,7 +52,7 @@ INSERT INTO `cart` (`id`, `user_id`, `session_id`, `product_id`, `quantity`, `un
 -- --------------------------------------------------------
 
 --
--- Cấu trúc bảng cho bảng `categories`
+-- Table structure for table `categories`
 --
 
 CREATE TABLE `categories` (
@@ -66,7 +66,7 @@ CREATE TABLE `categories` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
--- Đang đổ dữ liệu cho bảng `categories`
+-- Dumping data for table `categories`
 --
 
 INSERT INTO `categories` (`id`, `name`, `description`, `image`, `status`, `created_at`, `updated_at`) VALUES
@@ -78,7 +78,7 @@ INSERT INTO `categories` (`id`, `name`, `description`, `image`, `status`, `creat
 -- --------------------------------------------------------
 
 --
--- Cấu trúc bảng cho bảng `imports`
+-- Table structure for table `imports`
 --
 
 CREATE TABLE `imports` (
@@ -95,7 +95,7 @@ CREATE TABLE `imports` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
--- Đang đổ dữ liệu cho bảng `imports`
+-- Dumping data for table `imports`
 --
 
 INSERT INTO `imports` (`id`, `import_code`, `import_date`, `supplier`, `total_amount`, `status`, `notes`, `created_by`, `created_at`, `updated_at`) VALUES
@@ -110,7 +110,7 @@ INSERT INTO `imports` (`id`, `import_code`, `import_date`, `supplier`, `total_am
 -- --------------------------------------------------------
 
 --
--- Cấu trúc bảng cho bảng `import_details`
+-- Table structure for table `import_details`
 --
 
 CREATE TABLE `import_details` (
@@ -123,7 +123,7 @@ CREATE TABLE `import_details` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
--- Đang đổ dữ liệu cho bảng `import_details`
+-- Dumping data for table `import_details`
 --
 
 INSERT INTO `import_details` (`id`, `import_id`, `product_id`, `quantity`, `unit_cost`, `subtotal`) VALUES
@@ -152,7 +152,7 @@ INSERT INTO `import_details` (`id`, `import_id`, `product_id`, `quantity`, `unit
 -- --------------------------------------------------------
 
 --
--- Cấu trúc bảng cho bảng `loyalty_points`
+-- Table structure for table `loyalty_points`
 --
 
 CREATE TABLE `loyalty_points` (
@@ -164,7 +164,7 @@ CREATE TABLE `loyalty_points` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Đang đổ dữ liệu cho bảng `loyalty_points`
+-- Dumping data for table `loyalty_points`
 --
 
 INSERT INTO `loyalty_points` (`id`, `user_id`, `points`, `created_at`, `updated_at`) VALUES
@@ -177,7 +177,7 @@ INSERT INTO `loyalty_points` (`id`, `user_id`, `points`, `created_at`, `updated_
 -- --------------------------------------------------------
 
 --
--- Cấu trúc bảng cho bảng `orders`
+-- Table structure for table `orders`
 --
 
 CREATE TABLE `orders` (
@@ -201,7 +201,7 @@ CREATE TABLE `orders` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
--- Đang đổ dữ liệu cho bảng `orders`
+-- Dumping data for table `orders`
 --
 
 INSERT INTO `orders` (`id`, `order_code`, `user_id`, `customer_name`, `customer_phone`, `customer_email`, `customer_address`, `order_date`, `total_amount`, `shipping_fee`, `discount`, `final_amount`, `status`, `payment_method`, `notes`, `created_at`, `updated_at`) VALUES
@@ -215,12 +215,13 @@ INSERT INTO `orders` (`id`, `order_code`, `user_id`, `customer_name`, `customer_
 (8, 'ORD008', 5, 'Trần Minh Triết', '0339111480', 'triet@gmail.com', '123 Đường ABC, Quận 1, TP.HCM', '2026-03-22', 179000.00, 30000.00, 0.00, 209000.00, 'shipped', 'cash', 'Đã giao thành công', '2026-03-22 06:54:46', '2026-03-23 07:00:00'),
 (9, 'ORD009', 2, 'Nguyễn Văn A', '0912345678', 'nguyenvana@example.com', '12 Nguyễn Huệ, Quận 1, TP.HCM', '2026-03-23', 445500.00, 30000.00, 20000.00, 455500.00, 'new', 'transfer', 'Khách hàng thân thiết', '2026-03-23 08:00:00', '2026-03-23 08:00:00'),
 (12, 'ORD202603265005', 8, 'khánh ly', '0123 456 789', 'ly@gmail.com', '123 đường A, phường B, quận C', '2026-03-26', 535396.11, 30000.00, 0.00, 565396.11, 'new', 'cash', '', '2026-03-26 01:01:44', '2026-03-26 01:01:44'),
-(13, 'ORD202603268629', 10, 'hoang khoi', '0906985122', 'hoangkhoinpk@gmail.com', 'quận câm', '2026-03-26', 1090022.80, 30000.00, 0.00, 1120022.80, 'new', 'cash', '', '2026-03-26 01:04:30', '2026-03-26 01:04:30');
+(13, 'ORD202603268629', 10, 'hoang khoi', '0906985122', 'hoangkhoinpk@gmail.com', 'quận câm', '2026-03-26', 1090022.80, 30000.00, 0.00, 1120022.80, 'new', 'cash', '', '2026-03-26 01:04:30', '2026-03-26 01:04:30'),
+(14, 'ORD202603262747', 11, 'Trung Hiếu', '0334291210', 'mtriet@gmail.com', 'Bến xe buýt Hiệp Thành', '2026-03-26', 265806.90, 30000.00, 0.00, 295806.90, 'shipped', 'bank_transfer', '', '2026-03-26 07:24:05', '2026-03-26 08:02:28');
 
 -- --------------------------------------------------------
 
 --
--- Cấu trúc bảng cho bảng `order_details`
+-- Table structure for table `order_details`
 --
 
 CREATE TABLE `order_details` (
@@ -233,7 +234,7 @@ CREATE TABLE `order_details` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
--- Đang đổ dữ liệu cho bảng `order_details`
+-- Dumping data for table `order_details`
 --
 
 INSERT INTO `order_details` (`id`, `order_id`, `product_id`, `quantity`, `unit_price`, `subtotal`) VALUES
@@ -267,12 +268,15 @@ INSERT INTO `order_details` (`id`, `order_id`, `product_id`, `quantity`, `unit_p
 (37, 13, 8, 1, 85527.27, 85527.27),
 (38, 13, 7, 1, 79153.84, 79153.84),
 (39, 13, 6, 1, 45675.00, 45675.00),
-(40, 13, 3, 6, 146611.11, 879666.68);
+(40, 13, 3, 6, 146611.11, 879666.68),
+(41, 14, 4, 1, 48182.86, 48182.86),
+(42, 14, 1, 1, 132096.77, 132096.77),
+(43, 14, 8, 1, 85527.27, 85527.27);
 
 -- --------------------------------------------------------
 
 --
--- Cấu trúc bảng cho bảng `pricing_log`
+-- Table structure for table `pricing_log`
 --
 
 CREATE TABLE `pricing_log` (
@@ -288,7 +292,7 @@ CREATE TABLE `pricing_log` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
--- Đang đổ dữ liệu cho bảng `pricing_log`
+-- Dumping data for table `pricing_log`
 --
 
 INSERT INTO `pricing_log` (`id`, `product_id`, `old_cost_price`, `new_cost_price`, `old_selling_price`, `new_selling_price`, `changed_by`, `change_reason`, `changed_at`) VALUES
@@ -316,7 +320,7 @@ INSERT INTO `pricing_log` (`id`, `product_id`, `old_cost_price`, `new_cost_price
 -- --------------------------------------------------------
 
 --
--- Cấu trúc bảng cho bảng `products`
+-- Table structure for table `products`
 --
 
 CREATE TABLE `products` (
@@ -336,7 +340,7 @@ CREATE TABLE `products` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
--- Đang đổ dữ liệu cho bảng `products`
+-- Dumping data for table `products`
 --
 
 INSERT INTO `products` (`id`, `code`, `name`, `category_id`, `description`, `image`, `cost_price`, `selling_price`, `stock_quantity`, `status`, `created_at`, `updated_at`, `profit_percentage`) VALUES
@@ -353,7 +357,7 @@ INSERT INTO `products` (`id`, `code`, `name`, `category_id`, `description`, `ima
 -- --------------------------------------------------------
 
 --
--- Cấu trúc bảng cho bảng `users`
+-- Table structure for table `users`
 --
 
 CREATE TABLE `users` (
@@ -376,7 +380,7 @@ CREATE TABLE `users` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
--- Đang đổ dữ liệu cho bảng `users`
+-- Dumping data for table `users`
 --
 
 INSERT INTO `users` (`id`, `full_name`, `username`, `email`, `phone`, `password`, `address`, `birthday`, `register_date`, `role`, `status`, `notes`, `avatar`, `last_login`, `created_at`, `updated_at`) VALUES
@@ -386,17 +390,18 @@ INSERT INTO `users` (`id`, `full_name`, `username`, `email`, `phone`, `password`
 (4, 'Lê Văn C', 'levanc', 'levanc@example.com', '0123456789', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '78 Pasteur, Quận 1, TP.HCM', '1995-12-10', '2026-03-21', 'user', 'locked', 'Tài khoản bị khóa do vi phạm', NULL, '2026-03-20 08:00:00', '2026-03-21 05:52:21', '2026-03-23 07:30:00'),
 (5, 'Trần Minh Triết', 'triet', 'triet@gmail.com', '0339111480', '$2y$10$eN/XTYaJJ.T8OcnygzYAmu/vVRn2pMdzUlV3T6MJWIvny39r5/B0y', '123 Đường ABC, Phường XYZ, Quận 1, TP.HCM', '2006-07-13', '2026-03-22', 'user', 'active', 'Khách hàng mới', '../images/about-img.png', '2026-03-23 12:00:00', '2026-03-22 02:27:33', '2026-03-23 07:30:00'),
 (6, 'Phạm Thị D', 'phamthid', 'phamthid@gmail.com', '0909888777', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '222 Lý Tự Trọng, Quận 1, TP.HCM', '1992-03-18', '2026-03-23', 'user', 'locked', 'Khách hàng mới', NULL, NULL, '2026-03-23 07:30:00', '2026-03-24 00:07:07'),
-(7, 'Lê Đỗ Hoà Thương', 'thuong', 'thuong@gmail.com', '0909876543', 'thuong123', '456 Đường X, Phường Y, Quận Z, TP.HCM', '1996-03-02', '2026-03-12', 'admin', 'active', 'Admin phụ trách marketing', NULL, '2026-03-26 08:04:54', '2026-03-23 01:22:11', '2026-03-26 01:04:54'),
+(7, 'Lê Đỗ Hoà Thương', 'thuong', 'thuong@gmail.com', '0909876543', 'thuong123', '456 Đường X, Phường Y, Quận Z, TP.HCM', '1996-03-02', '2026-03-12', 'admin', 'active', 'Admin phụ trách marketing', NULL, '2026-03-26 15:13:16', '2026-03-23 01:22:11', '2026-03-26 08:13:16'),
 (8, 'khánh ly', 'ly', 'ly@gmail.com', '0123 456 789', '$2y$10$oRy2FK/vJPbz.tFQHP8D2O7LOqy9tJWPrm2vzA.PKr5KpW88quhOe', '123 đường A, phường B, quận C', '2012-02-22', '2026-03-24', 'user', 'active', NULL, NULL, NULL, '2026-03-24 00:06:10', '2026-03-24 00:07:00'),
 (9, 'nguyen thi t', 'nguyen@gmail.com', 'nguyen@gmail.com', '0395489754', '$2y$10$llY0kUa4v7CpQxmv5Jq93.BOlgZKG4a11KLJWYYCsoFEDT.7KarYm', '789 Đường DEF, Quận 3, TP.HCM', '2009-07-09', '2026-03-25', 'user', 'active', NULL, NULL, NULL, '2026-03-25 14:25:29', '2026-03-25 14:25:29'),
-(10, 'hoang khoi', 'hoangkhoinpk@gmail.com', 'hoangkhoinpk@gmail.com', '0906985122', '$2y$10$bbqRO3dMeYg17Vj/l.T1pOh8JjOD./r/Zb6qpM30hRwhWr.1v16aa', 'quận câm', '2006-06-12', '2026-03-26', 'user', 'active', NULL, NULL, NULL, '2026-03-26 01:04:13', '2026-03-26 01:04:13');
+(10, 'hoang khoi', 'hoangkhoinpk@gmail.com', 'hoangkhoinpk@gmail.com', '0906985122', '$2y$10$bbqRO3dMeYg17Vj/l.T1pOh8JjOD./r/Zb6qpM30hRwhWr.1v16aa', 'quận câm', '2006-06-12', '2026-03-26', 'user', 'active', NULL, NULL, NULL, '2026-03-26 01:04:13', '2026-03-26 01:04:13'),
+(11, 'Trung Hiếu', 'hiue@gmail.com', 'mtriet@gmail.com', '0334291210', '$2y$10$5k8qq1XX7.VsIo7b8H8RWuDGyIQkcqhOhz3PHSrFgavVeGbk3jt7i', 'Bến xe buýt Hiệp Thành', '2006-06-13', '2026-03-26', 'user', 'active', NULL, '../images/about-img.png', NULL, '2026-03-26 07:19:31', '2026-03-26 07:38:07');
 
 --
--- Chỉ mục cho các bảng đã đổ
+-- Indexes for dumped tables
 --
 
 --
--- Chỉ mục cho bảng `cart`
+-- Indexes for table `cart`
 --
 ALTER TABLE `cart`
   ADD PRIMARY KEY (`id`),
@@ -404,14 +409,14 @@ ALTER TABLE `cart`
   ADD KEY `product_id` (`product_id`);
 
 --
--- Chỉ mục cho bảng `categories`
+-- Indexes for table `categories`
 --
 ALTER TABLE `categories`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `name` (`name`);
 
 --
--- Chỉ mục cho bảng `imports`
+-- Indexes for table `imports`
 --
 ALTER TABLE `imports`
   ADD PRIMARY KEY (`id`),
@@ -419,7 +424,7 @@ ALTER TABLE `imports`
   ADD KEY `created_by` (`created_by`);
 
 --
--- Chỉ mục cho bảng `import_details`
+-- Indexes for table `import_details`
 --
 ALTER TABLE `import_details`
   ADD PRIMARY KEY (`id`),
@@ -427,14 +432,14 @@ ALTER TABLE `import_details`
   ADD KEY `product_id` (`product_id`);
 
 --
--- Chỉ mục cho bảng `loyalty_points`
+-- Indexes for table `loyalty_points`
 --
 ALTER TABLE `loyalty_points`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `user_id` (`user_id`);
 
 --
--- Chỉ mục cho bảng `orders`
+-- Indexes for table `orders`
 --
 ALTER TABLE `orders`
   ADD PRIMARY KEY (`id`),
@@ -442,7 +447,7 @@ ALTER TABLE `orders`
   ADD KEY `user_id` (`user_id`);
 
 --
--- Chỉ mục cho bảng `order_details`
+-- Indexes for table `order_details`
 --
 ALTER TABLE `order_details`
   ADD PRIMARY KEY (`id`),
@@ -450,7 +455,7 @@ ALTER TABLE `order_details`
   ADD KEY `product_id` (`product_id`);
 
 --
--- Chỉ mục cho bảng `pricing_log`
+-- Indexes for table `pricing_log`
 --
 ALTER TABLE `pricing_log`
   ADD PRIMARY KEY (`id`),
@@ -458,7 +463,7 @@ ALTER TABLE `pricing_log`
   ADD KEY `changed_by` (`changed_by`);
 
 --
--- Chỉ mục cho bảng `products`
+-- Indexes for table `products`
 --
 ALTER TABLE `products`
   ADD PRIMARY KEY (`id`),
@@ -466,7 +471,7 @@ ALTER TABLE `products`
   ADD KEY `category_id` (`category_id`);
 
 --
--- Chỉ mục cho bảng `users`
+-- Indexes for table `users`
 --
 ALTER TABLE `users`
   ADD PRIMARY KEY (`id`),
@@ -474,121 +479,121 @@ ALTER TABLE `users`
   ADD UNIQUE KEY `email` (`email`);
 
 --
--- AUTO_INCREMENT cho các bảng đã đổ
+-- AUTO_INCREMENT for dumped tables
 --
 
 --
--- AUTO_INCREMENT cho bảng `cart`
+-- AUTO_INCREMENT for table `cart`
 --
 ALTER TABLE `cart`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
--- AUTO_INCREMENT cho bảng `categories`
+-- AUTO_INCREMENT for table `categories`
 --
 ALTER TABLE `categories`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
--- AUTO_INCREMENT cho bảng `imports`
+-- AUTO_INCREMENT for table `imports`
 --
 ALTER TABLE `imports`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
--- AUTO_INCREMENT cho bảng `import_details`
+-- AUTO_INCREMENT for table `import_details`
 --
 ALTER TABLE `import_details`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=22;
 
 --
--- AUTO_INCREMENT cho bảng `loyalty_points`
+-- AUTO_INCREMENT for table `loyalty_points`
 --
 ALTER TABLE `loyalty_points`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
--- AUTO_INCREMENT cho bảng `orders`
+-- AUTO_INCREMENT for table `orders`
 --
 ALTER TABLE `orders`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
 
 --
--- AUTO_INCREMENT cho bảng `order_details`
+-- AUTO_INCREMENT for table `order_details`
 --
 ALTER TABLE `order_details`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=41;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=44;
 
 --
--- AUTO_INCREMENT cho bảng `pricing_log`
+-- AUTO_INCREMENT for table `pricing_log`
 --
 ALTER TABLE `pricing_log`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
 
 --
--- AUTO_INCREMENT cho bảng `products`
+-- AUTO_INCREMENT for table `products`
 --
 ALTER TABLE `products`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 
 --
--- AUTO_INCREMENT cho bảng `users`
+-- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
 
 --
--- Các ràng buộc cho các bảng đã đổ
+-- Constraints for dumped tables
 --
 
 --
--- Các ràng buộc cho bảng `cart`
+-- Constraints for table `cart`
 --
 ALTER TABLE `cart`
   ADD CONSTRAINT `cart_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `cart_ibfk_2` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`);
 
 --
--- Các ràng buộc cho bảng `imports`
+-- Constraints for table `imports`
 --
 ALTER TABLE `imports`
   ADD CONSTRAINT `imports_ibfk_1` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON DELETE SET NULL;
 
 --
--- Các ràng buộc cho bảng `import_details`
+-- Constraints for table `import_details`
 --
 ALTER TABLE `import_details`
   ADD CONSTRAINT `import_details_ibfk_1` FOREIGN KEY (`import_id`) REFERENCES `imports` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `import_details_ibfk_2` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`);
 
 --
--- Các ràng buộc cho bảng `loyalty_points`
+-- Constraints for table `loyalty_points`
 --
 ALTER TABLE `loyalty_points`
   ADD CONSTRAINT `loyalty_points_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
 
 --
--- Các ràng buộc cho bảng `orders`
+-- Constraints for table `orders`
 --
 ALTER TABLE `orders`
   ADD CONSTRAINT `orders_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL;
 
 --
--- Các ràng buộc cho bảng `order_details`
+-- Constraints for table `order_details`
 --
 ALTER TABLE `order_details`
   ADD CONSTRAINT `order_details_ibfk_1` FOREIGN KEY (`order_id`) REFERENCES `orders` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `order_details_ibfk_2` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`);
 
 --
--- Các ràng buộc cho bảng `pricing_log`
+-- Constraints for table `pricing_log`
 --
 ALTER TABLE `pricing_log`
   ADD CONSTRAINT `pricing_log_ibfk_1` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `pricing_log_ibfk_2` FOREIGN KEY (`changed_by`) REFERENCES `users` (`id`) ON DELETE SET NULL;
 
 --
--- Các ràng buộc cho bảng `products`
+-- Constraints for table `products`
 --
 ALTER TABLE `products`
   ADD CONSTRAINT `products_ibfk_1` FOREIGN KEY (`category_id`) REFERENCES `categories` (`id`);

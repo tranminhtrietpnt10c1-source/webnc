@@ -21,20 +21,19 @@ try {
     die("Database connection failed: " . $e->getMessage());
 }
 
-// Lấy thông tin admin từ database
+// Lấy thông tin admin
 $admin_id = $_SESSION['admin_id'];
 $stmt = $pdo->prepare("SELECT id, full_name, username, email, phone, address, birthday, register_date, role, status, last_login FROM users WHERE id = ?");
 $stmt->execute([$admin_id]);
 $admin_info = $stmt->fetch();
 
-// Nếu không tìm thấy admin, đăng xuất
 if (!$admin_info) {
     session_destroy();
     header('Location: adminlogin.php');
     exit;
 }
 
-// Xử lý AJAX request
+// Xử lý AJAX
 if (isset($_REQUEST['action'])) {
     header('Content-Type: application/json');
     $action = $_REQUEST['action'];
@@ -139,7 +138,8 @@ if (isset($_REQUEST['action'])) {
             case 'update_status':
                 $order_id = (int)($_POST['order_id'] ?? 0);
                 $new_status = $_POST['status'] ?? '';
-                if (!in_array($new_status, ['new', 'processing', 'shipped', 'cancelled'])) {
+                // Admin chỉ được phép cập nhật thành new, processing, shipped (không được tự hủy)
+                if (!in_array($new_status, ['new', 'processing', 'shipped'])) {
                     throw new Exception('Trạng thái không hợp lệ');
                 }
                 $stmt = $pdo->prepare("UPDATE orders SET status = ? WHERE id = ?");
@@ -370,9 +370,95 @@ if (isset($_REQUEST['action'])) {
         .order-link {
             cursor: pointer;
         }
-        .status-badge {
-            cursor: pointer;
+
+        /* ===== CẢI TIẾN GIAO DIỆN TRẠNG THÁI ===== */
+        .status-update-form {
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
+        .status-select {
+            width: 140px;
+            font-size: 0.85rem;
+            padding: 5px 8px;
+            border-radius: 20px;
+            border: 1px solid #ced4da;
+            background-color: #fff;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .status-select:focus {
+            border-color: var(--primary-color);
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(255,190,51,0.25);
+        }
+        .status-select:disabled {
+            background-color: #e9ecef;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+        .btn-update-status {
+            background-color: var(--primary-color);
+            border: none;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--dark-color);
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .btn-update-status:hover {
+            background-color: #e6a500;
+            transform: scale(1.05);
+        }
+        .btn-update-status:active {
+            transform: scale(0.95);
+        }
+        .btn-update-status i {
+            font-size: 14px;
+        }
+        .update-loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        /* Thông báo toast */
+        .toast-notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            min-width: 250px;
+            background-color: #28a745;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            animation: slideIn 0.3s ease;
+        }
+        .toast-notification.error {
+            background-color: #dc3545;
+        }
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        /* Kết thúc cải tiến */
+
         .modal-header {
             background-color: var(--secondary-color);
             color: var(--light-color);
@@ -544,8 +630,12 @@ if (isset($_REQUEST['action'])) {
                     <div class="card-body">
                         <div class="table-responsive">
                             <table class="table table-hover">
-                                <thead><th>Mã đơn</th><th>Khách hàng</th><th>Ngày đặt</th><th>Tổng tiền</th><th>Trạng thái</th><th>Thao tác</th></thead>
-                                <tbody id="orders-table-body"><tr><td colspan="6" class="text-center">Đang tải...</td></tr></tbody>
+                                <thead>
+                                    <th>Mã đơn</th><th>Khách hàng</th><th>Ngày đặt</th><th>Tổng tiền</th><th>Trạng thái</th><th>Thao tác</th>
+                                </thead>
+                                <tbody id="orders-table-body">
+                                    <td colspan="6" class="text-center">Đang tải...</td>
+                                </tbody>
                             </table>
                         </div>
                         <nav aria-label="Page navigation"><ul class="pagination justify-content-center mt-4" id="pagination-container"></ul></nav>
@@ -677,11 +767,37 @@ if (isset($_REQUEST['action'])) {
             if (!orders.length) { tbody.html('<tr><td colspan="6" class="text-center">Không có đơn hàng nào</td></tr>'); return; }
             let html = '';
             orders.forEach(order => {
-                const statusText = getStatusText(order.status);
                 const totalAmount = new Intl.NumberFormat('vi-VN').format(order.total_amount);
-                html += `<tr><td><a href="#" class="order-link" data-id="${order.id}">${order.order_code}</a></td><td>${escapeHtml(order.customer_name)}</td><td>${new Date(order.order_date).toLocaleDateString('vi-VN')}</td><td>${totalAmount} ₫</td><td><span class="badge badge-status-${order.status} status-badge" data-id="${order.id}" data-status="${order.status}" style="cursor:pointer;">${statusText}</span></td><td><button class="btn btn-sm btn-custom view-detail" data-id="${order.id}"><i class="fas fa-eye me-1"></i>Xem</button></td></tr>`;
+                const isCancelled = order.status === 'cancelled';
+                html += `<tr>
+                            <td><a href="#" class="order-link" data-id="${order.id}">${escapeHtml(order.order_code)}</a></td>
+                            <td>${escapeHtml(order.customer_name)}</td>
+                            <td>${new Date(order.order_date).toLocaleDateString('vi-VN')}</td>
+                            <td>${totalAmount} ₫</td>
+                            <td>
+                                <div class="status-update-form">
+                                    <select class="status-select" data-order-id="${order.id}" ${isCancelled ? 'disabled' : ''}>
+                                        <option value="new" ${order.status === 'new' ? 'selected' : ''}>Mới</option>
+                                        <option value="processing" ${order.status === 'processing' ? 'selected' : ''}>Đang xử lý</option>
+                                        <option value="shipped" ${order.status === 'shipped' ? 'selected' : ''}>Đã giao</option>
+                                        ${order.status === 'cancelled' ? '<option value="cancelled" selected>Hủy</option>' : ''}
+                                    </select>
+                                    ${!isCancelled ? `<button class="btn-update-status" data-order-id="${order.id}"><i class="fas fa-save"></i></button>` : ''}
+                                </div>
+                            </td>
+                            <td><button class="btn btn-sm btn-custom view-detail" data-id="${order.id}"><i class="fas fa-eye me-1"></i>Xem</button></td>
+                         </tr>`;
             });
             tbody.html(html);
+
+            // Gắn sự kiện cho nút cập nhật
+            $('.btn-update-status').off('click').on('click', function() {
+                const btn = $(this);
+                const orderId = btn.data('order-id');
+                const select = $(`.status-select[data-order-id="${orderId}"]`);
+                const newStatus = select.val();
+                updateOrderStatus(orderId, newStatus, btn);
+            });
         }
 
         function renderPagination(pagination) {
@@ -705,7 +821,28 @@ if (isset($_REQUEST['action'])) {
             tbody.html(html);
         }
 
-        function updateOrderStatus(orderId, newStatus) { $.post('orders.php', { action: 'update_status', order_id: orderId, status: newStatus }, function(res) { if (res.success) loadOrders(); else alert('Lỗi: ' + res.error); }, 'json'); }
+        function updateOrderStatus(orderId, newStatus, btn) {
+            // Hiệu ứng loading
+            btn.addClass('update-loading').html('<i class="fas fa-spinner fa-spin"></i>');
+            $.post('orders.php', { action: 'update_status', order_id: orderId, status: newStatus }, function(res) {
+                if (res.success) {
+                    showNotification('Đã cập nhật trạng thái đơn hàng', 'success');
+                    loadOrders(); // Tải lại danh sách sau khi cập nhật
+                } else {
+                    showNotification('Lỗi: ' + res.error, 'error');
+                    btn.removeClass('update-loading').html('<i class="fas fa-save"></i>');
+                }
+            }, 'json').fail(function() {
+                showNotification('Không thể kết nối máy chủ', 'error');
+                btn.removeClass('update-loading').html('<i class="fas fa-save"></i>');
+            });
+        }
+
+        function showNotification(message, type = 'success') {
+            const toast = $(`<div class="toast-notification ${type}"><i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i> ${message}</div>`);
+            $('body').append(toast);
+            setTimeout(() => toast.fadeOut(300, function() { $(this).remove(); }), 3000);
+        }
 
         function viewOrderDetail(orderId) {
             $.getJSON('orders.php', { action: 'get_details', id: orderId }, function(res) {
@@ -715,7 +852,7 @@ if (isset($_REQUEST['action'])) {
                     let html = `<div class="row mb-3"><div class="col-md-6"><div class="order-detail-card"><div class="order-detail-label">Mã đơn hàng</div><div class="order-detail-value">${order.order_code}</div></div></div><div class="col-md-6"><div class="order-detail-card"><div class="order-detail-label">Ngày đặt</div><div class="order-detail-value">${new Date(order.order_date).toLocaleDateString('vi-VN')}</div></div></div></div>`;
                     html += `<div class="row mb-3"><div class="col-md-6"><div class="order-detail-card"><div class="order-detail-label">Khách hàng</div><div class="order-detail-value">${escapeHtml(order.customer_name)}</div></div></div><div class="col-md-6"><div class="order-detail-card"><div class="order-detail-label">Số điện thoại</div><div class="order-detail-value">${order.customer_phone || '---'}</div></div></div></div>`;
                     html += `<div class="row mb-3"><div class="col-12"><div class="order-detail-card"><div class="order-detail-label">Địa chỉ giao hàng</div><div class="order-detail-value">${escapeHtml(order.customer_address || '---')}</div></div></div></div>`;
-                    html += `<h5 class="mt-4 mb-3"><i class="fas fa-list-ul me-2"></i>Chi tiết sản phẩm</h5><div class="table-responsive"><table class="table table-bordered product-table"><thead><th>Sản phẩm</th><th class="text-center">Số lượng</th><th class="text-end">Đơn giá</th><th class="text-end">Thành tiền</th></thead><tbody>`;
+                    html += `<h5 class="mt-4 mb-3"><i class="fas fa-list-ul me-2"></i>Chi tiết sản phẩm</h5><div class="table-responsive"><table class="table table-bordered product-table"><thead><tr><th>Sản phẩm</th><th class="text-center">Số lượng</th><th class="text-end">Đơn giá</th><th class="text-end">Thành tiền</th></tr></thead><tbody>`;
                     items.forEach(item => { html += `<tr><td>${escapeHtml(item.product_name)}</td><td class="text-center">${item.quantity}</td><td class="text-end">${formatMoney(item.unit_price)} ₫</td><td class="text-end">${formatMoney(item.subtotal)} ₫</td></tr>`; });
                     html += `</tbody></table></div><div class="row mt-4 mb-3"><div class="col-12"><div class="order-summary-row"><div class="row text-center"><div class="col-4 order-summary-item"><div class="order-summary-label">Tạm tính</div><div class="order-summary-value">${formatMoney(order.total_amount)} ₫</div></div><div class="col-4 order-summary-item"><div class="order-summary-label">Phí vận chuyển</div><div class="order-summary-value">${formatMoney(order.shipping_fee)} ₫</div></div><div class="col-4 order-summary-item"><div class="order-summary-label">Giảm giá</div><div class="order-summary-value">${formatMoney(order.discount)} ₫</div></div></div><div class="row mt-2"><div class="col-12 text-center"><div class="order-summary-label">Thành tiền</div><div class="order-summary-value" style="font-size:1.5rem;">${formatMoney(order.final_amount)} ₫</div></div></div></div></div></div>`;
                     $('#order-detail-content').html(html);
@@ -735,7 +872,6 @@ if (isset($_REQUEST['action'])) {
             $('.stat-card').click(function() { const status = $(this).data('status'); $('#status-filter').val(status); $('#order-filter-form').submit(); });
             $(document).on('click', '.order-link', function(e) { e.preventDefault(); const orderId = $(this).data('id'); viewOrderDetail(orderId); });
             $(document).on('click', '.view-detail', function() { const orderId = $(this).data('id'); viewOrderDetail(orderId); });
-            $(document).on('click', '.status-badge', function(e) { e.stopPropagation(); const orderId = $(this).data('id'); const currentStatus = $(this).data('status'); const newStatus = prompt('Nhập trạng thái mới (new, processing, shipped, cancelled):', currentStatus); if (newStatus && ['new','processing','shipped','cancelled'].includes(newStatus)) updateOrderStatus(orderId, newStatus); else if (newStatus) alert('Trạng thái không hợp lệ'); });
             loadOrders();
         });
     </script>
