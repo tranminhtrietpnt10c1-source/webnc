@@ -21,20 +21,19 @@ try {
     die("Database connection failed: " . $e->getMessage());
 }
 
-// Lấy thông tin admin từ database
+// Lấy thông tin admin
 $admin_id = $_SESSION['admin_id'];
 $stmt = $pdo->prepare("SELECT id, full_name, username, email, phone, address, birthday, register_date, role, status, last_login FROM users WHERE id = ?");
 $stmt->execute([$admin_id]);
 $admin_info = $stmt->fetch();
 
-// Nếu không tìm thấy admin, đăng xuất
 if (!$admin_info) {
     session_destroy();
     header('Location: adminlogin.php');
     exit;
 }
 
-// Xử lý AJAX request
+// Xử lý AJAX
 if (isset($_REQUEST['action'])) {
     header('Content-Type: application/json');
     $action = $_REQUEST['action'];
@@ -69,7 +68,7 @@ if (isset($_REQUEST['action'])) {
                     $sql .= " AND o.order_date <= :end_date";
                     $params[':end_date'] = $end_date;
                 }
-                if ($status && in_array($status, ['new', 'processing', 'shipped', 'cancelled'])) {
+                if ($status && in_array($status, ['pending', 'confirmed', 'shipped', 'cancelled'])) {
                     $sql .= " AND o.status = :status";
                     $params[':status'] = $status;
                 }
@@ -106,7 +105,7 @@ if (isset($_REQUEST['action'])) {
                     $countSql .= " AND o.order_date <= :end_date";
                     $countParams[':end_date'] = $end_date;
                 }
-                if ($status && in_array($status, ['new', 'processing', 'shipped', 'cancelled'])) {
+                if ($status && in_array($status, ['pending', 'confirmed', 'shipped', 'cancelled'])) {
                     $countSql .= " AND o.status = :status";
                     $countParams[':status'] = $status;
                 }
@@ -117,8 +116,8 @@ if (isset($_REQUEST['action'])) {
                 $totalPages = ceil($total / $limit);
 
                 $statsSql = "SELECT 
-                                SUM(CASE WHEN status = 'new' THEN 1 ELSE 0 END) as new,
-                                SUM(CASE WHEN status = 'processing' THEN 1 ELSE 0 END) as processing,
+                                SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
+                                SUM(CASE WHEN status = 'confirmed' THEN 1 ELSE 0 END) as confirmed,
                                 SUM(CASE WHEN status = 'shipped' THEN 1 ELSE 0 END) as shipped,
                                 SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as cancelled
                              FROM orders";
@@ -139,8 +138,17 @@ if (isset($_REQUEST['action'])) {
             case 'update_status':
                 $order_id = (int)($_POST['order_id'] ?? 0);
                 $new_status = $_POST['status'] ?? '';
-                if (!in_array($new_status, ['new', 'processing', 'shipped', 'cancelled'])) {
+                $allowed = ['confirmed', 'shipped'];
+                if (!in_array($new_status, $allowed)) {
                     throw new Exception('Trạng thái không hợp lệ');
+                }
+                $stmt = $pdo->prepare("SELECT status FROM orders WHERE id = ?");
+                $stmt->execute([$order_id]);
+                $current = $stmt->fetchColumn();
+                if (($current == 'pending' && $new_status != 'confirmed') ||
+                    ($current == 'confirmed' && $new_status != 'shipped') ||
+                    ($current == 'shipped' && $new_status != 'shipped')) {
+                    throw new Exception('Không thể cập nhật trạng thái không theo thứ tự');
                 }
                 $stmt = $pdo->prepare("UPDATE orders SET status = ? WHERE id = ?");
                 $stmt->execute([$new_status, $order_id]);
@@ -276,10 +284,10 @@ if (isset($_REQUEST['action'])) {
                 display: block;
             }
         }
-        .badge-status-new {
+        .badge-status-pending {
             background-color: #17a2b8;
         }
-        .badge-status-processing {
+        .badge-status-confirmed {
             background-color: #ffc107;
             color: #212529;
         }
@@ -370,9 +378,76 @@ if (isset($_REQUEST['action'])) {
         .order-link {
             cursor: pointer;
         }
-        .status-badge {
+
+        /* Bộ điều khiển cập nhật trạng thái theo bước */
+        .status-update-step {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-step {
+            background-color: var(--primary-color);
+            border: none;
+            border-radius: 20px;
+            padding: 5px 15px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--dark-color);
+            transition: all 0.2s;
             cursor: pointer;
         }
+        .btn-step:hover {
+            background-color: #e6a500;
+            transform: scale(1.02);
+        }
+        .btn-step:active {
+            transform: scale(0.98);
+        }
+        .btn-step.disabled, .btn-step:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background-color: #6c757d;
+        }
+        .status-text {
+            font-size: 0.85rem;
+            font-weight: 500;
+            background: #f8f9fa;
+            padding: 4px 12px;
+            border-radius: 20px;
+            display: inline-block;
+        }
+
+        /* Thông báo toast */
+        .toast-notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            min-width: 250px;
+            background-color: #28a745;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            animation: slideIn 0.3s ease;
+        }
+        .toast-notification.error {
+            background-color: #dc3545;
+        }
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
         .modal-header {
             background-color: var(--secondary-color);
             color: var(--light-color);
@@ -424,6 +499,16 @@ if (isset($_REQUEST['action'])) {
         }
         .profile-info-value {
             color: #555;
+        }
+        /* Căn chỉnh cột thao tác và xem thẳng hàng dọc */
+        .action-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+        }
+        .view-button {
+            white-space: nowrap;
         }
     </style>
 </head>
@@ -482,10 +567,10 @@ if (isset($_REQUEST['action'])) {
                                 <label for="status-filter" class="form-label">Tình trạng</label>
                                 <select class="form-select" id="status-filter" name="status">
                                     <option value="">-- Tất cả --</option>
-                                    <option value="new">Mới đặt</option>
-                                    <option value="processing">Đang xử lý</option>
+                                    <option value="pending">Chưa xử lý</option>
+                                    <option value="confirmed">Đã xác nhận</option>
                                     <option value="shipped">Đã giao</option>
-                                    <option value="cancelled">Hủy</option>
+                                    <option value="cancelled">Đã hủy</option>
                                 </select>
                             </div>
                         </div>
@@ -505,15 +590,15 @@ if (isset($_REQUEST['action'])) {
                 </div>
 
                 <div class="stats-row">
-                    <div class="stat-card bg-primary-custom" data-status="new">
+                    <div class="stat-card bg-primary-custom" data-status="pending">
                         <div class="card-body">
-                            <div class="stat-info"><h3 id="new-orders">0</h3><p>Đơn hàng mới</p></div>
+                            <div class="stat-info"><h3 id="pending-orders">0</h3><p>Chưa xử lý</p></div>
                             <div class="stat-icon"><i class="fas fa-shopping-cart"></i></div>
                         </div>
                     </div>
-                    <div class="stat-card bg-warning-custom" data-status="processing">
+                    <div class="stat-card bg-warning-custom" data-status="confirmed">
                         <div class="card-body">
-                            <div class="stat-info"><h3 id="processing-orders">0</h3><p>Đang xử lý</p></div>
+                            <div class="stat-info"><h3 id="confirmed-orders">0</h3><p>Đã xác nhận</p></div>
                             <div class="stat-icon"><i class="fas fa-cog"></i></div>
                         </div>
                     </div>
@@ -544,8 +629,20 @@ if (isset($_REQUEST['action'])) {
                     <div class="card-body">
                         <div class="table-responsive">
                             <table class="table table-hover">
-                                <thead><th>Mã đơn</th><th>Khách hàng</th><th>Ngày đặt</th><th>Tổng tiền</th><th>Trạng thái</th><th>Thao tác</th></thead>
-                                <tbody id="orders-table-body"><tr><td colspan="6" class="text-center">Đang tải...</td></tr></tbody>
+                                <thead>
+                                    <tr>
+                                        <th>Mã đơn</th>
+                                        <th>Khách hàng</th>
+                                        <th>Ngày đặt</th>
+                                        <th>Tổng tiền</th>
+                                        <th>Trạng thái</th>
+                                        <th>Thao tác</th>
+                                        <th>Xem</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="orders-table-body">
+                                    <tr><td colspan="7" class="text-center">Đang tải...</td></tr>
+                                </tbody>
                             </table>
                         </div>
                         <nav aria-label="Page navigation"><ul class="pagination justify-content-center mt-4" id="pagination-container"></ul></nav>
@@ -572,7 +669,7 @@ if (isset($_REQUEST['action'])) {
                             <div class="card-body">
                                 <div class="table-responsive">
                                     <table class="table table-hover">
-                                        <thead><th>Mã đơn</th><th>Khách hàng</th><th>Ngày đặt</th><th>Tổng tiền</th><th>Trạng thái</th></thead>
+                                        <thead><tr><th>Mã đơn</th><th>Khách hàng</th><th>Ngày đặt</th><th>Tổng tiền</th><th>Trạng thái</th></tr></thead>
                                         <tbody id="recent-orders-body"></tbody>
                                     </table>
                                 </div>
@@ -674,14 +771,40 @@ if (isset($_REQUEST['action'])) {
 
         function renderTable(orders) {
             const tbody = $('#orders-table-body');
-            if (!orders.length) { tbody.html('<tr><td colspan="6" class="text-center">Không có đơn hàng nào</td></tr>'); return; }
+            if (!orders.length) { tbody.html('<tr><td colspan="7" class="text-center">Không có đơn hàng nào</td></tr>'); return; }
             let html = '';
             orders.forEach(order => {
-                const statusText = getStatusText(order.status);
                 const totalAmount = new Intl.NumberFormat('vi-VN').format(order.total_amount);
-                html += `<tr><td><a href="#" class="order-link" data-id="${order.id}">${order.order_code}</a></td><td>${escapeHtml(order.customer_name)}</td><td>${new Date(order.order_date).toLocaleDateString('vi-VN')}</td><td>${totalAmount} ₫</td><td><span class="badge badge-status-${order.status} status-badge" data-id="${order.id}" data-status="${order.status}" style="cursor:pointer;">${statusText}</span></td><td><button class="btn btn-sm btn-custom view-detail" data-id="${order.id}"><i class="fas fa-eye me-1"></i>Xem</button></td></tr>`;
+                const statusText = getStatusText(order.status);
+                let actionHtml = '';
+                if (order.status === 'pending') {
+                    actionHtml = `<button class="btn-step update-status" data-id="${order.id}" data-next="confirmed">Xác nhận đơn</button>`;
+                } else if (order.status === 'confirmed') {
+                    actionHtml = `<button class="btn-step update-status" data-id="${order.id}" data-next="shipped">Giao hàng</button>`;
+                } else if (order.status === 'shipped') {
+                    actionHtml = `<span class="status-text">Đã hoàn tất</span>`;
+                } else if (order.status === 'cancelled') {
+                    actionHtml = `<span class="status-text">Đã hủy</span>`;
+                }
+                html += `<tr>
+                            <td><a href="#" class="order-link" data-id="${order.id}">${escapeHtml(order.order_code)}</a></td>
+                            <td>${escapeHtml(order.customer_name)}</td>
+                            <td>${new Date(order.order_date).toLocaleDateString('vi-VN')}</td>
+                            <td>${totalAmount} ₫</td>
+                            <td><span class="badge badge-status-${order.status}">${statusText}</span></td>
+                            <td><div class="action-buttons">${actionHtml}</div></td>
+                            <td><button class="btn btn-sm btn-custom view-detail" data-id="${order.id}"><i class="fas fa-eye me-1"></i>Xem</button></td>
+                         </tr>`;
             });
             tbody.html(html);
+
+            // Gán sự kiện cho nút cập nhật trạng thái
+            $('.update-status').off('click').on('click', function() {
+                const btn = $(this);
+                const orderId = btn.data('id');
+                const nextStatus = btn.data('next');
+                updateOrderStatus(orderId, nextStatus, btn);
+            });
         }
 
         function renderPagination(pagination) {
@@ -695,7 +818,12 @@ if (isset($_REQUEST['action'])) {
             container.find('.page-link').click(function(e) { e.preventDefault(); const page = $(this).data('page'); if (page && page !== currentPage) { currentPage = page; loadOrders(); } });
         }
 
-        function updateStats(stats) { $('#new-orders').text(stats.new || 0); $('#processing-orders').text(stats.processing || 0); $('#shipped-orders').text(stats.shipped || 0); $('#cancelled-orders').text(stats.cancelled || 0); }
+        function updateStats(stats) { 
+            $('#pending-orders').text(stats.pending || 0);
+            $('#confirmed-orders').text(stats.confirmed || 0);
+            $('#shipped-orders').text(stats.shipped || 0);
+            $('#cancelled-orders').text(stats.cancelled || 0);
+        }
 
         function updateRecentOrders(orders) {
             const tbody = $('#recent-orders-body');
@@ -705,19 +833,69 @@ if (isset($_REQUEST['action'])) {
             tbody.html(html);
         }
 
-        function updateOrderStatus(orderId, newStatus) { $.post('orders.php', { action: 'update_status', order_id: orderId, status: newStatus }, function(res) { if (res.success) loadOrders(); else alert('Lỗi: ' + res.error); }, 'json'); }
+        function updateOrderStatus(orderId, newStatus, btn) {
+            btn.addClass('disabled').html('<i class="fas fa-spinner fa-spin"></i> Đang xử lý...');
+            $.post('orders.php', { action: 'update_status', order_id: orderId, status: newStatus }, function(res) {
+                if (res.success) {
+                    showNotification('Đã cập nhật trạng thái đơn hàng', 'success');
+                    loadOrders(); // Tải lại danh sách
+                } else {
+                    showNotification('Lỗi: ' + res.error, 'error');
+                    btn.removeClass('disabled').text(newStatus === 'confirmed' ? 'Xác nhận đơn' : 'Giao hàng');
+                }
+            }, 'json').fail(function() {
+                showNotification('Không thể kết nối máy chủ', 'error');
+                btn.removeClass('disabled').text(newStatus === 'confirmed' ? 'Xác nhận đơn' : 'Giao hàng');
+            });
+        }
+
+        function showNotification(message, type = 'success') {
+            const toast = $(`<div class="toast-notification ${type}"><i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i> ${message}</div>`);
+            $('body').append(toast);
+            setTimeout(() => toast.fadeOut(300, function() { $(this).remove(); }), 3000);
+        }
 
         function viewOrderDetail(orderId) {
             $.getJSON('orders.php', { action: 'get_details', id: orderId }, function(res) {
                 if (res.success) {
                     const order = res.order, items = res.items;
                     const formatMoney = (amount) => new Intl.NumberFormat('vi-VN').format(amount);
-                    let html = `<div class="row mb-3"><div class="col-md-6"><div class="order-detail-card"><div class="order-detail-label">Mã đơn hàng</div><div class="order-detail-value">${order.order_code}</div></div></div><div class="col-md-6"><div class="order-detail-card"><div class="order-detail-label">Ngày đặt</div><div class="order-detail-value">${new Date(order.order_date).toLocaleDateString('vi-VN')}</div></div></div></div>`;
-                    html += `<div class="row mb-3"><div class="col-md-6"><div class="order-detail-card"><div class="order-detail-label">Khách hàng</div><div class="order-detail-value">${escapeHtml(order.customer_name)}</div></div></div><div class="col-md-6"><div class="order-detail-card"><div class="order-detail-label">Số điện thoại</div><div class="order-detail-value">${order.customer_phone || '---'}</div></div></div></div>`;
-                    html += `<div class="row mb-3"><div class="col-12"><div class="order-detail-card"><div class="order-detail-label">Địa chỉ giao hàng</div><div class="order-detail-value">${escapeHtml(order.customer_address || '---')}</div></div></div></div>`;
-                    html += `<h5 class="mt-4 mb-3"><i class="fas fa-list-ul me-2"></i>Chi tiết sản phẩm</h5><div class="table-responsive"><table class="table table-bordered product-table"><thead><th>Sản phẩm</th><th class="text-center">Số lượng</th><th class="text-end">Đơn giá</th><th class="text-end">Thành tiền</th></thead><tbody>`;
+                    const paymentMethod = order.payment_method === 'cash' ? 'Tiền mặt' : (order.payment_method === 'transfer' ? 'Chuyển khoản' : order.payment_method || 'Chưa có');
+                    let html = `<div class="row mb-3">
+                                    <div class="col-md-6"><div class="order-detail-card"><div class="order-detail-label">Mã đơn hàng</div><div class="order-detail-value">${order.order_code}</div></div></div>
+                                    <div class="col-md-6"><div class="order-detail-card"><div class="order-detail-label">Ngày đặt</div><div class="order-detail-value">${new Date(order.order_date).toLocaleDateString('vi-VN')}</div></div></div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-md-6"><div class="order-detail-card"><div class="order-detail-label">Khách hàng</div><div class="order-detail-value">${escapeHtml(order.customer_name)}</div></div></div>
+                                    <div class="col-md-6"><div class="order-detail-card"><div class="order-detail-label">Số điện thoại</div><div class="order-detail-value">${order.customer_phone || '---'}</div></div></div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-md-6"><div class="order-detail-card"><div class="order-detail-label">Phương thức thanh toán</div><div class="order-detail-value">${paymentMethod}</div></div></div>
+                                    <div class="col-md-6"><div class="order-detail-card"><div class="order-detail-label">Trạng thái</div><div class="order-detail-value"><span class="badge badge-status-${order.status}">${getStatusText(order.status)}</span></div></div></div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-12"><div class="order-detail-card"><div class="order-detail-label">Địa chỉ giao hàng</div><div class="order-detail-value">${escapeHtml(order.customer_address || '---')}</div></div></div>
+                                </div>`;
+                    html += `<h5 class="mt-4 mb-3"><i class="fas fa-list-ul me-2"></i>Chi tiết sản phẩm</h5><div class="table-responsive"><table class="table table-bordered product-table"><thead><tr><th>Sản phẩm</th><th class="text-center">Số lượng</th><th class="text-end">Đơn giá</th><th class="text-end">Thành tiền</th></tr></thead><tbody>`;
                     items.forEach(item => { html += `<tr><td>${escapeHtml(item.product_name)}</td><td class="text-center">${item.quantity}</td><td class="text-end">${formatMoney(item.unit_price)} ₫</td><td class="text-end">${formatMoney(item.subtotal)} ₫</td></tr>`; });
-                    html += `</tbody></table></div><div class="row mt-4 mb-3"><div class="col-12"><div class="order-summary-row"><div class="row text-center"><div class="col-4 order-summary-item"><div class="order-summary-label">Tạm tính</div><div class="order-summary-value">${formatMoney(order.total_amount)} ₫</div></div><div class="col-4 order-summary-item"><div class="order-summary-label">Phí vận chuyển</div><div class="order-summary-value">${formatMoney(order.shipping_fee)} ₫</div></div><div class="col-4 order-summary-item"><div class="order-summary-label">Giảm giá</div><div class="order-summary-value">${formatMoney(order.discount)} ₫</div></div></div><div class="row mt-2"><div class="col-12 text-center"><div class="order-summary-label">Thành tiền</div><div class="order-summary-value" style="font-size:1.5rem;">${formatMoney(order.final_amount)} ₫</div></div></div></div></div></div>`;
+                    html += `</tbody></table></div>
+                            <div class="row mt-4 mb-3">
+                                <div class="col-12">
+                                    <div class="order-summary-row">
+                                        <div class="row text-center">
+                                            <div class="col-4 order-summary-item"><div class="order-summary-label">Tạm tính</div><div class="order-summary-value">${formatMoney(order.total_amount)} ₫</div></div>
+                                            <div class="col-4 order-summary-item"><div class="order-summary-label">Phí vận chuyển</div><div class="order-summary-value">${formatMoney(order.shipping_fee)} ₫</div></div>
+                                            <div class="col-4 order-summary-item"><div class="order-summary-label">Giảm giá</div><div class="order-summary-value">${formatMoney(order.discount)} ₫</div></div>
+                                        </div>
+                                        <div class="row mt-2">
+                                            <div class="col-12 text-center">
+                                                <div class="order-summary-label">Thành tiền</div>
+                                                <div class="order-summary-value" style="font-size:1.5rem;">${formatMoney(order.final_amount)} ₫</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>`;
                     $('#order-detail-content').html(html);
                     $('#orderDetailModal').modal('show');
                 } else alert('Lỗi tải chi tiết: ' + res.error);
@@ -725,7 +903,15 @@ if (isset($_REQUEST['action'])) {
         }
 
         function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, function(m) { if (m === '&') return '&amp;'; if (m === '<') return '&lt;'; if (m === '>') return '&gt;'; return m; }); }
-        function getStatusText(status) { switch(status) { case 'new': return 'Mới'; case 'processing': return 'Đang xử lý'; case 'shipped': return 'Đã giao'; case 'cancelled': return 'Hủy'; default: return 'Không xác định'; } }
+        function getStatusText(status) { 
+            switch(status) { 
+                case 'pending': return 'Chưa xử lý'; 
+                case 'confirmed': return 'Đã xác nhận'; 
+                case 'shipped': return 'Đã giao'; 
+                case 'cancelled': return 'Đã hủy'; 
+                default: return 'Không xác định'; 
+            } 
+        }
 
         $(document).ready(function() {
             $('#order-filter-form').submit(function(e) { e.preventDefault(); currentFilters.start_date = $('#start-date').val(); currentFilters.end_date = $('#end-date').val(); currentFilters.status = $('#status-filter').val(); currentFilters.sort_ward = $('#sort-ward').is(':checked'); currentPage = 1; loadOrders(); });
@@ -735,7 +921,6 @@ if (isset($_REQUEST['action'])) {
             $('.stat-card').click(function() { const status = $(this).data('status'); $('#status-filter').val(status); $('#order-filter-form').submit(); });
             $(document).on('click', '.order-link', function(e) { e.preventDefault(); const orderId = $(this).data('id'); viewOrderDetail(orderId); });
             $(document).on('click', '.view-detail', function() { const orderId = $(this).data('id'); viewOrderDetail(orderId); });
-            $(document).on('click', '.status-badge', function(e) { e.stopPropagation(); const orderId = $(this).data('id'); const currentStatus = $(this).data('status'); const newStatus = prompt('Nhập trạng thái mới (new, processing, shipped, cancelled):', currentStatus); if (newStatus && ['new','processing','shipped','cancelled'].includes(newStatus)) updateOrderStatus(orderId, newStatus); else if (newStatus) alert('Trạng thái không hợp lệ'); });
             loadOrders();
         });
     </script>

@@ -54,13 +54,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirm_order'])) {
     $payment_method = $_POST['payment_method'] ?? 'cash';
     $notes = $_POST['order_notes'] ?? '';
     
+    // Map payment method to database values
+    $payment_method_map = [
+        'cash' => 'cash',
+        'bank_transfer' => 'bank_transfer',
+        'online' => 'zalopay'
+    ];
+    $db_payment_method = $payment_method_map[$payment_method] ?? 'cash';
+    
     try {
         // Generate order code
         $order_code = 'ORD' . date('Ymd') . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
         
         $pdo->beginTransaction();
         
-        // Insert order with status 'new' (mới)
+        // Set order status to 'pending' (chờ xử lý)
+        $order_status = 'pending';
+        
+        // Insert order with status 'pending'
         $stmt = $pdo->prepare("INSERT INTO orders (
             order_code, 
             user_id, 
@@ -78,7 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirm_order'])) {
             notes,
             created_at,
             updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?, ?, 'new', ?, ?, NOW(), NOW())");
+        ) VALUES (?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())");
         
         $stmt->execute([
             $order_code,
@@ -91,7 +102,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirm_order'])) {
             $shipping_fee,
             0, // discount
             $total,
-            $payment_method,
+            $order_status, // Trạng thái: pending (chờ xử lý)
+            $db_payment_method,
             $notes
         ]);
         
@@ -115,6 +127,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirm_order'])) {
         // Clear cart
         $_SESSION['cart'] = [];
         
+        // Log successful order creation
+        error_log("Order created successfully - Order Code: $order_code, User ID: $user_id, Status: $order_status");
+        
         // Redirect to order_success.php
         header('Location: order_success.php?code=' . urlencode($order_code));
         exit;
@@ -122,23 +137,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirm_order'])) {
     } catch (PDOException $e) {
         $pdo->rollBack();
         $error = "Lỗi khi đặt hàng: " . $e->getMessage();
+        error_log("Order creation failed - User ID: $user_id, Error: " . $e->getMessage());
     }
 }
 
 // Define status labels for display
 $status_labels = [
-    'new' => 'Mới',
+    'pending' => 'Chờ xử lý',
     'processing' => 'Đang xử lý',
-    'delivered' => 'Đã giao',
-    'cancelled' => 'Đã hủy'
+    'shipped' => 'Đã giao hàng',
+    'delivered' => 'Đã nhận hàng',
+    'cancelled' => 'Đã hủy',
+    'transfer' => 'Đang chuyển khoản'
 ];
 
 // Define status colors for display
 $status_colors = [
-    'new' => '#ffc107',      // warning - yellow
-    'processing' => '#17a2b8', // info - teal
-    'delivered' => '#28a745',   // success - green
-    'cancelled' => '#dc3545'    // danger - red
+    'pending' => '#ffc107',
+    'processing' => '#17a2b8',
+    'shipped' => '#28a745',
+    'delivered' => '#28a745',
+    'cancelled' => '#dc3545',
+    'transfer' => '#fd7e14'
 ];
 ?>
 
@@ -237,6 +257,11 @@ $status_colors = [
       background-color: #f8d7da;
       color: #721c24;
       border: 1px solid #f5c6cb;
+    }
+    .alert-success {
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
     }
     .cart-count {
       position: absolute;
@@ -622,16 +647,23 @@ $status_colors = [
             <div class="mt-3 p-2 bg-light rounded">
               <small class="text-muted">
                 <i class="fa fa-info-circle"></i> 
-                Trạng thái đơn hàng: <span class="status-badge" style="background-color: #ffc107; color: #000;">Mới</span>
+                Trạng thái đơn hàng: <span class="status-badge" style="background-color: #ffc107; color: #000;">Chờ xử lý</span>
               </small>
+              <p class="small text-muted mt-1 mb-0">
+                <i class="fa fa-clock-o"></i> Đơn hàng của bạn đang được xử lý, vui lòng chờ xác nhận từ nhà hàng
+              </p>
             </div>
             
             <form method="POST" action="">
               <input type="hidden" name="payment_method" id="selected_payment_method" value="cash">
               <input type="hidden" name="order_notes" id="selected_order_notes" value="">
-              <button type="submit" name="confirm_order" class="btn btn-primary btn-block mt-3">Xác nhận thanh toán</button>
+              <button type="submit" name="confirm_order" class="btn btn-primary btn-block mt-3" onclick="return confirm('Xác nhận đặt hàng?')">
+                <i class="fa fa-check-circle"></i> Xác nhận thanh toán
+              </button>
             </form>
-            <a href="cart.php" class="btn btn-outline-secondary btn-block mt-2">Quay lại giỏ hàng</a>
+            <a href="cart.php" class="btn btn-outline-secondary btn-block mt-2">
+              <i class="fa fa-arrow-left"></i> Quay lại giỏ hàng
+            </a>
           </div>
         </div>
       </div>
@@ -647,17 +679,16 @@ $status_colors = [
           <div class="footer_contact">
             <h4>Contact Us</h4>
             <div class="contact_link_box">
-    <div><i class="fa fa-map-marker"></i><span>Location</span></div>
-    <div><i class="fa fa-phone"></i><span>Call +01 1234567890</span></div>
-    <div><i class="fa fa-envelope"></i><span>demo@gmail.com</span></div>
-</div>
+              <div><i class="fa fa-map-marker"></i><span>Location</span></div>
+              <div><i class="fa fa-phone"></i><span>Call +01 1234567890</span></div>
+              <div><i class="fa fa-envelope"></i><span>demo@gmail.com</span></div>
+            </div>
           </div>
         </div>
         <div class="col-md-4 footer-col">
           <div class="footer_detail">
             <a href="" class="footer-logo">Feane</a>
             <p>Necessary, making this the first true generator on the Internet. It uses a dictionary of over 200 Latin words, combined with</p>
-           
           </div>
         </div>
         <div class="col-md-4 footer-col">
