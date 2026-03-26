@@ -18,7 +18,7 @@ if (!$order_code) {
     exit;
 }
 
-// Lấy thông tin đơn hàng từ database
+// Lấy thông tin đơn hàng
 $order_info = null;
 try {
     $stmt = $pdo->prepare("
@@ -30,7 +30,6 @@ try {
     $stmt->execute([$order_code, $user_id]);
     $order_info = $stmt->fetch(PDO::FETCH_ASSOC);
     
-    // Nếu không tìm thấy đơn hàng, chuyển hướng về lịch sử
     if (!$order_info) {
         header('Location: order_history.php');
         exit;
@@ -68,7 +67,8 @@ function getStatusInfo($status) {
         'processing' => ['class' => 'processing', 'text' => 'Đang xử lý'],
         'shipped' => ['class' => 'processing', 'text' => 'Đang giao hàng'],
         'delivered' => ['class' => 'delivered', 'text' => 'Đã giao'],
-        'cancelled' => ['class' => 'cancelled', 'text' => 'Đã hủy']
+        'cancelled' => ['class' => 'cancelled', 'text' => 'Đã hủy'],
+        'new' => ['class' => 'processing', 'text' => 'Mới']
     ];
     return $statuses[$status] ?? ['class' => 'processing', 'text' => 'Chờ xử lý'];
 }
@@ -85,134 +85,24 @@ function getStatusInfo($status) {
     <link href="css/style.css" rel="stylesheet" />
     <link href="css/responsive.css" rel="stylesheet" />
     <style>
-        body {
-            background: #f8f9fa;
-        }
+        body { background: #f8f9fa; }
+        .success-container { max-width: 700px; margin: 50px auto; text-align: center; background: white; border-radius: 15px; box-shadow: 0 0 30px rgba(0,0,0,0.1); padding: 40px; }
+        .success-icon { width: 80px; height: 80px; background: #28a745; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; }
+        .success-icon i { font-size: 40px; color: white; }
+        .order-info-box { background: #f8f9fa; border-radius: 10px; padding: 20px; margin: 25px 0; text-align: left; }
+        .order-info-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #e0e0e0; }
+        .order-code { background: #fff3cd; padding: 12px; border-radius: 8px; font-size: 18px; font-weight: bold; color: #856404; margin: 15px 0; text-align: center; }
+        .btn-custom { background-color: #ffbe33; color: #222; padding: 12px 25px; border-radius: 30px; text-decoration: none; display: inline-block; margin: 10px; font-weight: bold; transition: all 0.3s; border: none; cursor: pointer; }
+        .btn-custom:hover { background-color: #e69c29; color: #222; text-decoration: none; }
+        .btn-outline { background: transparent; border: 2px solid #ffbe33; color: #ffbe33; }
+        .btn-cancel { border-color: #dc3545; color: #dc3545; }
+        .btn-cancel:hover { background: #dc3545; color: white; }
+        .status { padding: 5px 15px; border-radius: 20px; font-size: 14px; font-weight: bold; display: inline-block; }
+        .status.delivered { background: #d4edda; color: #155724; }
+        .status.processing { background: #fff3cd; color: #856404; }
+        .status.cancelled { background: #f8d7da; color: #721c24; }
         
-        .success-container {
-            max-width: 700px;
-            margin: 50px auto;
-            text-align: center;
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 0 30px rgba(0,0,0,0.1);
-            padding: 40px;
-        }
-        
-        .success-icon {
-            width: 80px;
-            height: 80px;
-            background: #28a745;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 20px;
-        }
-        
-        .success-icon i {
-            font-size: 40px;
-            color: white;
-        }
-        
-        .order-info-box {
-            background: #f8f9fa;
-            border-radius: 10px;
-            padding: 20px;
-            margin: 25px 0;
-            text-align: left;
-        }
-        
-        .order-info-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 10px 0;
-            border-bottom: 1px solid #e0e0e0;
-        }
-        
-        .order-info-row:last-child {
-            border-bottom: none;
-        }
-        
-        .order-info-label {
-            font-weight: 600;
-            color: #555;
-        }
-        
-        .order-info-value {
-            color: #333;
-        }
-        
-        .order-code {
-            background: #fff3cd;
-            padding: 12px;
-            border-radius: 8px;
-            font-size: 18px;
-            font-weight: bold;
-            color: #856404;
-            margin: 15px 0;
-            text-align: center;
-        }
-        
-        .btn-custom {
-            background-color: #ffbe33;
-            color: #222;
-            padding: 12px 25px;
-            border-radius: 30px;
-            text-decoration: none;
-            display: inline-block;
-            margin: 10px;
-            font-weight: bold;
-            transition: all 0.3s;
-            border: none;
-        }
-        
-        .btn-custom:hover {
-            background-color: #e69c29;
-            color: #222;
-            text-decoration: none;
-        }
-        
-        .btn-outline {
-            background: transparent;
-            border: 2px solid #ffbe33;
-            color: #ffbe33;
-        }
-        
-        .btn-outline:hover {
-            background: #ffbe33;
-            color: #222;
-        }
-        
-        h2 {
-            color: #28a745;
-            margin-bottom: 20px;
-        }
-        
-        .status {
-            padding: 5px 15px;
-            border-radius: 20px;
-            font-size: 14px;
-            font-weight: bold;
-            display: inline-block;
-        }
-        
-        .status.delivered {
-            background: #d4edda;
-            color: #155724;
-        }
-        
-        .status.processing {
-            background: #fff3cd;
-            color: #856404;
-        }
-        
-        .status.cancelled {
-            background: #f8d7da;
-            color: #721c24;
-        }
-        
-        /* User dropdown styles */
+        /* User dropdown */
         .user-dropdown { position: relative; display: inline-block; }
         .user-dropdown-btn { background: none; border: none; cursor: pointer; display: flex; align-items: center; gap: 8px; padding: 5px 10px; border-radius: 30px; }
         .user-icon { width: 32px; height: 32px; border-radius: 50%; background-color: #ffbe33; display: flex; align-items: center; justify-content: center; color: #222; font-weight: bold; }
@@ -224,16 +114,18 @@ function getStatusInfo($status) {
         .dropdown-header-info h6 { margin: 0; font-weight: 600; }
         .dropdown-header-info p { margin: 0; font-size: 12px; color: #666; }
         .dropdown-item-custom { padding: 12px 15px; display: flex; align-items: center; gap: 12px; color: #333; text-decoration: none; }
-        .dropdown-item-custom:hover { background-color: #f5f5f5; text-decoration: none; color: #333; }
+        .dropdown-item-custom:hover { background-color: #f5f5f5; }
         .dropdown-item-custom i { width: 20px; color: #ffbe33; }
         .dropdown-divider { height: 1px; background-color: #eee; margin: 5px 0; }
         .cart-count { position: absolute; top: -8px; right: -8px; background: red; color: white; border-radius: 50%; width: 20px; height: 20px; font-size: 12px; display: flex; align-items: center; justify-content: center; }
         .cart_link { position: relative; }
         
-        @media (max-width: 768px) {
-            .success-container { margin: 20px; padding: 25px; }
-            .btn-custom { padding: 10px 20px; margin: 5px; font-size: 14px; }
-        }
+        /* Loading spinner */
+        .btn-loading { opacity: 0.7; cursor: not-allowed; }
+        .fa-spinner { animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        @media (max-width: 768px) { .success-container { margin: 20px; padding: 25px; } .btn-custom { padding: 10px 20px; margin: 5px; font-size: 14px; } }
     </style>
 </head>
 <body class="sub_page">
@@ -302,70 +194,34 @@ function getStatusInfo($status) {
 <section class="food_section layout_padding">
     <div class="container">
         <div class="success-container">
-            <div class="success-icon">
-                <i class="fa fa-check"></i>
-            </div>
+            <div class="success-icon"><i class="fa fa-check"></i></div>
             <h2>Đặt hàng thành công!</h2>
             <p>Cảm ơn bạn <strong><?= htmlspecialchars($user_info['full_name'] ?: $user_info['username']) ?></strong> đã đặt hàng tại <strong>Feane</strong></p>
             <p>Chúng tôi đã nhận được đơn hàng của bạn và sẽ xử lý trong thời gian sớm nhất.</p>
             
-            <div class="order-code">
-                <i class="fa fa-ticket"></i> Mã đơn hàng: <strong><?= htmlspecialchars($order_info['order_code']) ?></strong>
-            </div>
+            <div class="order-code"><i class="fa fa-ticket"></i> Mã đơn hàng: <strong><?= htmlspecialchars($order_info['order_code']) ?></strong></div>
             
             <div class="order-info-box">
-                <div class="order-info-row">
-                    <span class="order-info-label"><i class="fa fa-calendar"></i> Ngày đặt:</span>
-                    <span class="order-info-value"><?= date('d/m/Y H:i', strtotime($order_info['order_date'] ?? $order_info['created_at'])) ?></span>
-                </div>
-                <div class="order-info-row">
-                    <span class="order-info-label"><i class="fa fa-user"></i> Người nhận:</span>
-                    <span class="order-info-value"><?= htmlspecialchars($order_info['customer_name'] ?? $user_info['full_name']) ?></span>
-                </div>
-                <div class="order-info-row">
-                    <span class="order-info-label"><i class="fa fa-phone"></i> Số điện thoại:</span>
-                    <span class="order-info-value"><?= htmlspecialchars($order_info['customer_phone'] ?? '') ?></span>
-                </div>
-                <div class="order-info-row">
-                    <span class="order-info-label"><i class="fa fa-map-marker"></i> Địa chỉ:</span>
-                    <span class="order-info-value"><?= htmlspecialchars($order_info['customer_address'] ?? '') ?></span>
-                </div>
-                <div class="order-info-row">
-                    <span class="order-info-label"><i class="fa fa-shopping-bag"></i> Tổng tiền hàng:</span>
-                    <span class="order-info-value"><?= formatCurrency($order_info['total_amount']) ?></span>
-                </div>
-                <div class="order-info-row">
-                    <span class="order-info-label"><i class="fa fa-truck"></i> Phí vận chuyển:</span>
-                    <span class="order-info-value"><?= formatCurrency($order_info['shipping_fee'] ?? 0) ?></span>
-                </div>
-                <div class="order-info-row">
-                    <span class="order-info-label"><strong>Thành tiền:</strong></span>
-                    <span class="order-info-value"><strong><?= formatCurrency($order_info['final_amount'] ?? ($order_info['total_amount'] + ($order_info['shipping_fee'] ?? 0))) ?></strong></span>
-                </div>
-                <div class="order-info-row">
-                    <span class="order-info-label"><i class="fa fa-info-circle"></i> Trạng thái:</span>
-                    <span class="order-info-value">
-                        <span class="status <?= getStatusInfo($order_info['status'])['class'] ?>">
-                            <?= getStatusInfo($order_info['status'])['text'] ?>
-                        </span>
-                    </span>
-                </div>
+                <div class="order-info-row"><span class="order-info-label"><i class="fa fa-calendar"></i> Ngày đặt:</span><span class="order-info-value"><?= date('d/m/Y H:i', strtotime($order_info['order_date'] ?? $order_info['created_at'])) ?></span></div>
+                <div class="order-info-row"><span class="order-info-label"><i class="fa fa-user"></i> Người nhận:</span><span class="order-info-value"><?= htmlspecialchars($order_info['customer_name'] ?? $user_info['full_name']) ?></span></div>
+                <div class="order-info-row"><span class="order-info-label"><i class="fa fa-phone"></i> Số điện thoại:</span><span class="order-info-value"><?= htmlspecialchars($order_info['customer_phone'] ?? '') ?></span></div>
+                <div class="order-info-row"><span class="order-info-label"><i class="fa fa-map-marker"></i> Địa chỉ:</span><span class="order-info-value"><?= htmlspecialchars($order_info['customer_address'] ?? '') ?></span></div>
+                <div class="order-info-row"><span class="order-info-label"><strong>Thành tiền:</strong></span><span class="order-info-value"><strong><?= formatCurrency($order_info['final_amount'] ?? ($order_info['total_amount'] + ($order_info['shipping_fee'] ?? 0))) ?></strong></span></div>
+                <div class="order-info-row"><span class="order-info-label"><i class="fa fa-info-circle"></i> Trạng thái:</span><span class="order-info-value"><span class="status <?= getStatusInfo($order_info['status'])['class'] ?>"><?= getStatusInfo($order_info['status'])['text'] ?></span></span></div>
             </div>
             
-            <p class="text-muted">
-                <i class="fa fa-envelope"></i> Chi tiết đơn hàng đã được gửi đến email: <strong><?= htmlspecialchars($user_info['email']) ?></strong>
-            </p>
-            
             <div>
-                <a href="order_detail.php?id=<?= $order_info['id'] ?>" class="btn-custom">
-                    <i class="fa fa-eye"></i> Xem chi tiết đơn hàng
-                </a>
-                <a href="order_history.php" class="btn-custom btn-outline">
-                    <i class="fa fa-list"></i> Lịch sử đơn hàng
-                </a>
-                <a href="menu.php" class="btn-custom btn-outline">
-                    <i class="fa fa-shopping-bag"></i> Tiếp tục mua sắm
-                </a>
+                <a href="order_detail.php?id=<?= $order_info['id'] ?>" class="btn-custom"><i class="fa fa-eye"></i> Xem chi tiết</a>
+                <?php 
+                $cancelable_statuses = ['pending', 'processing', 'new', 'cash', 'bank_transfer'];
+                if (in_array($order_info['status'], $cancelable_statuses)): 
+                ?>
+                <button onclick="showCancelModal(<?= $order_info['id'] ?>, '<?= htmlspecialchars($order_info['order_code']) ?>')" class="btn-custom btn-outline btn-cancel">
+                    <i class="fa fa-times"></i> Hủy đơn hàng
+                </button>
+                <?php endif; ?>
+                <a href="order_history.php" class="btn-custom btn-outline"><i class="fa fa-list"></i> Lịch sử</a>
+                <a href="menu.php" class="btn-custom btn-outline"><i class="fa fa-shopping-bag"></i> Mua tiếp</a>
             </div>
         </div>
     </div>
@@ -374,34 +230,37 @@ function getStatusInfo($status) {
 <footer class="footer_section">
     <div class="container">
         <div class="row">
-            <div class="col-md-4 footer-col">
-                <div class="footer_contact">
-                    <h4>Contact Us</h4>
-                    <div class="contact_link_box">
-    <div><i class="fa fa-map-marker"></i><span>Location</span></div>
-    <div><i class="fa fa-phone"></i><span>Call +01 1234567890</span></div>
-    <div><i class="fa fa-envelope"></i><span>demo@gmail.com</span></div>
-</div>
-                </div>
-            </div>
-            <div class="col-md-4 footer-col">
-                <div class="footer_detail">
-                    <a href="" class="footer-logo">Feane</a>
-                    <p>Necessary, making this the first true generator on the Internet.</p>
-                   
-                </div>
-            </div>
-            <div class="col-md-4 footer-col">
-                <h4>Opening Hours</h4>
-                <p>Everyday</p>
-                <p>10.00 Am -10.00 Pm</p>
-            </div>
+            <div class="col-md-4 footer-col"><div class="footer_contact"><h4>Contact Us</h4><div class="contact_link_box"><div><i class="fa fa-map-marker"></i><span>Location</span></div><div><i class="fa fa-phone"></i><span>Call +01 1234567890</span></div><div><i class="fa fa-envelope"></i><span>demo@gmail.com</span></div></div></div></div>
+            <div class="col-md-4 footer-col"><div class="footer_detail"><a href="" class="footer-logo">Feane</a><p>Necessary, making this the first true generator on the Internet.</p></div></div>
+            <div class="col-md-4 footer-col"><h4>Opening Hours</h4><p>Everyday</p><p>10.00 Am -10.00 Pm</p></div>
         </div>
-        <div class="footer-info">
-            <p>&copy; <span id="displayYear"></span> Feane Restaurant. All Rights Reserved.</p>
-        </div>
+        <div class="footer-info"><p>&copy; <span id="displayYear"></span> Feane Restaurant. All Rights Reserved.</p></div>
     </div>
 </footer>
+
+<!-- Modal xác nhận hủy -->
+<div class="modal fade" id="cancelOrderModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header" style="background-color: #dc3545; color: white;">
+                <h5 class="modal-title"><i class="fa fa-exclamation-triangle"></i> Xác nhận hủy đơn hàng</h5>
+                <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <p>Bạn có chắc chắn muốn hủy đơn hàng <strong id="cancelOrderCode"></strong>?</p>
+                <p class="text-danger">Lưu ý: Sau khi hủy, đơn hàng sẽ không thể khôi phục!</p>
+                <div class="form-group mt-3">
+                    <label><i class="fa fa-comment"></i> Lý do hủy đơn (tùy chọn):</label>
+                    <textarea class="form-control" id="cancelReason" rows="3" placeholder="Vui lòng cho biết lý do bạn muốn hủy đơn hàng..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal"><i class="fa fa-times"></i> Đóng</button>
+                <button type="button" class="btn btn-danger" id="confirmCancelBtn"><i class="fa fa-check"></i> Xác nhận hủy</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <script src="js/jquery-3.4.1.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"></script>
@@ -422,6 +281,47 @@ function getStatusInfo($status) {
             }
         });
     }
+    
+    let currentOrderId = null;
+    
+    function showCancelModal(orderId, orderCode) {
+        currentOrderId = orderId;
+        document.getElementById('cancelOrderCode').innerText = orderCode;
+        document.getElementById('cancelReason').value = '';
+        $('#cancelOrderModal').modal('show');
+    }
+    
+    document.getElementById('confirmCancelBtn').addEventListener('click', function() {
+        if (currentOrderId) {
+            const reason = document.getElementById('cancelReason').value;
+            const btn = this;
+            
+            // Disable button và hiển thị loading
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Đang xử lý...';
+            btn.classList.add('btn-loading');
+            
+            // Gửi request đến cancel_order.php
+            $.ajax({
+                url: 'cancel_order.php',
+                type: 'GET',
+                data: {
+                    id: currentOrderId,
+                    reason: reason
+                },
+                success: function(response) {
+                    // Chuyển hướng đến trang chi tiết đơn hàng đã hủy
+                    window.location.href = 'cancelled_order_detail.php?id=' + currentOrderId;
+                },
+                error: function(xhr, status, error) {
+                    console.log('Lỗi: ' + error);
+                    // Vẫn chuyển hướng đến cancelled_order_detail.php
+                    window.location.href = 'cancelled_order_detail.php?id=' + currentOrderId;
+                }
+            });
+        }
+    });
+    
     document.getElementById('displayYear').innerHTML = new Date().getFullYear();
 </script>
 
