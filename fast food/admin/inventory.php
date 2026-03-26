@@ -33,6 +33,11 @@ if (!$admin_info) {
     exit;
 }
 
+// Hàm định dạng tiền VNĐ
+function formatVND($amount) {
+    return number_format($amount, 0, ',', '.') . ' ₫';
+}
+
 // Xử lý AJAX request
 if (isset($_REQUEST['action'])) {
     header('Content-Type: application/json');
@@ -50,7 +55,7 @@ if (isset($_REQUEST['action'])) {
                 $offset = ($page - 1) * $limit;
                 $threshold = (int)($_GET['threshold'] ?? 10);
 
-                // Thêm subquery để tính tổng nhập và tổng xuất
+                // Subquery tính tổng nhập và tổng xuất từ bảng thực tế
                 $sql = "SELECT p.id, p.code, p.name, p.category_id, p.stock_quantity,
                                c.name as category_name,
                                COALESCE((
@@ -63,7 +68,7 @@ if (isset($_REQUEST['action'])) {
                                    SELECT SUM(od.quantity)
                                    FROM order_details od
                                    JOIN orders o ON od.order_id = o.id
-                                   WHERE od.product_id = p.id AND o.status != 'cancelled'
+                                   WHERE od.product_id = p.id AND o.status != 'cancelled' AND o.status != 'new'
                                ), 0) AS total_export
                         FROM products p
                         LEFT JOIN categories c ON p.category_id = c.id
@@ -98,6 +103,12 @@ if (isset($_REQUEST['action'])) {
                 $stmt->execute();
                 $products = $stmt->fetchAll();
 
+                // Cập nhật stock_quantity từ dữ liệu nhập/xuất thực tế
+                foreach ($products as &$product) {
+                    $actual_stock = $product['total_import'] - $product['total_export'];
+                    $product['stock_quantity'] = $actual_stock;
+                }
+
                 if ($stock_status) {
                     if ($stock_status == 'low') {
                         $products = array_filter($products, function($p) use ($threshold) {
@@ -111,7 +122,7 @@ if (isset($_REQUEST['action'])) {
                     $products = array_values($products);
                 }
 
-                // Count total records (without filtering by stock_status because it's post-filter)
+                // Count total records
                 $countSql = "SELECT COUNT(*) as total FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.status = 'active'";
                 $countParams = [];
                 if ($search) {
@@ -128,11 +139,14 @@ if (isset($_REQUEST['action'])) {
                 $total = $countStmt->fetch()['total'];
                 $totalPages = ceil($total / $limit);
 
+                // Tính thống kê từ dữ liệu thực tế
                 $statsSql = "SELECT 
                                 COUNT(*) as total,
-                                SUM(CASE WHEN stock_quantity <= :threshold THEN 1 ELSE 0 END) as low_stock,
-                                SUM(CASE WHEN stock_quantity > :threshold THEN 1 ELSE 0 END) as adequate
-                             FROM products WHERE status = 'active'";
+                                SUM(CASE WHEN (SELECT COALESCE(SUM(d.quantity), 0) FROM import_details d JOIN imports i ON d.import_id = i.id WHERE d.product_id = p.id AND i.status = 'completed') - 
+                                            (SELECT COALESCE(SUM(od.quantity), 0) FROM order_details od JOIN orders o ON od.order_id = o.id WHERE od.product_id = p.id AND o.status != 'cancelled' AND o.status != 'new') <= :threshold THEN 1 ELSE 0 END) as low_stock,
+                                SUM(CASE WHEN (SELECT COALESCE(SUM(d.quantity), 0) FROM import_details d JOIN imports i ON d.import_id = i.id WHERE d.product_id = p.id AND i.status = 'completed') - 
+                                            (SELECT COALESCE(SUM(od.quantity), 0) FROM order_details od JOIN orders o ON od.order_id = o.id WHERE od.product_id = p.id AND o.status != 'cancelled' AND o.status != 'new') > :threshold THEN 1 ELSE 0 END) as adequate
+                             FROM products p WHERE status = 'active'";
                 $statsStmt = $pdo->prepare($statsSql);
                 $statsStmt->bindValue(':threshold', $threshold, PDO::PARAM_INT);
                 $statsStmt->execute();
@@ -175,11 +189,11 @@ if (isset($_REQUEST['action'])) {
                 $importStmt->execute([':product_id' => $product_id, ':date_from' => $date_from, ':date_to' => $date_to]);
                 $imports = $importStmt->fetchAll();
 
-                // Export transactions
+                // Export transactions (chỉ lấy đơn hàng đã xác nhận)
                 $exportSql = "SELECT od.quantity, o.order_date
                               FROM order_details od
                               JOIN orders o ON od.order_id = o.id
-                              WHERE od.product_id = :product_id AND o.status != 'cancelled'
+                              WHERE od.product_id = :product_id AND o.status != 'cancelled' AND o.status != 'new'
                               AND (:date_from = '' OR o.order_date >= :date_from)
                               AND (:date_to = '' OR o.order_date <= :date_to)
                               ORDER BY o.order_date";
@@ -203,11 +217,16 @@ if (isset($_REQUEST['action'])) {
                     $stmt = $pdo->prepare("SELECT SUM(od.quantity) as total_export_before
                                            FROM order_details od
                                            JOIN orders o ON od.order_id = o.id
-                                           WHERE od.product_id = ? AND o.status != 'cancelled' AND o.order_date < ?");
+                                           WHERE od.product_id = ? AND o.status != 'cancelled' AND o.status != 'new' AND o.order_date < ?");
                     $stmt->execute([$product_id, $date_from]);
                     $exportBefore = $stmt->fetch()['total_export_before'] ?? 0;
 
                     $startStock = $importBefore - $exportBefore;
+                } else {
+                    // Lấy tồn đầu kỳ từ bảng products
+                    $stmt = $pdo->prepare("SELECT stock_quantity FROM products WHERE id = ?");
+                    $stmt->execute([$product_id]);
+                    $startStock = $stmt->fetchColumn();
                 }
 
                 $endStock = $startStock + $total_import - $total_export;
@@ -262,7 +281,7 @@ if (isset($_REQUEST['action'])) {
                 $stmt = $pdo->prepare("SELECT SUM(od.quantity) as total_export
                                        FROM order_details od
                                        JOIN orders o ON od.order_id = o.id
-                                       WHERE od.product_id = ? AND o.status != 'cancelled' AND o.order_date <= ?");
+                                       WHERE od.product_id = ? AND o.status != 'cancelled' AND o.status != 'new' AND o.order_date <= ?");
                 $stmt->execute([$product_id, $date]);
                 $total_export = $stmt->fetch()['total_export'] ?? 0;
 
@@ -290,10 +309,22 @@ if (isset($_REQUEST['action'])) {
             case 'get_product_info':
                 $product_id = (int)($_GET['id'] ?? 0);
                 if (!$product_id) throw new Exception('Missing product ID');
-                $stmt = $pdo->prepare("SELECT p.id, p.code, p.name, p.category_id, c.name as category_name, p.cost_price, p.selling_price, p.stock_quantity FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.id = ?");
+                
+                // Lấy thông tin sản phẩm và tính tổng nhập/xuất thực tế
+                $stmt = $pdo->prepare("SELECT p.id, p.code, p.name, p.category_id, c.name as category_name, 
+                                              p.cost_price, p.selling_price, p.stock_quantity,
+                                              COALESCE((SELECT SUM(d.quantity) FROM import_details d JOIN imports i ON d.import_id = i.id WHERE d.product_id = p.id AND i.status = 'completed'), 0) as total_import,
+                                              COALESCE((SELECT SUM(od.quantity) FROM order_details od JOIN orders o ON od.order_id = o.id WHERE od.product_id = p.id AND o.status != 'cancelled' AND o.status != 'new'), 0) as total_export
+                                       FROM products p 
+                                       LEFT JOIN categories c ON p.category_id = c.id 
+                                       WHERE p.id = ?");
                 $stmt->execute([$product_id]);
                 $product = $stmt->fetch();
                 if (!$product) throw new Exception('Product not found');
+                
+                // Cập nhật stock_quantity thực tế
+                $product['stock_quantity'] = $product['total_import'] - $product['total_export'];
+                
                 echo json_encode(['success' => true, 'product' => $product]);
                 break;
 
@@ -316,7 +347,6 @@ if (isset($_REQUEST['action'])) {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        /* Giữ nguyên CSS như file cũ, không thay đổi */
         :root {
             --primary-color: #ffbe33;
             --secondary-color: #222831;
@@ -779,13 +809,7 @@ if (isset($_REQUEST['action'])) {
                                     <p>Tổng xuất</p>
                                 </div>
                             </div>
-                            <div class="col-md-4">
-                                <div class="summary-card stock">
-                                    <i class="fas fa-boxes fa-2x"></i>
-                                    <h4 id="total-stock">0</h4>
-                                    <p>Tồn cuối kỳ</p>
-                                </div>
-                            </div>
+                            
                         </div>
                         <div class="table-responsive">
                             <table class="table table-bordered">
@@ -793,7 +817,7 @@ if (isset($_REQUEST['action'])) {
                                     <th>Ngày</th><th>Loại giao dịch</th><th>Số lượng</th><th>Đơn vị</th><th>Ghi chú</th>
                                 </thead>
                                 <tbody id="detail-result-body"></tbody>
-                              </table>
+                               </table>
                         </div>
                     </div>
                 </div>
@@ -818,7 +842,7 @@ if (isset($_REQUEST['action'])) {
                                 <tbody id="stock-table-body">
                                     <td colspan="8" class="text-center">Đang tải...</td>
                                 </tbody>
-                            </table>
+                             </table>
                         </div>
                         <nav aria-label="Page navigation">
                             <ul class="pagination justify-content-center mt-4" id="pagination-container"></ul>
@@ -954,18 +978,18 @@ if (isset($_REQUEST['action'])) {
             products.forEach(p => {
                 const isLow = p.stock_quantity <= threshold;
                 const rowClass = isLow ? 'low-stock' : '';
-                const statusHtml = isLow ? '<span class="warning">Sắp hết hàng!</span>' : 'Đủ hàng';
+                const statusHtml = isLow ? '<span class="warning"><i class="fas fa-exclamation-triangle me-1"></i>Sắp hết hàng! (còn ' + p.stock_quantity + ')</span>' : '<span class="text-success"><i class="fas fa-check-circle me-1"></i>Đủ hàng</span>';
                 html += `
                     <tr class="${rowClass}">
-                        <td>${p.code}</td>
-                        <td><a href="#" class="product-link view-detail" data-id="${p.id}">${escapeHtml(p.name)}</a></td>
-                        <td>${p.category_name || ''}</td>
-                        <td>${p.total_import}</td>
-                        <td>${p.total_export}</td>
-                        <td>${p.stock_quantity}</td>
-                        <td>${statusHtml}</td>
-                        <td><button class="btn btn-sm btn-custom view-detail" data-id="${p.id}"><i class="fas fa-eye me-1"></i>Xem</button></td>
-                    </tr>
+                         <td>${escapeHtml(p.code)}</td>
+                         <td><a href="#" class="product-link view-detail" data-id="${p.id}">${escapeHtml(p.name)}</a></td>
+                         <td>${escapeHtml(p.category_name || '')}</td>
+                         <td class="text-center">${p.total_import}</td>
+                         <td class="text-center">${p.total_export}</td>
+                         <td class="text-center"><strong>${p.stock_quantity}</strong></td>
+                         <td>${statusHtml}</td>
+                         <td><button class="btn btn-sm btn-custom view-detail" data-id="${p.id}"><i class="fas fa-eye me-1"></i>Xem</button></td>
+                     </tr>
                 `;
             });
             tbody.html(html);
@@ -1043,7 +1067,7 @@ if (isset($_REQUEST['action'])) {
                                 <tr>
                                     <td>${new Date(t.date).toLocaleDateString('vi-VN')}</td>
                                     <td><span class="${typeClass}">${typeText}</span></td>
-                                    <td>${t.quantity}</td>
+                                    <td class="text-center">${t.quantity}</td>
                                     <td>${t.unit}</td>
                                     <td>${t.note}</td>
                                 </tr>
@@ -1136,7 +1160,7 @@ if (isset($_REQUEST['action'])) {
                                     <div class="col-md-6"><div class="info-card"><div class="info-label">Giá bán (VNĐ)</div><div class="info-value">${formatMoney(product.selling_price)}</div></div></div>
                                     <div class="col-md-6"><div class="info-card"><div class="info-label">Tồn kho hiện tại</div><div class="info-value">${product.stock_quantity}</div></div></div>
                                 </div>
-                                <div class="stock-summary mb-4"><div class="row text-center"><div class="col-4"><div class="stock-summary-label">Tổng nhập</div><div class="stock-summary-value">${totalImport}</div></div><div class="col-4"><div class="stock-summary-label">Tổng xuất</div><div class="stock-summary-value">${totalExport}</div></div><div class="col-4"><div class="stock-summary-label">Tồn cuối kỳ</div><div class="stock-summary-value">${endStock}</div></div></div></div>
+                                <div class="stock-summary mb-4"><div class="row text-center"><div class="col-4"><div class="stock-summary-label">Tổng nhập</div><div class="stock-summary-value">${totalImport}</div></div><div class="col-4"><div class="stock-summary-label">Tổng xuất</div><div class="stock-summary-value">${totalExport}</div></div><div class="col-4"><div class="stock-summary-label"></div></div></div></div>
                                 <h5 class="mt-3 mb-3"><i class="fas fa-history me-2"></i>Lịch sử nhập - xuất</h5>
                                 <div class="table-responsive"><table class="table table-bordered transaction-table"><thead><tr><th>Ngày</th><th>Loại giao dịch</th><th>Số lượng</th><th>Đơn vị</th><th>Ghi chú</th></tr></thead><tbody>
                             `;
@@ -1146,7 +1170,7 @@ if (isset($_REQUEST['action'])) {
                                 transactions.forEach(t => {
                                     const typeText = t.type === 'import' ? 'Nhập hàng' : 'Xuất hàng';
                                     const typeClass = t.type === 'import' ? 'text-success' : 'text-danger';
-                                    html += `<tr><td>${new Date(t.date).toLocaleDateString('vi-VN')}</td><td><span class="${typeClass}">${typeText}</span></td><td>${t.quantity}</td><td>${t.unit}</td><td>${t.note}</td></tr>`;
+                                    html += `<tr><td>${new Date(t.date).toLocaleDateString('vi-VN')}</td><td><span class="${typeClass}">${typeText}</span></td><td class="text-center">${t.quantity}</td><td>${t.unit}</td><td>${t.note}</td></tr>`;
                                 });
                             }
                             html += `</tbody></table></div>`;
@@ -1184,4 +1208,4 @@ if (isset($_REQUEST['action'])) {
         $('#stock-date').val(formatDate(today));
     </script>
 </body>
-</html>z
+</html>
