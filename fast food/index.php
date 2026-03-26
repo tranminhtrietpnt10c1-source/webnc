@@ -511,7 +511,7 @@ $is_logged_in = isset($_SESSION['user_id']);
                 <div class="detail-box">
                   <h1>Fast Food</h1>
                   <p>
-                    Delicious food delivered to your doorstep. Enjoy the best burgers, pizzas, and more at Feane!
+                    Thức ăn ngon được giao tận nhà. Thưởng thức những món burger, pizza ngon nhất và nhiều món khác tại Feane!
                   </p>
                   <div class="btn-box">
                     <a href="<?= isset($_SESSION['user_id']) ? 'menu.php' : 'user/login.php' ?>" class="btn1">Order Now</a>
@@ -537,8 +537,8 @@ $is_logged_in = isset($_SESSION['user_id']);
             <div class="box">
               <div class="img-box"><img src="images/o1.jpg" alt=""></div>
               <div class="detail-box">
-                <h5>Tasty Thursdays</h5>
-                <h6><span>20%</span> Off</h6>
+                <h5>Thứ Năm ngon lành</h5>
+                <h6></h6>
                 <a href="<?= isset($_SESSION['user_id']) ? 'menu.php' : 'user/login.php' ?>">Order Now</a>
               </div>
             </div>
@@ -547,8 +547,8 @@ $is_logged_in = isset($_SESSION['user_id']);
             <div class="box">
               <div class="img-box"><img src="images/o2.jpg" alt=""></div>
               <div class="detail-box">
-                <h5>Pizza Days</h5>
-                <h6><span>15%</span> Off</h6>
+                <h5>Ngày Pizza</h5>
+                <h6></h6>
                 <a href="<?= isset($_SESSION['user_id']) ? 'menu.php' : 'user/login.php' ?>">Order Now</a>
               </div>
             </div>
