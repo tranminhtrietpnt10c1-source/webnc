@@ -154,58 +154,80 @@ $is_logged_in = isset($_SESSION['user_id']);
       position: relative;
     }
     
-    /* Add to Cart Button Styles - Giống menu.php */
+    /* Add to Cart Button Styles */
     .add-to-cart-btn {
       background: #ffbe33;
       border: none;
       cursor: pointer;
-      padding: 10px 15px;
-      border-radius: 30px;
-      transition: all 0.3s;
+      padding: 8px 18px;
+      border-radius: 25px;
+      transition: all 0.3s ease;
       display: inline-flex;
       align-items: center;
-      gap: 8px;
-      color: white;
-      font-weight: 500;
-      font-size: 14px;
+      justify-content: center;
+      gap: 6px;
+      color: #ffffff;
+      font-weight: 600;
+      font-size: 13px;
+      text-decoration: none;
+      font-family: inherit;
+      line-height: 1;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      min-width: 70px;
     }
     
     .add-to-cart-btn i {
-      font-size: 14px;
+      font-size: 12px;
+      color: #ffffff;
     }
     
     .add-to-cart-btn:hover {
       background: #e69c00;
       transform: translateY(-2px);
-      box-shadow: 0 5px 15px rgba(255, 190, 51, 0.3);
+      box-shadow: 0 4px 12px rgba(255, 190, 51, 0.4);
+      color: #ffffff;
+      text-decoration: none;
     }
     
     .add-to-cart-btn:active {
       transform: translateY(0);
     }
     
-    /* Cart link button for non-logged in users */
-    .cart-link-btn {
-      background: #ffbe33;
-      border: none;
-      padding: 10px 15px;
-      border-radius: 30px;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      color: white;
-      font-weight: 500;
-      font-size: 14px;
-      text-decoration: none;
-      transition: all 0.3s;
+    /* Force override any conflicting styles */
+    .box .options .add-to-cart-btn,
+    .box .options button.add-to-cart-btn,
+    .box .options a.add-to-cart-btn {
+      background: #ffbe33 !important;
+      border: none !important;
+      padding: 8px 18px !important;
+      border-radius: 25px !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 6px !important;
+      color: #ffffff !important;
+      font-weight: 600 !important;
+      font-size: 13px !important;
+      text-decoration: none !important;
+      font-family: inherit !important;
+      cursor: pointer !important;
+      min-width: 70px !important;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1) !important;
     }
     
-    .cart-link-btn:hover {
-      background: #e69c00;
-      transform: translateY(-2px);
-      box-shadow: 0 5px 15px rgba(255, 190, 51, 0.3);
-      color: white;
-      text-decoration: none;
+    .box .options .add-to-cart-btn i,
+    .box .options button.add-to-cart-btn i,
+    .box .options a.add-to-cart-btn i {
+      font-size: 12px !important;
+      color: #ffffff !important;
+    }
+    
+    .box .options .add-to-cart-btn:hover,
+    .box .options button.add-to-cart-btn:hover,
+    .box .options a.add-to-cart-btn:hover {
+      background: #e69c00 !important;
+      transform: translateY(-2px) !important;
+      color: #ffffff !important;
+      text-decoration: none !important;
     }
     
     /* Product card styles */
@@ -399,6 +421,14 @@ $is_logged_in = isset($_SESSION['user_id']);
         height: 28px;
         font-size: 12px;
       }
+      .add-to-cart-btn {
+        padding: 6px 12px !important;
+        font-size: 11px !important;
+        min-width: 60px !important;
+      }
+      .add-to-cart-btn i {
+        font-size: 10px !important;
+      }
     }
   </style>
 </head>
@@ -462,7 +492,11 @@ $is_logged_in = isset($_SESSION['user_id']);
                     <i class="fa fa-user"></i>
                     <span>Thông tin tài khoản</span>
                   </a>
-                
+                  <div class="dropdown-divider"></div>
+                  <a href="user/logout.php" class="dropdown-item-custom text-danger">
+                    <i class="fa fa-sign-out"></i>
+                    <span>Đăng xuất</span>
+                  </a>
                 </div>
               </div>
             <?php else: ?>
@@ -589,7 +623,7 @@ $is_logged_in = isset($_SESSION['user_id']);
                           <i class="fa fa-shopping-cart"></i> Thêm
                         </button>
                       <?php else: ?>
-                        <a href="user/login.php" class="cart-link-btn">
+                        <a href="user/login.php" class="add-to-cart-btn">
                           <i class="fa fa-shopping-cart"></i> Thêm
                         </a>
                       <?php endif; ?>
@@ -620,17 +654,16 @@ $is_logged_in = isset($_SESSION['user_id']);
         <div class="footer_contact">
           <h4>Contact Us</h4>
           <div class="contact_link_box">
-    <div><i class="fa fa-map-marker"></i><span>Location</span></div>
-    <div><i class="fa fa-phone"></i><span>Call +01 1234567890</span></div>
-    <div><i class="fa fa-envelope"></i><span>demo@gmail.com</span></div>
-</div>
+            <div><i class="fa fa-map-marker"></i><span>Location</span></div>
+            <div><i class="fa fa-phone"></i><span>Call +01 1234567890</span></div>
+            <div><i class="fa fa-envelope"></i><span>demo@gmail.com</span></div>
+          </div>
         </div>
       </div>
       <div class="col-md-4 footer-col">
         <div class="footer_detail">
           <a href="" class="footer-logo">Feane</a>
           <p>Delicious fast food made with love. Quality ingredients, great taste, and fast delivery.</p>
-          
         </div>
       </div>
       <div class="col-md-4 footer-col">
@@ -695,6 +728,13 @@ $is_logged_in = isset($_SESSION['user_id']);
     document.getElementById('pagination-container').innerHTML = html;
   }
 
+  function animateAddToCart(button) {
+    button.style.transform = 'scale(0.95)';
+    setTimeout(function() {
+      button.style.transform = 'scale(1)';
+    }, 150);
+  }
+
   function loadProducts(page) {
     if (page < 1 || page > totalPages) return;
     
@@ -717,7 +757,7 @@ $is_logged_in = isset($_SESSION['user_id']);
             if (isLoggedIn) {
               html += '<button class="add-to-cart-btn" data-id="' + p.id + '" data-name="' + p.name.replace(/'/g, "\\'") + '" data-price="' + p.selling_price + '" data-image="' + p.image + '"><i class="fa fa-shopping-cart"></i> Thêm</button>';
             } else {
-              html += '<a href="user/login.php" class="cart-link-btn"><i class="fa fa-shopping-cart"></i> Thêm</a>';
+              html += '<a href="user/login.php" class="add-to-cart-btn"><i class="fa fa-shopping-cart"></i> Thêm</a>';
             }
             
             html += '</div></div></div></div>';
@@ -779,13 +819,17 @@ $is_logged_in = isset($_SESSION['user_id']);
     }
   }
 
-  function addToCart(productId, name, price, image) {
+  function addToCart(productId, name, price, image, buttonElement) {
     <?php if (!isset($_SESSION['user_id'])): ?>
       if (confirm('Bạn cần đăng nhập để thêm sản phẩm vào giỏ hàng. Đăng nhập ngay?')) {
         window.location.href = 'user/login.php';
       }
       return;
     <?php endif; ?>
+    
+    if (buttonElement) {
+      animateAddToCart(buttonElement);
+    }
     
     var formData = new FormData();
     formData.append('add_to_cart', '1');
@@ -805,7 +849,7 @@ $is_logged_in = isset($_SESSION['user_id']);
     .then(function(response) { return response.json(); })
     .then(function(data) {
       if (data.success) {
-        showToast('Đã thêm ' + name + ' vào giỏ hàng!');
+        showToast('✓ Đã thêm ' + name + ' vào giỏ hàng!');
         if (data.cart_count) {
           updateCartCount(data.cart_count);
         }
@@ -822,17 +866,19 @@ $is_logged_in = isset($_SESSION['user_id']);
   function attachCartEvents() {
     var buttons = document.querySelectorAll('.add-to-cart-btn');
     buttons.forEach(function(button) {
-      var newButton = button.cloneNode(true);
-      button.parentNode.replaceChild(newButton, button);
-      
-      newButton.addEventListener('click', function(e) {
-        e.preventDefault();
-        var productId = this.getAttribute('data-id');
-        var name = this.getAttribute('data-name');
-        var price = this.getAttribute('data-price');
-        var image = this.getAttribute('data-image');
-        addToCart(productId, name, price, image);
-      });
+      if (button.tagName === 'BUTTON') {
+        var newButton = button.cloneNode(true);
+        button.parentNode.replaceChild(newButton, button);
+        
+        newButton.addEventListener('click', function(e) {
+          e.preventDefault();
+          var productId = this.getAttribute('data-id');
+          var name = this.getAttribute('data-name');
+          var price = this.getAttribute('data-price');
+          var image = this.getAttribute('data-image');
+          addToCart(productId, name, price, image, this);
+        });
+      }
     });
   }
 
