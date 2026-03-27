@@ -33,11 +33,6 @@ if (!$admin_info) {
     exit;
 }
 
-// Hàm định dạng tiền VNĐ
-function formatVND($amount) {
-    return number_format($amount, 0, ',', '.') . ' ₫';
-}
-
 // Xử lý AJAX request
 if (isset($_REQUEST['action'])) {
     header('Content-Type: application/json');
@@ -47,16 +42,13 @@ if (isset($_REQUEST['action'])) {
         switch ($action) {
             case 'list':
                 $search = $_GET['search'] ?? '';
-                $type = $_GET['type'] ?? '';
-                $stock_status = $_GET['stock_status'] ?? '';
-                $sort = $_GET['sort'] ?? '';
+                $max_stock = isset($_GET['max_stock']) && $_GET['max_stock'] !== '' ? (int)$_GET['max_stock'] : null;
                 $page = (int)($_GET['page'] ?? 1);
                 $limit = 5;
                 $offset = ($page - 1) * $limit;
-                $threshold = (int)($_GET['threshold'] ?? 10);
 
                 // Subquery tính tổng nhập và tổng xuất từ bảng thực tế
-                $sql = "SELECT p.id, p.code, p.name, p.category_id, p.stock_quantity,
+                $sql = "SELECT p.id, p.code, p.name, p.category_id,
                                c.name as category_name,
                                COALESCE((
                                    SELECT SUM(d.quantity)
@@ -79,18 +71,8 @@ if (isset($_REQUEST['action'])) {
                     $sql .= " AND (p.name LIKE :search OR p.code LIKE :search)";
                     $params[':search'] = "%$search%";
                 }
-                if ($type) {
-                    $sql .= " AND c.name = :type";
-                    $params[':type'] = $type;
-                }
 
-                $sql .= " ORDER BY ";
-                switch ($sort) {
-                    case 'name': $sql .= "p.name"; break;
-                    case 'stock': $sql .= "p.stock_quantity"; break;
-                    case 'type': $sql .= "c.name"; break;
-                    default: $sql .= "p.id";
-                }
+                $sql .= " ORDER BY p.name";
                 $sql .= " LIMIT :limit OFFSET :offset";
                 $params[':limit'] = $limit;
                 $params[':offset'] = $offset;
@@ -109,16 +91,11 @@ if (isset($_REQUEST['action'])) {
                     $product['stock_quantity'] = $actual_stock;
                 }
 
-                if ($stock_status) {
-                    if ($stock_status == 'low') {
-                        $products = array_filter($products, function($p) use ($threshold) {
-                            return $p['stock_quantity'] <= $threshold;
-                        });
-                    } elseif ($stock_status == 'adequate') {
-                        $products = array_filter($products, function($p) use ($threshold) {
-                            return $p['stock_quantity'] > $threshold;
-                        });
-                    }
+                // Lọc theo số lượng tồn <= max_stock
+                if ($max_stock !== null && $max_stock > 0) {
+                    $products = array_filter($products, function($p) use ($max_stock) {
+                        return $p['stock_quantity'] <= $max_stock;
+                    });
                     $products = array_values($products);
                 }
 
@@ -129,28 +106,11 @@ if (isset($_REQUEST['action'])) {
                     $countSql .= " AND (p.name LIKE :search OR p.code LIKE :search)";
                     $countParams[':search'] = "%$search%";
                 }
-                if ($type) {
-                    $countSql .= " AND c.name = :type";
-                    $countParams[':type'] = $type;
-                }
                 $countStmt = $pdo->prepare($countSql);
                 foreach ($countParams as $key => $val) $countStmt->bindValue($key, $val);
                 $countStmt->execute();
                 $total = $countStmt->fetch()['total'];
                 $totalPages = ceil($total / $limit);
-
-                // Tính thống kê từ dữ liệu thực tế
-                $statsSql = "SELECT 
-                                COUNT(*) as total,
-                                SUM(CASE WHEN (SELECT COALESCE(SUM(d.quantity), 0) FROM import_details d JOIN imports i ON d.import_id = i.id WHERE d.product_id = p.id AND i.status = 'completed') - 
-                                            (SELECT COALESCE(SUM(od.quantity), 0) FROM order_details od JOIN orders o ON od.order_id = o.id WHERE od.product_id = p.id AND o.status != 'cancelled' AND o.status != 'new') <= :threshold THEN 1 ELSE 0 END) as low_stock,
-                                SUM(CASE WHEN (SELECT COALESCE(SUM(d.quantity), 0) FROM import_details d JOIN imports i ON d.import_id = i.id WHERE d.product_id = p.id AND i.status = 'completed') - 
-                                            (SELECT COALESCE(SUM(od.quantity), 0) FROM order_details od JOIN orders o ON od.order_id = o.id WHERE od.product_id = p.id AND o.status != 'cancelled' AND o.status != 'new') > :threshold THEN 1 ELSE 0 END) as adequate
-                             FROM products p WHERE status = 'active'";
-                $statsStmt = $pdo->prepare($statsSql);
-                $statsStmt->bindValue(':threshold', $threshold, PDO::PARAM_INT);
-                $statsStmt->execute();
-                $stats = $statsStmt->fetch();
 
                 echo json_encode([
                     'success' => true,
@@ -159,145 +119,8 @@ if (isset($_REQUEST['action'])) {
                         'current_page' => $page,
                         'total_pages' => $totalPages,
                         'total_records' => $total
-                    ],
-                    'stats' => $stats,
-                    'threshold' => $threshold
+                    ]
                 ]);
-                break;
-
-            case 'get_transactions':
-                $product_id = (int)($_GET['product_id'] ?? 0);
-                $date_from = $_GET['date_from'] ?? '';
-                $date_to = $_GET['date_to'] ?? '';
-
-                if (!$product_id) throw new Exception('Vui lòng chọn sản phẩm');
-
-                $stmt = $pdo->prepare("SELECT id, name FROM products WHERE id = ?");
-                $stmt->execute([$product_id]);
-                $product = $stmt->fetch();
-                if (!$product) throw new Exception('Sản phẩm không tồn tại');
-
-                // Import transactions
-                $importSql = "SELECT i.import_date, d.quantity, d.unit_cost, d.subtotal
-                              FROM import_details d
-                              JOIN imports i ON d.import_id = i.id
-                              WHERE d.product_id = :product_id AND i.status = 'completed'
-                              AND (:date_from = '' OR i.import_date >= :date_from)
-                              AND (:date_to = '' OR i.import_date <= :date_to)
-                              ORDER BY i.import_date";
-                $importStmt = $pdo->prepare($importSql);
-                $importStmt->execute([':product_id' => $product_id, ':date_from' => $date_from, ':date_to' => $date_to]);
-                $imports = $importStmt->fetchAll();
-
-                // Export transactions (chỉ lấy đơn hàng đã xác nhận)
-                $exportSql = "SELECT od.quantity, o.order_date
-                              FROM order_details od
-                              JOIN orders o ON od.order_id = o.id
-                              WHERE od.product_id = :product_id AND o.status != 'cancelled' AND o.status != 'new'
-                              AND (:date_from = '' OR o.order_date >= :date_from)
-                              AND (:date_to = '' OR o.order_date <= :date_to)
-                              ORDER BY o.order_date";
-                $exportStmt = $pdo->prepare($exportSql);
-                $exportStmt->execute([':product_id' => $product_id, ':date_from' => $date_from, ':date_to' => $date_to]);
-                $exports = $exportStmt->fetchAll();
-
-                $total_import = array_sum(array_column($imports, 'quantity'));
-                $total_export = array_sum(array_column($exports, 'quantity'));
-
-                // Stock before date_from
-                $startStock = 0;
-                if ($date_from) {
-                    $stmt = $pdo->prepare("SELECT SUM(d.quantity) as total_import_before
-                                           FROM import_details d
-                                           JOIN imports i ON d.import_id = i.id
-                                           WHERE d.product_id = ? AND i.status = 'completed' AND i.import_date < ?");
-                    $stmt->execute([$product_id, $date_from]);
-                    $importBefore = $stmt->fetch()['total_import_before'] ?? 0;
-
-                    $stmt = $pdo->prepare("SELECT SUM(od.quantity) as total_export_before
-                                           FROM order_details od
-                                           JOIN orders o ON od.order_id = o.id
-                                           WHERE od.product_id = ? AND o.status != 'cancelled' AND o.status != 'new' AND o.order_date < ?");
-                    $stmt->execute([$product_id, $date_from]);
-                    $exportBefore = $stmt->fetch()['total_export_before'] ?? 0;
-
-                    $startStock = $importBefore - $exportBefore;
-                } else {
-                    // Lấy tồn đầu kỳ từ bảng products
-                    $stmt = $pdo->prepare("SELECT stock_quantity FROM products WHERE id = ?");
-                    $stmt->execute([$product_id]);
-                    $startStock = $stmt->fetchColumn();
-                }
-
-                $endStock = $startStock + $total_import - $total_export;
-
-                $transactions = [];
-                foreach ($imports as $imp) {
-                    $transactions[] = [
-                        'date' => $imp['import_date'],
-                        'type' => 'import',
-                        'quantity' => $imp['quantity'],
-                        'unit' => 'cái',
-                        'note' => 'Nhập hàng, giá ' . number_format($imp['unit_cost']) . ' VNĐ'
-                    ];
-                }
-                foreach ($exports as $exp) {
-                    $transactions[] = [
-                        'date' => $exp['order_date'],
-                        'type' => 'export',
-                        'quantity' => $exp['quantity'],
-                        'unit' => 'cái',
-                        'note' => 'Xuất bán'
-                    ];
-                }
-                usort($transactions, function($a, $b) {
-                    return strtotime($a['date']) - strtotime($b['date']);
-                });
-
-                echo json_encode([
-                    'success' => true,
-                    'product' => $product,
-                    'transactions' => $transactions,
-                    'total_import' => $total_import,
-                    'total_export' => $total_export,
-                    'start_stock' => $startStock,
-                    'end_stock' => $endStock
-                ]);
-                break;
-
-            case 'get_stock_at_date':
-                $product_id = (int)($_GET['product_id'] ?? 0);
-                $date = $_GET['date'] ?? '';
-                if (!$product_id) throw new Exception('Vui lòng chọn sản phẩm');
-                if (!$date) throw new Exception('Vui lòng chọn ngày');
-
-                $stmt = $pdo->prepare("SELECT SUM(d.quantity) as total_import
-                                       FROM import_details d
-                                       JOIN imports i ON d.import_id = i.id
-                                       WHERE d.product_id = ? AND i.status = 'completed' AND i.import_date <= ?");
-                $stmt->execute([$product_id, $date]);
-                $total_import = $stmt->fetch()['total_import'] ?? 0;
-
-                $stmt = $pdo->prepare("SELECT SUM(od.quantity) as total_export
-                                       FROM order_details od
-                                       JOIN orders o ON od.order_id = o.id
-                                       WHERE od.product_id = ? AND o.status != 'cancelled' AND o.status != 'new' AND o.order_date <= ?");
-                $stmt->execute([$product_id, $date]);
-                $total_export = $stmt->fetch()['total_export'] ?? 0;
-
-                $stock = $total_import - $total_export;
-                echo json_encode([
-                    'success' => true,
-                    'product_id' => $product_id,
-                    'date' => $date,
-                    'stock' => $stock
-                ]);
-                break;
-
-            case 'get_categories':
-                $stmt = $pdo->query("SELECT name FROM categories WHERE status = 'active' ORDER BY name");
-                $categories = $stmt->fetchAll(PDO::FETCH_COLUMN);
-                echo json_encode($categories);
                 break;
 
             case 'get_products':
@@ -310,7 +133,6 @@ if (isset($_REQUEST['action'])) {
                 $product_id = (int)($_GET['id'] ?? 0);
                 if (!$product_id) throw new Exception('Missing product ID');
                 
-                // Lấy thông tin sản phẩm và tính tổng nhập/xuất thực tế
                 $stmt = $pdo->prepare("SELECT p.id, p.code, p.name, p.category_id, c.name as category_name, 
                                               p.cost_price, p.selling_price, p.stock_quantity,
                                               COALESCE((SELECT SUM(d.quantity) FROM import_details d JOIN imports i ON d.import_id = i.id WHERE d.product_id = p.id AND i.status = 'completed'), 0) as total_import,
@@ -322,7 +144,6 @@ if (isset($_REQUEST['action'])) {
                 $product = $stmt->fetch();
                 if (!$product) throw new Exception('Product not found');
                 
-                // Cập nhật stock_quantity thực tế
                 $product['stock_quantity'] = $product['total_import'] - $product['total_export'];
                 
                 echo json_encode(['success' => true, 'product' => $product]);
@@ -434,70 +255,53 @@ if (isset($_REQUEST['action'])) {
             }
         }
         .filter-section {
-            background-color: var(--primary-color);
+            background-color: #e9ecef;
             padding: 20px;
             border-radius: 10px;
             margin-bottom: 20px;
+            border-left: 5px solid var(--primary-color);
         }
         .filter-section h3 {
             margin-bottom: 20px;
             color: var(--dark-color);
+            font-size: 1.3rem;
         }
-        .stats-row {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
-            margin-bottom: 30px;
+        .stock-tabs {
+            margin-bottom: 25px;
+            border-bottom: 2px solid #e9ecef;
         }
-        .stat-card {
-            flex: 1;
-            min-width: 180px;
-            border-radius: 12px;
-            transition: transform 0.2s, box-shadow 0.2s;
-            cursor: pointer;
-            color: white;
-        }
-        .stat-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
-        }
-        .stat-card .card-body {
-            padding: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        .stat-info h3 {
-            font-size: 2rem;
-            font-weight: 700;
-            margin: 0;
-            line-height: 1.2;
-            color: white;
-        }
-        .stat-info p {
-            margin: 5px 0 0;
+        .stock-tabs .nav-link {
+            color: var(--secondary-color);
             font-weight: 500;
-            color: rgba(255,255,255,0.9);
+            padding: 12px 24px;
+            margin-bottom: -2px;
+            border: none;
+            border-radius: 0;
         }
-        .stat-icon {
-            font-size: 2.5rem;
-            opacity: 0.9;
-            color: white;
+        .stock-tabs .nav-link:hover {
+            color: var(--primary-color);
         }
-        .bg-primary-custom {
-            background-color: #007bff !important;
-        }
-        .bg-success-custom {
-            background-color: #28a745 !important;
-        }
-        .bg-danger-custom {
-            background-color: #dc3545 !important;
+        .stock-tabs .nav-link.active {
+            color: var(--primary-color);
+            border-bottom: 3px solid var(--primary-color);
+            background-color: transparent;
         }
         .low-stock {
-            background-color: #ffdddd;
+            background-color: #fff3e0;
         }
-        .warning {
+        .out-stock {
+            background-color: #ffe0e0;
+        }
+        .status-warning {
+            color: #ffc107;
+            font-weight: bold;
+        }
+        .status-danger {
             color: #dc3545;
+            font-weight: bold;
+        }
+        .status-success {
+            color: #28a745;
             font-weight: bold;
         }
         .product-link {
@@ -505,6 +309,7 @@ if (isset($_REQUEST['action'])) {
             text-decoration: none;
             font-weight: 500;
             transition: color 0.3s;
+            cursor: pointer;
         }
         .product-link:hover {
             color: var(--primary-color);
@@ -562,37 +367,6 @@ if (isset($_REQUEST['action'])) {
         .profile-info-value {
             color: #555;
         }
-        .detail-search-section {
-            background-color: #e9ecef;
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            border-left: 5px solid var(--primary-color);
-        }
-        .detail-search-result {
-            display: none;
-            margin-top: 20px;
-            padding: 15px;
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,.1);
-        }
-        .summary-card {
-            text-align: center;
-            padding: 15px;
-            border-radius: 8px;
-            color: white;
-            margin-bottom: 15px;
-        }
-        .summary-card.import {
-            background-color: #17a2b8;
-        }
-        .summary-card.export {
-            background-color: #28a745;
-        }
-        .summary-card.stock {
-            background-color: #6c757d;
-        }
         .info-card {
             background-color: #f8f9fa;
             border-radius: 8px;
@@ -625,8 +399,21 @@ if (isset($_REQUEST['action'])) {
             font-weight: bold;
             color: var(--secondary-color);
         }
-        .transaction-table th {
-            background-color: #e9ecef;
+        .btn-primary-custom {
+            background-color: var(--primary-color);
+            color: var(--dark-color);
+            border: none;
+        }
+        .btn-primary-custom:hover {
+            background-color: #e6a500;
+            color: var(--dark-color);
+        }
+        .text-center-cell {
+            text-align: center;
+            vertical-align: middle;
+        }
+        .pagination-wrapper {
+            margin-top: 20px;
         }
     </style>
 </head>
@@ -666,186 +453,72 @@ if (isset($_REQUEST['action'])) {
                 </div>
             </nav>
 
-            <div id="stock-management-page" class="page-content">
-                <h2 class="mb-4">Quản lý Tồn kho</h2>
+            <h2 class="mb-4">Quản lý Tồn kho</h2>
 
-                <!-- Filter Section -->
-                <div class="filter-section">
-                    <h3><i class="fas fa-filter me-2"></i>Bộ lọc tồn kho</h3>
-                    <form id="stock-filter-form">
-                        <div class="row">
-                            <div class="col-md-3 mb-3">
-                                <label for="search-name" class="form-label">Tìm sản phẩm</label>
-                                <input type="text" class="form-control" id="search-name" name="search" placeholder="Nhập tên sản phẩm...">
-                            </div>
-                            <div class="col-md-3 mb-3">
-                                <label for="filter-type" class="form-label">Loại sản phẩm</label>
-                                <select class="form-select" id="filter-type" name="type">
-                                    <option value="">Tất cả</option>
-                                </select>
-                            </div>
-                            <div class="col-md-3 mb-3">
-                                <label for="stock-status" class="form-label">Trạng thái tồn kho</label>
-                                <select class="form-select" id="stock-status" name="stock-status">
-                                    <option value="">Tất cả</option>
-                                    <option value="low">Sắp hết hàng (≤10)</option>
-                                    <option value="adequate">Đủ hàng (>10)</option>
-                                </select>
-                            </div>
-                            <div class="col-md-3 mb-3">
-                                <label for="sort-by" class="form-label">Sắp xếp theo</label>
-                                <select class="form-select" id="sort-by" name="sort">
-                                    <option value="name">Tên sản phẩm</option>
-                                    <option value="stock">Số lượng tồn</option>
-                                    <option value="type">Loại sản phẩm</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="row mt-2">
-                            <div class="col-12 text-end">
-                                <button type="submit" class="btn btn-dark"><i class="fas fa-search me-2"></i>Tìm kiếm</button>
-                                <button type="reset" class="btn btn-outline-dark ms-2"><i class="fas fa-undo me-2"></i>Đặt lại</button>
-                            </div>
-                        </div>
-                    </form>
-                </div>
+            <!-- Tab Navigation -->
+            <ul class="nav nav-tabs stock-tabs" id="stockTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link active" href="inventory.php">Danh sách tồn kho</a>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link" href="inventory_detail.php">Tra cứu tồn kho</a>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link" href="inventory_import.php">Tra cứu nhập kho</a>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link" href="inventory_export.php">Tra cứu xuất kho</a>
+                </li>
+            </ul>
 
-                <!-- Statistics Cards -->
-                <div class="stats-row">
-                    <div class="stat-card bg-primary-custom" data-status="total">
-                        <div class="card-body">
-                            <div class="stat-info">
-                                <h3 id="total-products">0</h3>
-                                <p>Tổng sản phẩm</p>
-                            </div>
-                            <div class="stat-icon">
-                                <i class="fas fa-boxes"></i>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="stat-card bg-success-custom" data-status="adequate">
-                        <div class="card-body">
-                            <div class="stat-info">
-                                <h3 id="in-stock-products">0</h3>
-                                <p>Sản phẩm đủ hàng</p>
-                            </div>
-                            <div class="stat-icon">
-                                <i class="fas fa-check-circle"></i>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="stat-card bg-danger-custom" data-status="low">
-                        <div class="card-body">
-                            <div class="stat-info">
-                                <h3 id="low-stock-products">0</h3>
-                                <p>Sản phẩm sắp hết</p>
-                            </div>
-                            <div class="stat-icon">
-                                <i class="fas fa-exclamation-triangle"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Tra cứu tồn tại thời điểm -->
-                <div class="detail-search-section mb-3">
-                    <h3><i class="fas fa-calendar-day me-2"></i>Tra cứu tồn kho tại thời điểm</h3>
+            <!-- Filter Section -->
+            <div class="filter-section">
+                <h3><i class="fas fa-filter me-2"></i>Bộ lọc tồn kho</h3>
+                <form id="stock-filter-form">
                     <div class="row">
-                        <div class="col-md-5 mb-3">
-                            <label class="form-label">Chọn sản phẩm</label>
-                            <select id="stock-date-product" class="form-select">
-                                <option value="">-- Chọn sản phẩm --</option>
-                            </select>
+                        <div class="col-md-4 mb-3">
+                            <label for="search-name" class="form-label">Tìm sản phẩm</label>
+                            <input type="text" class="form-control" id="search-name" name="search" placeholder="Nhập tên sản phẩm...">
                         </div>
                         <div class="col-md-4 mb-3">
-                            <label class="form-label">Ngày</label>
-                            <input type="date" id="stock-date" class="form-control">
+                            <label for="max-stock" class="form-label">Lọc tồn kho ≤</label>
+                            <input type="number" class="form-control" id="max-stock" name="max-stock" placeholder="Nhập số lượng tối đa">
                         </div>
-                        <div class="col-md-3 mb-3 d-flex align-items-end">
-                            <button id="check-stock-date" class="btn btn-dark w-100">Tra cứu</button>
+                        <div class="col-md-4 mb-3 d-flex align-items-end">
+                            <div class="d-flex gap-2 w-100">
+                                <button type="submit" class="btn btn-primary-custom flex-grow-1"><i class="fas fa-search me-2"></i>Tìm kiếm</button>
+                                <button type="reset" class="btn btn-outline-secondary flex-grow-1"><i class="fas fa-undo me-2"></i>Đặt lại</button>
+                            </div>
                         </div>
                     </div>
-                    <div id="stock-date-result" class="alert alert-info mt-2" style="display: none;"></div>
-                </div>
+                </form>
+            </div>
 
-                <!-- Báo cáo nhập xuất -->
-                <div class="detail-search-section">
-                    <h3><i class="fas fa-chart-line me-2"></i>Tra cứu chi tiết nhập - xuất - tồn</h3>
-                    <form id="detail-search-form">
-                        <div class="row">
-                            <div class="col-md-4 mb-3">
-                                <label for="detail-product" class="form-label">Chọn sản phẩm</label>
-                                <select class="form-select" id="detail-product" name="detail-product">
-                                    <option value="">-- Chọn sản phẩm --</option>
-                                </select>
-                            </div>
-                            <div class="col-md-3 mb-3">
-                                <label for="detail-date-from" class="form-label">Từ ngày</label>
-                                <input type="date" class="form-control" id="detail-date-from" name="detail-date-from">
-                            </div>
-                            <div class="col-md-3 mb-3">
-                                <label for="detail-date-to" class="form-label">Đến ngày</label>
-                                <input type="date" class="form-control" id="detail-date-to" name="detail-date-to">
-                            </div>
-                            <div class="col-md-2 mb-3 d-flex align-items-end">
-                                <button type="submit" class="btn btn-dark w-100"><i class="fas fa-search me-2"></i>Tra cứu</button>
-                            </div>
-                        </div>
-                    </form>
-                    <div id="detail-search-result" class="detail-search-result">
-                        <h5>Kết quả tra cứu</h5>
-                        <div class="row mb-4">
-                            <div class="col-md-4">
-                                <div class="summary-card import">
-                                    <i class="fas fa-arrow-down fa-2x"></i>
-                                    <h4 id="total-import">0</h4>
-                                    <p>Tổng nhập</p>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="summary-card export">
-                                    <i class="fas fa-arrow-up fa-2x"></i>
-                                    <h4 id="total-export">0</h4>
-                                    <p>Tổng xuất</p>
-                                </div>
-                            </div>
-                            
-                        </div>
-                        <div class="table-responsive">
-                            <table class="table table-bordered">
-                                <thead class="table-light">
-                                    <th>Ngày</th><th>Loại giao dịch</th><th>Số lượng</th><th>Đơn vị</th><th>Ghi chú</th>
-                                </thead>
-                                <tbody id="detail-result-body"></tbody>
-                               </table>
-                        </div>
-                    </div>
+            <!-- Bảng tồn kho -->
+            <div class="card card-custom">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">Danh sách tồn kho</h5>
                 </div>
-
-                <!-- Bảng tồn kho -->
-                <div class="card card-custom">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="card-title mb-0">Danh sách tồn kho</h5>
-                        <div class="search-box">
-                            <div class="input-group">
-                                <input type="text" class="form-control" placeholder="Tìm kiếm sản phẩm..." id="search-stock-input">
-                                <button class="btn btn-outline-secondary" id="search-stock-btn"><i class="fas fa-search"></i></button>
-                            </div>
-                        </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Mã SP</th>
+                                    <th>Tên sản phẩm</th>
+                                    <th>Loại</th>
+                                    <th class="text-center">Số lượng tồn</th>
+                                    <th>Trạng thái</th>
+                                </tr>
+                            </thead>
+                            <tbody id="stock-table-body">
+                                <tr><td colspan="5" class="text-center">Đang tải...</td></tr>
+                            </tbody>
+                        </table>
                     </div>
-                    <div class="card-body">
-                        <div class="table-responsive">
-                            <table class="table table-hover">
-                                <thead>
-                                    <th>Mã SP</th><th>Tên sản phẩm</th><th>Loại</th><th>Số lượng nhập</th><th>Số lượng xuất</th><th>Số lượng tồn</th><th>Trạng thái</th><th>Thao tác</th>
-                                </thead>
-                                <tbody id="stock-table-body">
-                                    <td colspan="8" class="text-center">Đang tải...</td>
-                                </tbody>
-                             </table>
-                        </div>
+                    <div class="pagination-wrapper">
                         <nav aria-label="Page navigation">
-                            <ul class="pagination justify-content-center mt-4" id="pagination-container"></ul>
+                            <ul class="pagination justify-content-center" id="pagination-container"></ul>
                         </nav>
                     </div>
                 </div>
@@ -898,8 +571,7 @@ if (isset($_REQUEST['action'])) {
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         let currentPage = 1;
-        let currentFilters = { search: '', type: '', stock_status: '', sort: '' };
-        let threshold = 10;
+        let currentFilters = { search: '', max_stock: '' };
 
         $('#toggle-sidebar').click(function() {
             const sidebar = $('.sidebar');
@@ -930,66 +602,63 @@ if (isset($_REQUEST['action'])) {
         adjustSidebar();
         $(window).resize(adjustSidebar);
 
-        function loadCategories() {
-            $.getJSON('inventory.php', { action: 'get_categories' }, function(data) {
-                let options = '<option value="">Tất cả</option>';
-                data.forEach(cat => options += `<option value="${cat}">${cat}</option>`);
-                $('#filter-type').html(options);
-            });
-        }
-
-        function loadProductSelects() {
-            $.getJSON('inventory.php', { action: 'get_products' }, function(products) {
-                let options = '<option value="">-- Chọn sản phẩm --</option>';
-                products.forEach(p => options += `<option value="${p.id}">${p.name}</option>`);
-                $('#detail-product').html(options);
-                $('#stock-date-product').html(options);
-            });
-        }
-
         function loadStock() {
             const params = {
                 action: 'list',
                 page: currentPage,
                 search: currentFilters.search,
-                type: currentFilters.type,
-                stock_status: currentFilters.stock_status,
-                sort: currentFilters.sort,
-                threshold: threshold
+                max_stock: currentFilters.max_stock !== '' ? currentFilters.max_stock : null
             };
             $.getJSON('inventory.php', params, function(response) {
                 if (response.success) {
                     renderStockTable(response.data);
                     renderPagination(response.pagination);
-                    updateStats(response.stats);
                 } else {
                     alert('Lỗi tải dữ liệu: ' + response.error);
                 }
             });
         }
 
+        function getStockStatus(stock) {
+            if (stock <= 0) {
+                return {
+                    text: 'Hết hàng',
+                    class: 'status-danger',
+                    icon: 'fa-times-circle'
+                };
+            } else if (stock <= 10) {
+                return {
+                    text: 'Sắp hết hàng',
+                    class: 'status-warning',
+                    icon: 'fa-exclamation-triangle'
+                };
+            } else {
+                return {
+                    text: 'Đủ hàng',
+                    class: 'status-success',
+                    icon: 'fa-check-circle'
+                };
+            }
+        }
+
         function renderStockTable(products) {
             const tbody = $('#stock-table-body');
             if (!products.length) {
-                tbody.html('<tr><td colspan="8" class="text-center">Không có sản phẩm nào</td></tr>');
+                tbody.html('<tr><td colspan="5" class="text-center">Không có sản phẩm nào</td></tr>');
                 return;
             }
             let html = '';
             products.forEach(p => {
-                const isLow = p.stock_quantity <= threshold;
-                const rowClass = isLow ? 'low-stock' : '';
-                const statusHtml = isLow ? '<span class="warning"><i class="fas fa-exclamation-triangle me-1"></i>Sắp hết hàng! (còn ' + p.stock_quantity + ')</span>' : '<span class="text-success"><i class="fas fa-check-circle me-1"></i>Đủ hàng</span>';
+                const status = getStockStatus(p.stock_quantity);
+                const rowClass = p.stock_quantity <= 0 ? 'out-stock' : (p.stock_quantity <= 10 ? 'low-stock' : '');
                 html += `
                     <tr class="${rowClass}">
-                         <td>${escapeHtml(p.code)}</td>
-                         <td><a href="#" class="product-link view-detail" data-id="${p.id}">${escapeHtml(p.name)}</a></td>
-                         <td>${escapeHtml(p.category_name || '')}</td>
-                         <td class="text-center">${p.total_import}</td>
-                         <td class="text-center">${p.total_export}</td>
-                         <td class="text-center"><strong>${p.stock_quantity}</strong></td>
-                         <td>${statusHtml}</td>
-                         <td><button class="btn btn-sm btn-custom view-detail" data-id="${p.id}"><i class="fas fa-eye me-1"></i>Xem</button></td>
-                     </tr>
+                        <td>${escapeHtml(p.code)}</td>
+                        <td><a href="#" class="product-link view-detail" data-id="${p.id}">${escapeHtml(p.name)}</a></td>
+                        <td>${escapeHtml(p.category_name || '')}</td>
+                        <td class="text-center"><strong>${p.stock_quantity}</strong></td>
+                        <td><span class="${status.class}"><i class="fas ${status.icon} me-1"></i>${status.text}</span></td>
+                    </tr>
                 `;
             });
             tbody.html(html);
@@ -1024,103 +693,20 @@ if (isset($_REQUEST['action'])) {
             });
         }
 
-        function updateStats(stats) {
-            $('#total-products').text(stats.total || 0);
-            $('#in-stock-products').text(stats.adequate || 0);
-            $('#low-stock-products').text(stats.low_stock || 0);
-        }
-
-        $('#check-stock-date').click(function() {
-            const productId = $('#stock-date-product').val();
-            const date = $('#stock-date').val();
-            if (!productId) { alert('Vui lòng chọn sản phẩm'); return; }
-            if (!date) { alert('Vui lòng chọn ngày'); return; }
-            $.getJSON('inventory.php', { action: 'get_stock_at_date', product_id: productId, date: date }, function(res) {
-                if (res.success) {
-                    $('#stock-date-result').html(`Tồn kho ngày ${new Date(res.date).toLocaleDateString('vi-VN')}: <strong>${res.stock}</strong> sản phẩm`).show();
-                } else {
-                    alert('Lỗi: ' + res.error);
-                }
-            });
-        });
-
-        $('#detail-search-form').submit(function(e) {
-            e.preventDefault();
-            const productId = $('#detail-product').val();
-            const dateFrom = $('#detail-date-from').val();
-            const dateTo = $('#detail-date-to').val();
-            if (!productId) { alert('Vui lòng chọn sản phẩm'); return; }
-            $.getJSON('inventory.php', { action: 'get_transactions', product_id: productId, date_from: dateFrom, date_to: dateTo }, function(res) {
-                if (res.success) {
-                    $('#total-import').text(res.total_import);
-                    $('#total-export').text(res.total_export);
-                    $('#total-stock').text(res.end_stock);
-                    const tbody = $('#detail-result-body');
-                    tbody.empty();
-                    if (res.transactions.length === 0) {
-                        tbody.html('<tr><td colspan="5" class="text-center">Không có giao dịch</td></tr>');
-                    } else {
-                        res.transactions.forEach(t => {
-                            const typeText = t.type === 'import' ? 'Nhập hàng' : 'Xuất hàng';
-                            const typeClass = t.type === 'import' ? 'text-success' : 'text-danger';
-                            tbody.append(`
-                                <tr>
-                                    <td>${new Date(t.date).toLocaleDateString('vi-VN')}</td>
-                                    <td><span class="${typeClass}">${typeText}</span></td>
-                                    <td class="text-center">${t.quantity}</td>
-                                    <td>${t.unit}</td>
-                                    <td>${t.note}</td>
-                                </tr>
-                            `);
-                        });
-                    }
-                    $('#detail-search-result').show();
-                } else {
-                    alert('Lỗi: ' + res.error);
-                }
-            });
-        });
-
         $('#stock-filter-form').submit(function(e) {
             e.preventDefault();
             currentFilters.search = $('#search-name').val();
-            currentFilters.type = $('#filter-type').val();
-            currentFilters.stock_status = $('#stock-status').val();
-            currentFilters.sort = $('#sort-by').val();
+            currentFilters.max_stock = $('#max-stock').val();
             currentPage = 1;
             loadStock();
         });
         
         $('#stock-filter-form button[type="reset"]').click(function() {
             $('#search-name').val('');
-            $('#filter-type').val('');
-            $('#stock-status').val('');
-            $('#sort-by').val('name');
-            currentFilters = { search: '', type: '', stock_status: '', sort: 'name' };
+            $('#max-stock').val('');
+            currentFilters = { search: '', max_stock: '' };
             currentPage = 1;
             loadStock();
-        });
-
-        $('#search-stock-btn').click(function() {
-            currentFilters.search = $('#search-stock-input').val();
-            currentPage = 1;
-            loadStock();
-        });
-        
-        $('#search-stock-input').keypress(function(e) {
-            if (e.which === 13) {
-                currentFilters.search = $(this).val();
-                currentPage = 1;
-                loadStock();
-            }
-        });
-
-        $('.stat-card').click(function() {
-            const status = $(this).data('status');
-            if (status === 'adequate' || status === 'low') {
-                $('#stock-status').val(status);
-                $('#stock-filter-form').submit();
-            }
         });
 
         function showProductDetail(productId) {
@@ -1134,48 +720,26 @@ if (isset($_REQUEST['action'])) {
                         return;
                     }
                     const product = productRes.product;
-                    $.getJSON('inventory.php', { action: 'get_transactions', product_id: productId })
-                        .done(function(transRes) {
-                            if (!transRes.success) {
-                                $('#product-detail-content').html('<div class="alert alert-danger">Lỗi tải lịch sử: ' + (transRes.error || '') + '</div>');
-                                return;
-                            }
-                            const transactions = transRes.transactions;
-                            const totalImport = transRes.total_import;
-                            const totalExport = transRes.total_export;
-                            const endStock = transRes.end_stock;
+                    
+                    const formatMoney = (amount) => new Intl.NumberFormat('vi-VN').format(amount);
+                    const status = getStockStatus(product.stock_quantity);
 
-                            const formatMoney = (amount) => new Intl.NumberFormat('vi-VN').format(amount);
-
-                            let html = `
-                                <div class="row mb-3">
-                                    <div class="col-md-6"><div class="info-card"><div class="info-label">Mã sản phẩm</div><div class="info-value">${product.code}</div></div></div>
-                                    <div class="col-md-6"><div class="info-card"><div class="info-label">Tên sản phẩm</div><div class="info-value">${escapeHtml(product.name)}</div></div></div>
-                                </div>
-                                <div class="row mb-3">
-                                    <div class="col-md-6"><div class="info-card"><div class="info-label">Loại sản phẩm</div><div class="info-value">${escapeHtml(product.category_name || 'Không xác định')}</div></div></div>
-                                    <div class="col-md-6"><div class="info-card"><div class="info-label">Giá vốn (VNĐ)</div><div class="info-value">${formatMoney(product.cost_price)}</div></div></div>
-                                </div>
-                                <div class="row mb-3">
-                                    <div class="col-md-6"><div class="info-card"><div class="info-label">Giá bán (VNĐ)</div><div class="info-value">${formatMoney(product.selling_price)}</div></div></div>
-                                    <div class="col-md-6"><div class="info-card"><div class="info-label">Tồn kho hiện tại</div><div class="info-value">${product.stock_quantity}</div></div></div>
-                                </div>
-                                <div class="stock-summary mb-4"><div class="row text-center"><div class="col-4"><div class="stock-summary-label">Tổng nhập</div><div class="stock-summary-value">${totalImport}</div></div><div class="col-4"><div class="stock-summary-label">Tổng xuất</div><div class="stock-summary-value">${totalExport}</div></div><div class="col-4"><div class="stock-summary-label"></div></div></div></div>
-                                <h5 class="mt-3 mb-3"><i class="fas fa-history me-2"></i>Lịch sử nhập - xuất</h5>
-                                <div class="table-responsive"><table class="table table-bordered transaction-table"><thead><tr><th>Ngày</th><th>Loại giao dịch</th><th>Số lượng</th><th>Đơn vị</th><th>Ghi chú</th></tr></thead><tbody>
-                            `;
-                            if (transactions.length === 0) {
-                                html += '<tr><td colspan="5" class="text-center">Không có giao dịch nào</td></tr>';
-                            } else {
-                                transactions.forEach(t => {
-                                    const typeText = t.type === 'import' ? 'Nhập hàng' : 'Xuất hàng';
-                                    const typeClass = t.type === 'import' ? 'text-success' : 'text-danger';
-                                    html += `<tr><td>${new Date(t.date).toLocaleDateString('vi-VN')}</td><td><span class="${typeClass}">${typeText}</span></td><td class="text-center">${t.quantity}</td><td>${t.unit}</td><td>${t.note}</td></tr>`;
-                                });
-                            }
-                            html += `</tbody></table></div>`;
-                            $('#product-detail-content').html(html);
-                        });
+                    let html = `
+                        <div class="row mb-3">
+                            <div class="col-md-6"><div class="info-card"><div class="info-label">Mã sản phẩm</div><div class="info-value">${product.code}</div></div></div>
+                            <div class="col-md-6"><div class="info-card"><div class="info-label">Tên sản phẩm</div><div class="info-value">${escapeHtml(product.name)}</div></div></div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6"><div class="info-card"><div class="info-label">Loại sản phẩm</div><div class="info-value">${escapeHtml(product.category_name || 'Không xác định')}</div></div></div>
+                            <div class="col-md-6"><div class="info-card"><div class="info-label">Giá vốn (VNĐ)</div><div class="info-value">${formatMoney(product.cost_price)}</div></div></div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6"><div class="info-card"><div class="info-label">Giá bán (VNĐ)</div><div class="info-value">${formatMoney(product.selling_price)}</div></div></div>
+                            <div class="col-md-6"><div class="info-card"><div class="info-label">Tồn kho hiện tại</div><div class="info-value"><span class="${status.class}">${product.stock_quantity}</span></div></div></div>
+                        </div>
+                        <div class="stock-summary mb-4"><div class="row text-center"><div class="col-6"><div class="stock-summary-label">Tổng nhập</div><div class="stock-summary-value">${product.total_import}</div></div><div class="col-6"><div class="stock-summary-label">Tổng xuất</div><div class="stock-summary-value">${product.total_export}</div></div></div></div>
+                    `;
+                    $('#product-detail-content').html(html);
                 });
         }
 
@@ -1195,17 +759,7 @@ if (isset($_REQUEST['action'])) {
             });
         }
 
-        loadCategories();
-        loadProductSelects();
         loadStock();
-        
-        const today = new Date();
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(today.getDate() - 30);
-        const formatDate = (date) => date.toISOString().slice(0,10);
-        $('#detail-date-from').val(formatDate(thirtyDaysAgo));
-        $('#detail-date-to').val(formatDate(today));
-        $('#stock-date').val(formatDate(today));
     </script>
 </body>
 </html>
