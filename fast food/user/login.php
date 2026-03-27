@@ -509,16 +509,14 @@ unset($_SESSION['warning']);
           <label>
             <input type="checkbox" name="remember"> Ghi nhớ đăng nhập
           </label>
-          <a href="forgot-password.php" class="forgot-password">Quên mật khẩu?</a>
+          
         </div>
 
         <button type="submit" class="btn-login">
           <i class="fas fa-sign-in-alt"></i> Đăng nhập
         </button>
 
-        <div class="form-footer">
-          <p>Chưa có tài khoản? <a href="register.php">Đăng ký ngay</a></p>
-        </div>
+        
       </form>
     </div>
   </div>
