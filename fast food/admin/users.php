@@ -620,7 +620,6 @@ $stats = $statsStmt->fetch();
                 <div class="table-responsive">
                     <table class="table table-hover">
                         <thead>
-                            32
                                 <th>ID</th>
                                 <th>Thông tin</th>
                                 <th>Email</th>
