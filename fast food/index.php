@@ -493,10 +493,7 @@ $is_logged_in = isset($_SESSION['user_id']);
                     <span>Thông tin tài khoản</span>
                   </a>
                   <div class="dropdown-divider"></div>
-                  <a href="user/logout.php" class="dropdown-item-custom text-danger">
-                    <i class="fa fa-sign-out"></i>
-                    <span>Đăng xuất</span>
-                  </a>
+                  <
                 </div>
               </div>
             <?php else: ?>
