@@ -493,7 +493,7 @@ $is_logged_in = isset($_SESSION['user_id']);
                     <span>Thông tin tài khoản</span>
                   </a>
                   <div class="dropdown-divider"></div>
-                  <
+                  
                 </div>
               </div>
             <?php else: ?>

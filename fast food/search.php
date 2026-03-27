@@ -121,6 +121,49 @@ $display_max_price = isset($_GET['max_price']) && $_GET['max_price'] !== '' ? (f
   <link href="css/responsive.css" rel="stylesheet" />
 
   <style>
+    /* Căn giữa form group phân loại */
+    .form-group-center {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 20px;
+    }
+
+    .form-group-center label {
+        margin-bottom: 10px;
+        text-align: center;
+        font-weight: 500;
+        color: #333;
+    }
+
+    .form-group-center select {
+        width: 100%;
+        max-width: 400px; /* Tùy chỉnh độ rộng tối đa */
+        text-align: center;
+        text-align-last: center;
+        cursor: pointer;
+        border-radius: 8px;
+        border: 1px solid #ddd;
+        padding: 10px 15px;
+        font-size: 16px;
+    }
+
+    .form-group-center select:hover {
+        border-color: #ffbe33;
+    }
+
+    .form-group-center select:focus {
+        outline: none;
+        border-color: #ffbe33;
+        box-shadow: 0 0 0 2px rgba(255, 190, 51, 0.2);
+    }
+
+    /* Tùy chỉnh cho các option bên trong select */
+    .form-group-center select option {
+        text-align: center;
+        padding: 8px;
+    }
     /* Đồng bộ hoàn toàn CSS từ menu.php */
     .hero_area {
       min-height: auto !important;
@@ -214,106 +257,56 @@ $display_max_price = isset($_GET['max_price']) && $_GET['max_price'] !== '' ? (f
       }
     }
     
-    /* Add to Cart Button Styles - Giống index.php */
+    /* Add to Cart Button Styles */
     .add-to-cart-btn {
       background: #ffbe33;
       border: none;
       cursor: pointer;
-      padding: 8px 18px;
-      border-radius: 25px;
-      transition: all 0.3s ease;
+      padding: 10px 15px;
+      border-radius: 30px;
+      transition: all 0.3s;
       display: inline-flex;
       align-items: center;
-      justify-content: center;
-      gap: 6px;
-      color: #ffffff;
-      font-weight: 600;
-      font-size: 13px;
-      text-decoration: none;
-      font-family: inherit;
-      line-height: 1;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-      min-width: 70px;
+      gap: 8px;
+      color: white;
+      font-weight: 500;
+      font-size: 14px;
     }
     
     .add-to-cart-btn i {
-      font-size: 12px;
-      color: #ffffff;
+      font-size: 14px;
     }
     
     .add-to-cart-btn:hover {
       background: #e69c00;
       transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(255, 190, 51, 0.4);
-      color: #ffffff;
-      text-decoration: none;
+      box-shadow: 0 5px 15px rgba(255, 190, 51, 0.3);
     }
     
     .add-to-cart-btn:active {
       transform: translateY(0);
     }
     
-    /* Force override any conflicting styles */
-    .box .options .add-to-cart-btn,
-    .box .options button.add-to-cart-btn {
-      background: #ffbe33 !important;
-      border: none !important;
-      padding: 8px 18px !important;
-      border-radius: 25px !important;
-      display: inline-flex !important;
-      align-items: center !important;
-      gap: 6px !important;
-      color: #ffffff !important;
-      font-weight: 600 !important;
-      font-size: 13px !important;
-      text-decoration: none !important;
-      font-family: inherit !important;
-      cursor: pointer !important;
-      min-width: 70px !important;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1) !important;
-    }
-    
-    .box .options .add-to-cart-btn i,
-    .box .options button.add-to-cart-btn i {
-      font-size: 12px !important;
-      color: #ffffff !important;
-    }
-    
-    .box .options .add-to-cart-btn:hover,
-    .box .options button.add-to-cart-btn:hover {
-      background: #e69c00 !important;
-      transform: translateY(-2px) !important;
-      color: #ffffff !important;
-      text-decoration: none !important;
-    }
-    
     /* Cart link button for non-logged in users */
     .cart-link-btn {
       background: #ffbe33;
       border: none;
-      padding: 8px 18px;
-      border-radius: 25px;
+      padding: 10px 15px;
+      border-radius: 30px;
       display: inline-flex;
       align-items: center;
-      justify-content: center;
-      gap: 6px;
-      color: #ffffff;
-      font-weight: 600;
-      font-size: 13px;
+      gap: 8px;
+      color: white;
+      font-weight: 500;
+      font-size: 14px;
       text-decoration: none;
-      transition: all 0.3s ease;
-      min-width: 70px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    }
-    
-    .cart-link-btn i {
-      font-size: 12px;
+      transition: all 0.3s;
     }
     
     .cart-link-btn:hover {
       background: #e69c00;
       transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(255, 190, 51, 0.4);
+      box-shadow: 0 5px 15px rgba(255, 190, 51, 0.3);
       color: white;
       text-decoration: none;
     }
@@ -622,353 +615,189 @@ $display_max_price = isset($_GET['max_price']) && $_GET['max_price'] !== '' ? (f
       font-size: 18px;
     }
     
-    /* Enhanced Filter Sidebar Styles - Thiết kế mới */
+    /* Filter Sidebar Styles - NỀN ĐEN, INPUT CHỮ ĐEN */
     .filter_sidebar { 
-      background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
-      color: #ffffff; 
-      padding: 35px 30px; 
-      border-radius: 20px; 
-      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-      margin-bottom: 30px;
-      border: 1px solid rgba(255, 190, 51, 0.2);
-      transition: all 0.3s ease;
+        background: #000000; 
+        color: #ffffff; 
+        padding: 35px 30px; 
+        border-radius: 15px; 
+        box-shadow: 0 4px 15px rgba(0,0,0,0.5); 
+        margin-bottom: 30px;
+        border: 1px solid #333;
     }
     
-    .filter_sidebar:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 15px 40px rgba(0,0,0,0.4);
-      border-color: rgba(255, 190, 51, 0.4);
+    .filter_sidebar h4 { 
+        color: #ffbe33; 
+        font-weight: bold; 
+        margin-bottom: 25px; 
+        text-transform: uppercase; 
+        text-align: center; 
+        border-bottom: 2px solid #ffbe33;
+        display: inline-block;
+        width: auto;
+        padding-bottom: 10px;
     }
     
-    .filter-header {
-      text-align: center;
-      margin-bottom: 35px;
-      position: relative;
-    }
-    
-    .filter-header i {
-      font-size: 32px;
-      color: #ffbe33;
-      display: block;
-      margin-bottom: 12px;
-    }
-    
-    .filter-header h4 { 
-      color: #ffbe33; 
-      font-weight: bold; 
-      margin: 0;
-      text-transform: uppercase;
-      font-size: 20px;
-      letter-spacing: 1px;
-      position: relative;
-      display: inline-block;
-      padding-bottom: 10px;
-    }
-    
-    .filter-header h4:after {
-      content: '';
-      position: absolute;
-      bottom: 0;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 50px;
-      height: 3px;
-      background: #ffbe33;
-    }
-    
+    /* TĂNG KHOẢNG CÁCH GIỮA CÁC FORM GROUP */
     .filter_sidebar .form-group {
-      margin-bottom: 25px;
+        margin-bottom: 35px;
+    }
+    
+    /* ĐẶC BIỆT CHO FORM GROUP CUỐI CÙNG (KHOẢNG GIÁ) */
+    .filter_sidebar .form-group:last-of-type {
+        margin-bottom: 25px;
     }
     
     .filter_sidebar label {
-      color: #ffffff;
-      margin-bottom: 12px;
-      font-weight: 600;
-      display: block;
-      font-size: 14px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
+        color: #ffffff;
+        margin-bottom: 12px;
+        font-weight: 500;
+        display: block;
+        font-size: 14px;
     }
     
-    .filter_sidebar label i {
-      color: #ffbe33;
-      margin-right: 10px;
-      font-size: 14px;
+    /* INPUT VÀ SELECT - CHỮ MÀU ĐEN, NỀN TRẮNG - CĂN CHỈNH ĐỀU */
+    .filter_sidebar .form-control-lg { 
+        background: #ffffff !important;
+        border: 1px solid #ddd !important;
+        color: #000000 !important;
+        height: 50px; 
+        width: 100%;
+        font-size: 0.95rem; 
+        border-radius: 8px;
+        padding: 12px 15px;
+        box-sizing: border-box;
     }
     
-    .input-icon {
-      position: relative;
-      width: 100%;
+    .filter_sidebar .form-control-lg:focus {
+        border-color: #ffbe33 !important;
+        box-shadow: 0 0 0 0.2rem rgba(255, 190, 51, 0.25);
     }
     
-    .input-icon i {
-      position: absolute;
-      left: 15px;
-      top: 50%;
-      transform: translateY(-50%);
-      color: #ffbe33;
-      font-size: 14px;
-      z-index: 1;
-      pointer-events: none;
+    .filter_sidebar .form-control-lg::placeholder {
+        color: #999;
     }
     
-    .input-icon input {
-      width: 100%;
-      background: #ffffff !important;
-      border: 1px solid #333 !important;
-      color: #000000 !important;
-      height: 52px;
-      font-size: 1rem;
-      border-radius: 12px;
-      padding: 10px 15px 10px 45px;
-      transition: all 0.3s ease;
+    .filter_sidebar select.form-control-lg {
+        cursor: pointer;
+        background: #ffffff !important;
+        color: #000000 !important;
+        padding: 12px 15px;
+        width: 100%;
+        appearance: none;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="%23333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>');
+        background-repeat: no-repeat;
+        background-position: right 15px center;
+        background-size: 14px;
     }
     
-    .input-icon input:focus {
-      border-color: #ffbe33 !important;
-      box-shadow: 0 0 0 3px rgba(255, 190, 51, 0.2);
-      outline: none;
+    .filter_sidebar select.form-control-lg option {
+        background: #ffffff;
+        color: #000000;
     }
     
-    /* Select box styling - cùng kích thước với input và font-size 17px */
-    .select-wrapper {
-      position: relative;
-      width: 100%;
-    }
-    
-    .select-wrapper select {
-      width: 100%;
-      background: #ffffff !important;
-      border: 1px solid #333 !important;
-      color: #000000 !important;
-      height: 52px;
-      font-size: 17px !important;
-      border-radius: 12px;
-      padding: 10px 40px 10px 15px;
-      appearance: none;
-      cursor: pointer;
-      transition: all 0.3s ease;
-    }
-    
-    .select-wrapper select option {
-      font-size: 17px !important;
-    }
-    
-    .select-wrapper select:focus {
-      border-color: #ffbe33 !important;
-      box-shadow: 0 0 0 3px rgba(255, 190, 51, 0.2);
-      outline: none;
-    }
-    
-    .select-wrapper i {
-      position: absolute;
-      right: 18px;
-      top: 50%;
-      transform: translateY(-50%);
-      color: #ffbe33;
-      font-size: 14px;
-      pointer-events: none;
-    }
-    
-    /* Price range styling - cải thiện giao diện */
+    /* Price Range Styles - Hiển thị theo cột dọc với khoảng cách đẹp */
     .price-range-wrapper {
-      width: 100%;
-    }
-    
-    .price-range-label {
-      display: block;
-      margin-bottom: 15px;
-      color: #ffbe33;
-      font-weight: 500;
-      font-size: 13px;
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        width: 100%;
+        margin-bottom: 5px;
     }
     
     .price-input-group {
-      display: flex;
-      align-items: center;
-      gap: 15px;
-      margin-bottom: 20px;
+        width: 100%;
     }
     
-    .price-input-group .input-icon {
-      flex: 1;
+    .price-input-group input {
+        width: 100%;
+        text-align: left;
     }
     
-    .price-input-group .input-icon input {
-      height: 52px;
-      padding: 10px 15px 10px 45px;
+    .price-separator {
+        text-align: center;
+        position: relative;
+        margin: 5px 0;
     }
     
-    .price-dash {
-      color: #ffbe33;
-      font-weight: bold;
-      font-size: 18px;
-      background: rgba(255, 190, 51, 0.1);
-      width: 40px;
-      height: 40px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 50%;
-    }
-    
-    .price-range-slider {
-      margin: 20px 0;
-      height: 4px;
-      background: #333;
-      border-radius: 4px;
-      position: relative;
-    }
-    
-    .price-range-track {
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(90deg, #ffbe33, #ffbe33);
-      border-radius: 4px;
-      position: relative;
+    .price-separator span {
+        background: #ffbe33;
+        color: #000;
+        padding: 4px 20px;
+        border-radius: 25px;
+        font-size: 13px;
+        font-weight: 600;
+        display: inline-block;
+        letter-spacing: 1px;
     }
     
     .price-unit {
-      display: block;
-      text-align: center;
-      font-size: 12px;
-      color: #aaa;
-      margin-top: 15px;
-      padding: 8px;
-      background: rgba(255, 190, 51, 0.05);
-      border-radius: 8px;
-    }
-    
-    .price-unit i {
-      margin-right: 6px;
-      color: #ffbe33;
+        font-size: 11px;
+        color: #181616;
+        margin-top: 12px;
+        display: block;
+        text-align: center;
     }
     
     .btn-filter { 
-      background: linear-gradient(135deg, #ffbe33 0%, #e69c00 100%);
-      color: #222; 
-      border: none; 
-      font-weight: bold; 
-      padding: 15px; 
-      font-size: 1rem; 
-      border-radius: 12px; 
-      transition: all 0.3s ease;
-      margin-top: 15px;
-      cursor: pointer;
-      width: 100%;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
+        background: #ffbe33; 
+        color: #222; 
+        border: none; 
+        font-weight: bold; 
+        padding: 14px; 
+        font-size: 1rem; 
+        border-radius: 8px; 
+        transition: 0.3s; 
+        margin-top: 10px;
+        cursor: pointer;
     }
     
     .btn-filter:hover { 
-      background: linear-gradient(135deg, #e69c00 0%, #ffbe33 100%);
-      transform: translateY(-2px);
-      box-shadow: 0 8px 20px rgba(255, 190, 51, 0.3);
+        background: #e69c00; 
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(255, 190, 51, 0.3);
     }
     
     .btn-reset {
-      background: transparent;
-      color: #ffbe33;
-      border: 1px solid #ffbe33;
-      padding: 13px;
-      font-size: 0.95rem;
-      border-radius: 12px;
-      transition: all 0.3s ease;
-      margin-top: 15px;
-      width: 100%;
-      text-align: center;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      text-decoration: none;
+        background: transparent;
+        color: #ffbe33;
+        border: 1px solid #ffbe33;
+        padding: 10px;
+        font-size: 0.9rem;
+        border-radius: 8px;
+        transition: 0.3s;
+        margin-top: 15px;
+        width: 100%;
+        text-align: center;
+        display: inline-block;
+        text-decoration: none;
     }
     
     .btn-reset:hover {
-      background: #ffbe33;
-      color: #222;
-      text-decoration: none;
-      transform: translateY(-2px);
-      box-shadow: 0 5px 15px rgba(255, 190, 51, 0.2);
-    }
-    
-    /* Suggestion Box - Thiết kế mới */
-    .suggestion-box {
-      background: linear-gradient(135deg, rgba(255, 190, 51, 0.08) 0%, rgba(255, 190, 51, 0.02) 100%);
-      padding: 25px;
-      border-radius: 20px;
-      margin-top: 25px;
-      border: 1px solid rgba(255, 190, 51, 0.15);
-      backdrop-filter: blur(10px);
-    }
-    
-    .suggestion-header {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 18px;
-      padding-bottom: 12px;
-      border-bottom: 1px solid rgba(255, 190, 51, 0.2);
-    }
-    
-    .suggestion-header i {
-      font-size: 20px;
-      color: #ffbe33;
-    }
-    
-    .suggestion-header span {
-      color: #ffbe33;
-      font-weight: bold;
-      font-size: 14px;
-      letter-spacing: 1px;
-    }
-    
-    .suggestion-list {
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-    }
-    
-    .suggestion-item {
-      display: flex;
-      align-items: flex-start;
-      gap: 12px;
-      font-size: 13px;
-      line-height: 1.5;
-    }
-    
-    .suggestion-item i {
-      color: #ffbe33;
-      font-size: 12px;
-      margin-top: 2px;
-      flex-shrink: 0;
-    }
-    
-    .suggestion-item span {
-      color: #000000 !important;
+        background: #ffbe33;
+        color: #222;
+        text-decoration: none;
     }
     
     .search-info {
-      background: rgba(255, 190, 51, 0.1);
-      padding: 12px 20px;
-      border-radius: 10px;
-      margin-bottom: 25px;
-      text-align: center;
-      border-left: 4px solid #ffbe33;
+        background: rgba(255, 190, 51, 0.1);
+        padding: 12px 20px;
+        border-radius: 10px;
+        margin-bottom: 25px;
+        text-align: center;
+        border-left: 4px solid #ffbe33;
     }
     
     .search-info p {
-      margin: 0;
-      color: #ddd;
-      font-size: 14px;
+        margin: 0;
+        color: #181616;
+        font-size: 14px;
     }
     
     .search-info strong {
-      color: #ffbe33;
+        color: #ffbe33;
     }
     
     .detail-box p {
@@ -976,29 +805,6 @@ $display_max_price = isset($_GET['max_price']) && $_GET['max_price'] !== '' ? (f
       line-height: 1.5;
       margin-bottom: 10px;
       font-size: 14px;
-    }
-    
-    /* Empty State Styles */
-    .empty-state {
-      text-align: center;
-      padding: 60px 20px;
-    }
-    
-    .empty-state i {
-      font-size: 64px;
-      color: #ffbe33;
-      margin-bottom: 20px;
-      opacity: 0.7;
-    }
-    
-    .empty-state h4 {
-      color: #ffbe33;
-      margin-bottom: 15px;
-    }
-    
-    .empty-state p {
-      color: #aaa;
-      margin-bottom: 10px;
     }
     
     @media (max-width: 768px) {
@@ -1022,26 +828,7 @@ $display_max_price = isset($_GET['max_price']) && $_GET['max_price'] !== '' ? (f
         padding: 0 20px;
       }
       .filter_sidebar {
-        padding: 20px;
-        margin-bottom: 20px;
-      }
-      .add-to-cart-btn,
-      .cart-link-btn {
-        padding: 6px 12px !important;
-        font-size: 11px !important;
-        min-width: 60px !important;
-      }
-      .add-to-cart-btn i,
-      .cart-link-btn i {
-        font-size: 10px !important;
-      }
-      .price-input-group {
-        gap: 10px;
-      }
-      .price-dash {
-        width: 35px;
-        height: 35px;
-        font-size: 16px;
+        padding: 25px 20px;
       }
     }
   </style>
@@ -1114,11 +901,6 @@ $display_max_price = isset($_GET['max_price']) && $_GET['max_price'] !== '' ? (f
                     <i class="fa fa-user"></i>
                     <span>Thông tin tài khoản</span>
                   </a>
-                  <div class="dropdown-divider"></div>
-                  <a href="user/logout.php" class="dropdown-item-custom text-danger">
-                    <i class="fa fa-sign-out"></i>
-                    <span>Đăng xuất</span>
-                  </a>
                 </div>
               </div>
             <?php else: ?>
@@ -1186,7 +968,7 @@ $display_max_price = isset($_GET['max_price']) && $_GET['max_price'] !== '' ? (f
     <?php if ($is_advanced_search): ?>
     <div class="search-info">
       <p>
-        <i class="fa fa-search" style="color: #ffbe33;"></i> 
+        <i class="fa fa-search" style="color: #ffbe33c5;"></i> 
         Kết quả tìm kiếm cho: 
         <?php if (!empty($search_query)): ?>
           <strong>"<?php echo htmlspecialchars($search_query); ?>"</strong>
@@ -1222,110 +1004,88 @@ $display_max_price = isset($_GET['max_price']) && $_GET['max_price'] !== '' ? (f
 
     <!-- Result count -->
     <div class="result-count">
-      <i class="fa fa-cutlery"></i> Tìm thấy <strong style="color: #ffbe33;"><?php echo $total_products; ?></strong> sản phẩm 
+      <i class="fa fa-cutlery"></i> Tìm thấy <?php echo $total_products; ?> sản phẩm 
       <?php if ($total_products > 0): ?>
         (Hiển thị <?php echo count($products); ?> sản phẩm)
       <?php endif; ?>
     </div>
 
     <div class="row">
-      <!-- Khung tìm kiếm nâng cao - Thiết kế mới -->
+      <!-- Khung tìm kiếm nâng cao - NỀN ĐEN CHỮ TRẮNG, INPUT CHỮ ĐEN -->
       <div class="col-lg-4">
         <div class="filter_sidebar">
-          <div class="filter-header">
-            <i class="fa fa-sliders-h"></i>
-            <h4>BỘ LỌC NÂNG CAO</h4>
+          <div style="text-align: center;">
+            <h4>TÌM KIẾM NÂNG CAO</h4>
           </div>
           <form action="search.php" method="GET" id="advancedSearchForm">
             <!-- Tiêu chí 1: Tên món ăn -->
             <div class="form-group">
-              <label><i class="fa fa-cutlery"></i> TÊN MÓN ĂN</label>
-              <div class="input-icon">
-                <i class="fa fa-search"></i>
-                <input type="text" name="query" class="form-control form-control-lg" 
-                       placeholder="Nhập tên món ăn..." 
-                       value="<?= htmlspecialchars($search_query) ?>">
-              </div>
+              <label><i class="fa fa-cutlery"></i> Tên món ăn</label>
+              <input type="text" name="query" class="form-control form-control-lg" 
+                     placeholder="Nhập tên món ăn..." 
+                     value="<?= htmlspecialchars($search_query) ?>">
             </div>
             
             <!-- Tiêu chí 2: Phân loại danh mục -->
-            <div class="form-group" style="margin-bottom: 30px;">
-              <label><i class="fa fa-tags"></i> DANH MỤC</label>
-              <div class="select-wrapper">
-                <select name="category" class="form-control form-control-lg">
-                  <option value="all">-- Tất cả danh mục --</option>
-                  <?php foreach ($categories as $cat): ?>
-                    <option value="<?= $cat['id'] ?>" <?= $category_filter == $cat['id'] ? 'selected' : '' ?>>
-                      <?= htmlspecialchars($cat['name']) ?>
-                    </option>
-                  <?php endforeach; ?>
-                </select>
-                
-              </div>
+            <div class="form-group form-group-center">
+              <label><i class="fa fa-tags"></i> Phân loại</label>
+              <select name="category" class="form-control form-control-lg">
+                <option value="all">-- Tất cả danh mục --</option>
+                <?php foreach ($categories as $cat): ?>
+                  <option value="<?= $cat['id'] ?>" <?= $category_filter == $cat['id'] ? 'selected' : '' ?>>
+                    <?= htmlspecialchars($cat['name']) ?>
+                  </option>
+                <?php endforeach; ?>
+              </select>
             </div>
             
             <!-- Tiêu chí 3: Khoảng giá -->
             <div class="form-group">
-              <label><i class="fa fa-money"></i> KHOẢNG GIÁ</label>
-              <div class="price-range-wrapper"></i>
-                <div class="price-input-group"></i>
-                  <div class="input-icon">
-                    <i class="fa fa-dollar"></i>
-                    <input type="number" name="min_price" class="form-control form-control-lg" 
-                           placeholder="Từ" value="<?= htmlspecialchars($display_min_price) ?>" step="1" min="0">
-                  </div>
-                  <span class="price-dash">-</span>
-                  <div class="input-icon">
-                    <i class="fa fa-dollar"></i>
-                    <input type="number" name="max_price" class="form-control form-control-lg" 
-                           placeholder="Đến" value="<?= htmlspecialchars($display_max_price) ?>" step="1" min="0">
-                  </div>
+              <label><i class="fa fa-money"></i> Khoảng giá</label>
+              <div class="price-range-wrapper">
+                <div class="price-input-group">
+                  <input type="number" name="min_price" class="form-control form-control-lg" 
+                         placeholder="Giá từ (nghìn đồng)" value="<?= htmlspecialchars($display_min_price) ?>" step="1" min="0">
                 </div>
-                <div class="price-range-slider">
-                  <div class="price-range-track"></div>
+                <div class="price-separator">
+                  <span>đến</span>
                 </div>
-                <small class="price-unit">
-                  <i class="fa fa-info-circle"></i> Đơn vị: nghìn đồng (VD: 50 = 50.000đ)
-                </small>
+                <div class="price-input-group">
+                  <input type="number" name="max_price" class="form-control form-control-lg" 
+                         placeholder="Giá đến (nghìn đồng)" value="<?= htmlspecialchars($display_max_price) ?>" step="1" min="0">
+                </div>
               </div>
+              <small class="price-unit">
+                <i class="fa fa-info-circle"></i> Nhập giá theo nghìn đồng (Ví dụ: 50 = 50.000đ)
+              </small>
             </div>
             
             <!-- Nút tìm kiếm -->
-            <button type="submit" class="btn-filter">
+            <button type="submit" class="btn btn-filter w-100">
               <i class="fa fa-search"></i> TÌM KIẾM
             </button>
             
             <!-- Nút đặt lại bộ lọc -->
             <a href="search.php" class="btn-reset">
-              <i class="fa fa-refresh"></i> ĐẶT LẠI
+              <i class="fa fa-refresh"></i> Đặt lại tất cả
             </a>
           </form>
         </div>
         
         <!-- Gợi ý tìm kiếm -->
-        <div class="suggestion-box">
-          <div class="suggestion-header">
-            <i class="fa fa-lightbulb-o"></i>
-            <span>GỢI Ý TÌM KIẾM</span>
-          </div>
-          <div class="suggestion-list">
-            <div class="suggestion-item">
-              <i class="fa fa-angle-right"></i>
-              <span>Tìm kiếm nhanh: Nhập tên món vào thanh tìm kiếm phía trên</span>
-            </div>
-            <div class="suggestion-item">
-              <i class="fa fa-angle-right"></i>
-              <span>Tìm kiếm nâng cao: Kết hợp tên món + danh mục + khoảng giá</span>
-            </div>
-            <div class="suggestion-item">
-              <i class="fa fa-angle-right"></i>
-              <span>Giá nhập theo nghìn đồng, hệ thống sẽ tự động chuyển đổi</span>
-            </div>
-            <div class="suggestion-item">
-              <i class="fa fa-angle-right"></i>
-              <span>Để trống giá trị để bỏ qua bộ lọc giá</span>
-            </div>
-          </div>
+        <div style="background: rgba(255, 190, 51, 0.05); padding: 15px; border-radius: 10px; margin-top: 15px;">
+          <p style="color: #ffbe33; margin-bottom: 10px; font-size: 13px;">
+            <i class="fa fa-lightbulb-o"></i> <strong>Gợi ý:</strong>
+          </p>
+          <p style="color: #181616; font-size: 15px; margin-bottom: 5px;">
+            • Tìm kiếm nhanh: Nhập tên món vào thanh tìm kiếm phía trên
+          </p>
+          <p style="color: #181616; font-size: 15px; margin-bottom: 5px;">
+            • Tìm kiếm nâng cao: Kết hợp tên món + phân loại + khoảng giá
+          </p>
+          <p style="color: #181616; font-size: 15px;">
+            • Giá nhập theo nghìn đồng, hệ thống sẽ tự động chuyển đổi
+          </p>
         </div>
       </div>
 
@@ -1334,13 +1094,13 @@ $display_max_price = isset($_GET['max_price']) && $_GET['max_price'] !== '' ? (f
         <div class="filters-content">
           <div class="row grid" id="menu-items-container">
             <?php if (empty($products)): ?>
-              <div class="col-12">
-                <div class="empty-state">
-                  <i class="fa fa-exclamation-circle"></i>
+              <div class="col-12 text-center">
+                <div style="padding: 60px 0;">
+                  <i class="fa fa-exclamation-circle" style="font-size: 48px; color: #ffbe33; margin-bottom: 20px;"></i>
                   <h4>Không tìm thấy sản phẩm</h4>
                   <p>Không có kết quả phù hợp với tiêu chí tìm kiếm của bạn.</p>
                   <p style="color: #888; font-size: 14px;">Hãy thử thay đổi từ khóa hoặc khoảng giá khác.</p>
-                  <a href="search.php" class="btn-view-more" style="display: inline-block; margin-top: 20px;">
+                  <a href="search.php" class="btn-view-more" style="display: inline-block; margin-top: 15px;">
                     <i class="fa fa-refresh"></i> Xóa bộ lọc tìm kiếm
                   </a>
                 </div>
@@ -1382,7 +1142,7 @@ $display_max_price = isset($_GET['max_price']) && $_GET['max_price'] !== '' ? (f
         </div>
         
         <!-- Pagination controls -->
-        <?php if ($total_pages > 1 && !empty($products)): ?>
+        <?php if ($total_pages > 1): ?>
         <div class="pagination-container">
           <ul class="pagination">
             <li>
@@ -1476,10 +1236,10 @@ $display_max_price = isset($_GET['max_price']) && $_GET['max_price'] !== '' ? (f
             Contact Us
           </h4>
           <div class="contact_link_box">
-            <div><i class="fa fa-map-marker"></i><span>Location</span></div>
-            <div><i class="fa fa-phone"></i><span>Call +01 1234567890</span></div>
-            <div><i class="fa fa-envelope"></i><span>demo@gmail.com</span></div>
-          </div>
+    <div><i class="fa fa-map-marker"></i><span>Location</span></div>
+    <div><i class="fa fa-phone"></i><span>Call +01 1234567890</span></div>
+    <div><i class="fa fa-envelope"></i><span>demo@gmail.com</span></div>
+</div>
         </div>
       </div>
       <div class="col-md-4 footer-col">
@@ -1488,8 +1248,9 @@ $display_max_price = isset($_GET['max_price']) && $_GET['max_price'] !== '' ? (f
             Feane
           </a>
           <p>
-            Delicious fast food made with love. Quality ingredients, great taste, and fast delivery.
+            Necessary, making this the first true generator on the Internet. It uses a dictionary of over 200 Latin words, combined with
           </p>
+          
         </div>
       </div>
       <div class="col-md-4 footer-col">
@@ -1500,13 +1261,16 @@ $display_max_price = isset($_GET['max_price']) && $_GET['max_price'] !== '' ? (f
           Everyday
         </p>
         <p>
-          10:00 AM - 10:00 PM
+          10.00 Am -10.00 Pm
         </p>
       </div>
     </div>
     <div class="footer-info">
       <p>
-        &copy; <span id="displayYear"></span> Feane Restaurant. All Rights Reserved.
+        &copy; <span id="displayYear"></span> All Rights Reserved By
+        <a href="https://html.design/">Free Html Templates</a><br><br>
+        &copy; <span id="displayYear"></span> Distributed By
+        <a href="https://themewagon.com/" target="_blank">ThemeWagon</a>
       </p>
     </div>
   </div>
@@ -1602,7 +1366,7 @@ $display_max_price = isset($_GET['max_price']) && $_GET['max_price'] !== '' ? (f
     .then(function(response) { return response.json(); })
     .then(function(data) {
       if (data.success) {
-        showToast('✓ Đã thêm ' + name + ' vào giỏ hàng!');
+        showToast('Đã thêm ' + name + ' vào giỏ hàng!');
         if (data.cart_count) {
           updateCartCount(data.cart_count);
         }

@@ -243,7 +243,7 @@ $current_page = 'profile';
                 </svg>
               </a>
               <form class="form-inline">
-                <a href="../findproduct.html" class="btn my-2 my-sm-0 nav_search-btn">
+                <a href="../search.php" class="btn my-2 my-sm-0 nav_search-btn">
                   <i class="fa fa-search" aria-hidden="true"></i>
                 </a>
               </form>
