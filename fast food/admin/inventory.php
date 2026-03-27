@@ -47,7 +47,7 @@ if (isset($_REQUEST['action'])) {
                 $limit = 5;
                 $offset = ($page - 1) * $limit;
 
-                // Subquery tính tổng nhập và tổng xuất từ bảng thực tế
+                // Lấy tất cả sản phẩm active
                 $sql = "SELECT p.id, p.code, p.name, p.category_id,
                                c.name as category_name,
                                COALESCE((
@@ -73,52 +73,44 @@ if (isset($_REQUEST['action'])) {
                 }
 
                 $sql .= " ORDER BY p.name";
-                $sql .= " LIMIT :limit OFFSET :offset";
-                $params[':limit'] = $limit;
-                $params[':offset'] = $offset;
 
                 $stmt = $pdo->prepare($sql);
                 foreach ($params as $key => $val) {
-                    if (is_int($val)) $stmt->bindValue($key, $val, PDO::PARAM_INT);
-                    else $stmt->bindValue($key, $val);
+                    $stmt->bindValue($key, $val);
                 }
                 $stmt->execute();
-                $products = $stmt->fetchAll();
+                $all_products = $stmt->fetchAll();
 
-                // Cập nhật stock_quantity từ dữ liệu nhập/xuất thực tế
-                foreach ($products as &$product) {
+                // Cập nhật stock_quantity từ dữ liệu nhập/xuất thực tế và lọc
+                $filtered_products = [];
+                foreach ($all_products as $product) {
                     $actual_stock = $product['total_import'] - $product['total_export'];
                     $product['stock_quantity'] = $actual_stock;
+                    
+                    // Lọc theo số lượng tồn <= max_stock (nếu có)
+                    if ($max_stock !== null && $max_stock > 0) {
+                        if ($actual_stock <= $max_stock) {
+                            $filtered_products[] = $product;
+                        }
+                    } else {
+                        $filtered_products[] = $product;
+                    }
                 }
 
-                // Lọc theo số lượng tồn <= max_stock
-                if ($max_stock !== null && $max_stock > 0) {
-                    $products = array_filter($products, function($p) use ($max_stock) {
-                        return $p['stock_quantity'] <= $max_stock;
-                    });
-                    $products = array_values($products);
-                }
-
-                // Count total records
-                $countSql = "SELECT COUNT(*) as total FROM products p LEFT JOIN categories c ON p.category_id = c.id WHERE p.status = 'active'";
-                $countParams = [];
-                if ($search) {
-                    $countSql .= " AND (p.name LIKE :search OR p.code LIKE :search)";
-                    $countParams[':search'] = "%$search%";
-                }
-                $countStmt = $pdo->prepare($countSql);
-                foreach ($countParams as $key => $val) $countStmt->bindValue($key, $val);
-                $countStmt->execute();
-                $total = $countStmt->fetch()['total'];
-                $totalPages = ceil($total / $limit);
+                // Tính tổng số bản ghi sau khi lọc
+                $total_records = count($filtered_products);
+                $total_pages = ceil($total_records / $limit);
+                
+                // Lấy dữ liệu cho trang hiện tại
+                $products = array_slice($filtered_products, $offset, $limit);
 
                 echo json_encode([
                     'success' => true,
                     'data' => $products,
                     'pagination' => [
                         'current_page' => $page,
-                        'total_pages' => $totalPages,
-                        'total_records' => $total
+                        'total_pages' => $total_pages,
+                        'total_records' => $total_records
                     ]
                 ]);
                 break;
@@ -503,16 +495,16 @@ if (isset($_REQUEST['action'])) {
                     <div class="table-responsive">
                         <table class="table table-hover">
                             <thead>
-                                <tr>
+                                
                                     <th>Mã SP</th>
                                     <th>Tên sản phẩm</th>
                                     <th>Loại</th>
                                     <th class="text-center">Số lượng tồn</th>
                                     <th>Trạng thái</th>
-                                </tr>
+                                
                             </thead>
                             <tbody id="stock-table-body">
-                                <tr><td colspan="5" class="text-center">Đang tải...</td></tr>
+                                <td colspan="5" class="text-center">Đang tải...</td>
                             </tbody>
                         </table>
                     </div>
@@ -609,13 +601,18 @@ if (isset($_REQUEST['action'])) {
                 search: currentFilters.search,
                 max_stock: currentFilters.max_stock !== '' ? currentFilters.max_stock : null
             };
+            
+            $('#stock-table-body').html('<tr><td colspan="5" class="text-center"><div class="spinner-border spinner-border-sm text-primary me-2"></div>Đang tải...</td></tr>');
+            
             $.getJSON('inventory.php', params, function(response) {
                 if (response.success) {
                     renderStockTable(response.data);
                     renderPagination(response.pagination);
                 } else {
-                    alert('Lỗi tải dữ liệu: ' + response.error);
+                    $('#stock-table-body').html('<tr><td colspan="5" class="text-center text-danger">Lỗi: ' + (response.error || 'Không thể tải dữ liệu') + '</td></tr>');
                 }
+            }).fail(function() {
+                $('#stock-table-body').html('<tr><td colspan="5" class="text-center text-danger">Không thể kết nối đến máy chủ</td></tr>');
             });
         }
 
@@ -644,7 +641,7 @@ if (isset($_REQUEST['action'])) {
         function renderStockTable(products) {
             const tbody = $('#stock-table-body');
             if (!products.length) {
-                tbody.html('<tr><td colspan="5" class="text-center">Không có sản phẩm nào</td></tr>');
+                tbody.html('<tr><td colspan="5" class="text-center text-muted py-4"><i class="fas fa-box-open me-2"></i>Không tìm thấy sản phẩm nào</td></tr>');
                 return;
             }
             let html = '';
@@ -653,11 +650,11 @@ if (isset($_REQUEST['action'])) {
                 const rowClass = p.stock_quantity <= 0 ? 'out-stock' : (p.stock_quantity <= 10 ? 'low-stock' : '');
                 html += `
                     <tr class="${rowClass}">
-                        <td>${escapeHtml(p.code)}</td>
-                        <td><a href="#" class="product-link view-detail" data-id="${p.id}">${escapeHtml(p.name)}</a></td>
-                        <td>${escapeHtml(p.category_name || '')}</td>
-                        <td class="text-center"><strong>${p.stock_quantity}</strong></td>
-                        <td><span class="${status.class}"><i class="fas ${status.icon} me-1"></i>${status.text}</span></td>
+                        <td class="align-middle">${escapeHtml(p.code)}</td>
+                        <td class="align-middle"><a href="#" class="product-link view-detail" data-id="${p.id}">${escapeHtml(p.name)}</a></td>
+                        <td class="align-middle">${escapeHtml(p.category_name || '')}</td>
+                        <td class="text-center align-middle"><strong>${p.stock_quantity}</strong></td>
+                        <td class="align-middle"><span class="${status.class}"><i class="fas ${status.icon} me-1"></i>${status.text}</span></td>
                     </tr>
                 `;
             });
@@ -672,16 +669,33 @@ if (isset($_REQUEST['action'])) {
             }
             let html = '';
             html += `<li class="page-item ${pagination.current_page === 1 ? 'disabled' : ''}">
-                        <a class="page-link" href="#" data-page="${pagination.current_page - 1}">Trước</a>
+                        <a class="page-link" href="#" data-page="${pagination.current_page - 1}">« Trước</a>
                      </li>`;
-            for (let i = 1; i <= pagination.total_pages; i++) {
+            
+            // Hiển thị tối đa 5 số trang
+            let startPage = Math.max(1, pagination.current_page - 2);
+            let endPage = Math.min(pagination.total_pages, pagination.current_page + 2);
+            
+            if (startPage > 1) {
+                html += `<li class="page-item"><a class="page-link" href="#" data-page="1">1</a></li>`;
+                if (startPage > 2) html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+            }
+            
+            for (let i = startPage; i <= endPage; i++) {
                 html += `<li class="page-item ${i === pagination.current_page ? 'active' : ''}">
                             <a class="page-link" href="#" data-page="${i}">${i}</a>
                          </li>`;
             }
+            
+            if (endPage < pagination.total_pages) {
+                if (endPage < pagination.total_pages - 1) html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+                html += `<li class="page-item"><a class="page-link" href="#" data-page="${pagination.total_pages}">${pagination.total_pages}</a></li>`;
+            }
+            
             html += `<li class="page-item ${pagination.current_page === pagination.total_pages ? 'disabled' : ''}">
-                        <a class="page-link" href="#" data-page="${pagination.current_page + 1}">Tiếp</a>
+                        <a class="page-link" href="#" data-page="${pagination.current_page + 1}">Sau »</a>
                      </li>`;
+            
             container.html(html);
             container.find('.page-link').click(function(e) {
                 e.preventDefault();
@@ -689,13 +703,14 @@ if (isset($_REQUEST['action'])) {
                 if (page && page !== currentPage) {
                     currentPage = page;
                     loadStock();
+                    $('html, body').animate({ scrollTop: $('#stock-table-body').offset().top - 100 }, 300);
                 }
             });
         }
 
         $('#stock-filter-form').submit(function(e) {
             e.preventDefault();
-            currentFilters.search = $('#search-name').val();
+            currentFilters.search = $('#search-name').val().trim();
             currentFilters.max_stock = $('#max-stock').val();
             currentPage = 1;
             loadStock();
@@ -710,13 +725,13 @@ if (isset($_REQUEST['action'])) {
         });
 
         function showProductDetail(productId) {
-            $('#product-detail-content').html('<div class="text-center"><i class="fas fa-spinner fa-spin fa-2x"></i> Đang tải...</div>');
+            $('#product-detail-content').html('<div class="text-center py-5"><div class="spinner-border text-primary" role="status"></div><div class="mt-2 text-muted">Đang tải thông tin...</div></div>');
             $('#productDetailModal').modal('show');
 
             $.getJSON('inventory.php', { action: 'get_product_info', id: productId })
                 .done(function(productRes) {
                     if (!productRes.success) {
-                        $('#product-detail-content').html('<div class="alert alert-danger">Lỗi: ' + (productRes.error || 'Không tìm thấy sản phẩm') + '</div>');
+                        $('#product-detail-content').html('<div class="alert alert-danger">' + (productRes.error || 'Không tìm thấy sản phẩm') + '</div>');
                         return;
                     }
                     const product = productRes.product;
@@ -740,6 +755,8 @@ if (isset($_REQUEST['action'])) {
                         <div class="stock-summary mb-4"><div class="row text-center"><div class="col-6"><div class="stock-summary-label">Tổng nhập</div><div class="stock-summary-value">${product.total_import}</div></div><div class="col-6"><div class="stock-summary-label">Tổng xuất</div><div class="stock-summary-value">${product.total_export}</div></div></div></div>
                     `;
                     $('#product-detail-content').html(html);
+                }).fail(function() {
+                    $('#product-detail-content').html('<div class="alert alert-danger">Không thể tải thông tin sản phẩm</div>');
                 });
         }
 
@@ -759,6 +776,7 @@ if (isset($_REQUEST['action'])) {
             });
         }
 
+        // Khởi tạo
         loadStock();
     </script>
 </body>

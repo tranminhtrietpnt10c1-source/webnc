@@ -49,36 +49,93 @@ if (isset($_REQUEST['action'])) {
             case 'get_stock_at_date':
                 $product_id = (int)($_GET['product_id'] ?? 0);
                 $date = $_GET['date'] ?? '';
-                if (!$product_id) throw new Exception('Vui lòng chọn sản phẩm');
                 if (!$date) throw new Exception('Vui lòng chọn ngày');
-
-                $stmt = $pdo->prepare("SELECT SUM(d.quantity) as total_import
-                                       FROM import_details d
-                                       JOIN imports i ON d.import_id = i.id
-                                       WHERE d.product_id = ? AND i.status = 'completed' AND i.import_date <= ?");
-                $stmt->execute([$product_id, $date]);
-                $total_import = $stmt->fetch()['total_import'] ?? 0;
-
-                $stmt = $pdo->prepare("SELECT SUM(od.quantity) as total_export
-                                       FROM order_details od
-                                       JOIN orders o ON od.order_id = o.id
-                                       WHERE od.product_id = ? AND o.status != 'cancelled' AND o.status != 'new' AND o.order_date <= ?");
-                $stmt->execute([$product_id, $date]);
-                $total_export = $stmt->fetch()['total_export'] ?? 0;
-
-                $stock = $total_import - $total_export;
                 
-                $stmt = $pdo->prepare("SELECT name FROM products WHERE id = ?");
-                $stmt->execute([$product_id]);
-                $product_name = $stmt->fetchColumn();
-                
-                echo json_encode([
-                    'success' => true,
-                    'product_id' => $product_id,
-                    'product_name' => $product_name,
-                    'date' => $date,
-                    'stock' => $stock
-                ]);
+                // Kiểm tra ngày không được vượt quá ngày hiện tại
+                $current_date = date('Y-m-d');
+                if ($date > $current_date) {
+                    throw new Exception('Không thể tra cứu tồn kho trong tương lai. Vui lòng chọn ngày ≤ ' . date('d/m/Y', strtotime($current_date)));
+                }
+
+                // Nếu có chọn sản phẩm cụ thể
+                if ($product_id > 0) {
+                    $stmt = $pdo->prepare("SELECT SUM(d.quantity) as total_import
+                                           FROM import_details d
+                                           JOIN imports i ON d.import_id = i.id
+                                           WHERE d.product_id = ? AND i.status = 'completed' AND i.import_date <= ?");
+                    $stmt->execute([$product_id, $date]);
+                    $total_import = $stmt->fetch()['total_import'] ?? 0;
+
+                    $stmt = $pdo->prepare("SELECT SUM(od.quantity) as total_export
+                                           FROM order_details od
+                                           JOIN orders o ON od.order_id = o.id
+                                           WHERE od.product_id = ? AND o.status != 'cancelled' AND o.status != 'new' AND o.order_date <= ?");
+                    $stmt->execute([$product_id, $date]);
+                    $total_export = $stmt->fetch()['total_export'] ?? 0;
+
+                    $stock = $total_import - $total_export;
+                    
+                    $stmt = $pdo->prepare("SELECT name FROM products WHERE id = ?");
+                    $stmt->execute([$product_id]);
+                    $product_name = $stmt->fetchColumn();
+                    
+                    echo json_encode([
+                        'success' => true,
+                        'type' => 'single',
+                        'product_id' => $product_id,
+                        'product_name' => $product_name,
+                        'date' => $date,
+                        'stock' => $stock,
+                        'current_date' => $current_date
+                    ]);
+                } 
+                // Nếu không chọn sản phẩm, lấy tất cả sản phẩm
+                else {
+                    // Lấy tất cả sản phẩm active kèm mã và loại
+                    $stmt = $pdo->query("SELECT p.id, p.code, p.name, p.category_id, c.name as category_name 
+                                         FROM products p 
+                                         LEFT JOIN categories c ON p.category_id = c.id 
+                                         WHERE p.status = 'active' 
+                                         ORDER BY p.name");
+                    $all_products = $stmt->fetchAll();
+                    
+                    $products_stock = [];
+                    foreach ($all_products as $product) {
+                        // Tính tổng nhập
+                        $stmt = $pdo->prepare("SELECT SUM(d.quantity) as total_import
+                                               FROM import_details d
+                                               JOIN imports i ON d.import_id = i.id
+                                               WHERE d.product_id = ? AND i.status = 'completed' AND i.import_date <= ?");
+                        $stmt->execute([$product['id'], $date]);
+                        $total_import = $stmt->fetch()['total_import'] ?? 0;
+                        
+                        // Tính tổng xuất
+                        $stmt = $pdo->prepare("SELECT SUM(od.quantity) as total_export
+                                               FROM order_details od
+                                               JOIN orders o ON od.order_id = o.id
+                                               WHERE od.product_id = ? AND o.status != 'cancelled' AND o.status != 'new' AND o.order_date <= ?");
+                        $stmt->execute([$product['id'], $date]);
+                        $total_export = $stmt->fetch()['total_export'] ?? 0;
+                        
+                        $stock = $total_import - $total_export;
+                        
+                        $products_stock[] = [
+                            'id' => $product['id'],
+                            'code' => $product['code'],
+                            'name' => $product['name'],
+                            'category_name' => $product['category_name'] ?? 'Chưa phân loại',
+                            'stock' => $stock
+                        ];
+                    }
+                    
+                    echo json_encode([
+                        'success' => true,
+                        'type' => 'all',
+                        'date' => $date,
+                        'products' => $products_stock,
+                        'current_date' => $current_date
+                    ]);
+                }
                 break;
 
             default:
@@ -243,15 +300,116 @@ if (isset($_REQUEST['action'])) {
         }
         .result-card {
             background-color: #fff;
-            border-radius: 8px;
-            padding: 20px;
+            border-radius: 12px;
+            padding: 35px 20px;
             margin-top: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,.1);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            text-align: center;
+        }
+        .result-product-name {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+        }
+        .result-date-info {
+            font-size: 0.95rem;
+            color: #6c757d;
+            margin-bottom: 25px;
+            font-weight: normal;
         }
         .stock-value {
-            font-size: 3rem;
+            font-size: 2.5rem;
+            font-weight: 700;
+            display: inline-block;
+        }
+        .stock-unit {
+            font-size: 1.1rem;
+            font-weight: normal;
+            margin-left: 8px;
+            color: #6c757d;
+        }
+        .date-warning {
+            font-size: 0.75rem;
+            margin-top: 5px;
+            color: #6c757d;
+        }
+        .stock-container {
+            margin-top: 10px;
+        }
+        .form-control, .form-select {
+            border-radius: 8px;
+        }
+        .btn-dark {
+            border-radius: 8px;
+            padding: 8px 16px;
+        }
+        .stock-high {
+            color: #28a745;
+        }
+        .stock-medium {
+            color: #ffc107;
+        }
+        .stock-low {
+            color: #dc3545;
+        }
+        /* Table styles for all products */
+        .products-table {
+            width: 100%;
+            margin-top: 20px;
+            border-collapse: collapse;
+        }
+        .products-table th,
+        .products-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .products-table th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+            color: var(--secondary-color);
+        }
+        .products-table tr:hover {
+            background-color: #f8f9fa;
+        }
+        .stock-badge {
+            font-size: 1rem;
+            font-weight: 600;
+        }
+        .table-container {
+            overflow-x: auto;
+        }
+        .text-center-cell {
+            text-align: center;
+            vertical-align: middle;
+        }
+        .low-stock-row {
+            background-color: #fff3e0;
+        }
+        .out-stock-row {
+            background-color: #ffe0e0;
+        }
+        .status-warning {
+            color: #ffc107;
             font-weight: bold;
-            color: var(--primary-color);
+        }
+        .status-danger {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        .status-success {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .card-header {
+            background-color: #fff;
+            border-bottom: 1px solid #e9ecef;
+            padding: 15px 20px;
+        }
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--secondary-color);
         }
     </style>
 </head>
@@ -269,7 +427,7 @@ if (isset($_REQUEST['action'])) {
                 <li class="nav-item"><a class="nav-link" href="imports.php"><i class="fas fa-arrow-down"></i> <span>Nhập sản phẩm</span></a></li>
                 <li class="nav-item"><a class="nav-link" href="pricing.php"><i class="fas fa-dollar-sign"></i> <span>Giá bán</span></a></li>
                 <li class="nav-item"><a class="nav-link" href="orders.php"><i class="fas fa-shopping-cart"></i> <span>Đơn hàng</span></a></li>
-                <li class="nav-item"><a class="nav-link" href="inventory.php"><i class="fas fa-boxes"></i> <span>Tồn kho</span></a></li>
+                <li class="nav-item"><a class="nav-link active" href="inventory.php"><i class="fas fa-boxes"></i> <span>Tồn kho</span></a></li>
                 <li class="nav-item mt-4"><a class="nav-link" href="logout.php"><i class="fas fa-sign-out-alt"></i> <span>Đăng xuất</span></a></li>
             </ul>
         </div>
@@ -312,31 +470,63 @@ if (isset($_REQUEST['action'])) {
             <!-- Tra cứu tồn tại thời điểm -->
             <div class="search-section">
                 <h5><i class="fas fa-calendar-day me-2"></i>Tra cứu tồn kho tại thời điểm</h5>
-                <div class="row">
-                    <div class="col-md-5 mb-3">
-                        <label class="form-label">Chọn sản phẩm</label>
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-5">
+                        <label class="form-label">Chọn sản phẩm <small class="text-muted">(Để trống để xem tất cả)</small></label>
                         <select id="stock-date-product" class="form-select">
-                            <option value="">-- Chọn sản phẩm --</option>
+                            <option value="">-- Tất cả sản phẩm --</option>
                         </select>
                     </div>
-                    <div class="col-md-4 mb-3">
-                        <label class="form-label">Ngày</label>
-                        <input type="date" id="stock-date" class="form-control">
+                    <div class="col-md-4">
+                        <label class="form-label">Chỉ có thể tra cứu đến ngày <?php echo date('d/m/Y'); ?></label>
+                        <input type="date" id="stock-date" class="form-control" max="<?php echo date('Y-m-d'); ?>">
+                        <div class="date-warning">
+                        </div>
                     </div>
-                    <div class="col-md-3 mb-3 d-flex align-items-end">
+                    <div class="col-md-3">
                         <button id="check-stock-date" class="btn btn-dark w-100">Tra cứu</button>
                     </div>
                 </div>
-                <div id="stock-date-result" class="alert alert-info mt-2" style="display: none;"></div>
+                <div id="stock-date-result" class="alert alert-info mt-3" style="display: none;"></div>
             </div>
 
-            <!-- Kết quả chi tiết -->
+            <!-- Kết quả chi tiết (cho 1 sản phẩm) -->
             <div id="detail-result" class="result-card" style="display: none;">
-                <div class="text-center">
-                    <i class="fas fa-boxes fa-3x mb-3" style="color: var(--primary-color);"></i>
-                    <h4 id="result-product-name"></h4>
-                    <p class="text-muted">Tồn kho tại ngày <strong id="result-date"></strong></p>
-                    <div class="stock-value" id="result-stock"></div>
+                <div class="result-product-name" id="result-product-name"></div>
+                <div class="result-date-info">
+                    <i class="fas fa-calendar-alt me-2"></i>Tồn kho tại ngày <strong id="result-date"></strong>
+                </div>
+                <div class="stock-container">
+                    <span class="stock-value" id="result-stock"></span>
+                    <span class="stock-unit">sản phẩm</span>
+                </div>
+            </div>
+
+            <!-- Kết quả bảng (cho tất cả sản phẩm) -->
+            <div id="all-products-result" class="card card-custom" style="display: none;">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-calendar-alt me-2"></i>Danh sách tồn kho tất cả sản phẩm tại ngày <strong id="all-products-date"></strong>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover products-table">
+                            <thead>
+                                
+                                    <th>Mã SP</th>
+                                    <th>Tên sản phẩm</th>
+                                    <th>Loại</th>
+                                    <th class="text-center">Số lượng tồn</th>
+                                
+                            </thead>
+                            <tbody id="all-products-table-body">
+                                <tr>
+                                    <td colspan="4" class="text-center">Đang tải...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
@@ -401,8 +591,10 @@ if (isset($_REQUEST['action'])) {
 
         function loadProductSelect() {
             $.getJSON('inventory_detail.php', { action: 'get_products' }, function(products) {
-                let options = '<option value="">-- Chọn sản phẩm --</option>';
-                products.forEach(p => options += `<option value="${p.id}">${p.name}</option>`);
+                let options = '<option value="">-- Tất cả sản phẩm --</option>';
+                products.forEach(p => {
+                    options += `<option value="${p.id}">${escapeHtml(p.name)}</option>`;
+                });
                 $('#stock-date-product').html(options);
             });
         }
@@ -410,25 +602,103 @@ if (isset($_REQUEST['action'])) {
         $('#check-stock-date').click(function() {
             const productId = $('#stock-date-product').val();
             const date = $('#stock-date').val();
-            if (!productId) { alert('Vui lòng chọn sản phẩm'); return; }
+            
             if (!date) { alert('Vui lòng chọn ngày'); return; }
+            
+            // Ẩn các kết quả cũ
+            $('#detail-result').hide();
+            $('#all-products-result').hide();
+            
+            // Hiển thị loading
+            $('#stock-date-result').show().removeClass('alert-danger alert-info').addClass('alert-info').html('<div class="text-center"><i class="fas fa-spinner fa-spin me-2"></i>Đang tra cứu...</div>');
             
             $.getJSON('inventory_detail.php', { action: 'get_stock_at_date', product_id: productId, date: date }, function(res) {
                 if (res.success) {
-                    $('#result-product-name').text(res.product_name);
-                    $('#result-date').text(new Date(res.date).toLocaleDateString('vi-VN'));
-                    $('#result-stock').text(res.stock + ' sản phẩm');
-                    $('#detail-result').show();
-                    $('#stock-date-result').hide();
+                    if (res.type === 'single') {
+                        // Hiển thị kết quả cho 1 sản phẩm
+                        $('#result-product-name').text(res.product_name);
+                        $('#result-product-name').css('color', '#222831');
+                        $('#result-date').text(new Date(res.date).toLocaleDateString('vi-VN'));
+                        
+                        // Xác định màu sắc cho số lượng tồn
+                        let stockColor = '';
+                        if (res.stock <= 0) {
+                            stockColor = '#dc3545';
+                        } else if (res.stock <= 10) {
+                            stockColor = '#ffc107';
+                        } else {
+                            stockColor = '#28a745';
+                        }
+                        
+                        // Hiển thị số lượng với màu sắc tương ứng
+                        $('#result-stock').html(`<span style="color: ${stockColor};">${res.stock}</span>`);
+                        
+                        $('#detail-result').show();
+                        $('#all-products-result').hide();
+                        $('#stock-date-result').hide();
+                    } else if (res.type === 'all') {
+                        // Hiển thị bảng tất cả sản phẩm
+                        $('#all-products-date').text(new Date(res.date).toLocaleDateString('vi-VN'));
+                        
+                        let tableHtml = '';
+                        res.products.forEach(product => {
+                            let stockValue = product.stock;
+                            let rowClass = '';
+                            let stockClass = '';
+                            
+                            // Xác định class cho hàng và số lượng
+                            if (stockValue <= 0) {
+                                rowClass = 'out-stock-row';
+                                stockClass = 'status-danger';
+                            } else if (stockValue <= 10) {
+                                rowClass = 'low-stock-row';
+                                stockClass = 'status-warning';
+                            } else {
+                                stockClass = 'status-success';
+                            }
+                            
+                            tableHtml += `
+                                <tr class="${rowClass}">
+                                    <td class="align-middle">${escapeHtml(product.code)}</td>
+                                    <td class="align-middle"><strong>${escapeHtml(product.name)}</strong></td>
+                                    <td class="align-middle">${escapeHtml(product.category_name)}</td>
+                                    <td class="text-center align-middle">
+                                        <strong class="${stockClass}">${stockValue}</strong>
+                                    </td>
+                                </tr>
+                            `;
+                        });
+                        
+                        if (res.products.length === 0) {
+                            tableHtml = '<tr><td colspan="4" class="text-center text-muted py-4"><i class="fas fa-box-open me-2"></i>Không có sản phẩm nào</td></tr>';
+                        }
+                        
+                        $('#all-products-table-body').html(tableHtml);
+                        $('#all-products-result').show();
+                        $('#detail-result').hide();
+                        $('#stock-date-result').hide();
+                    }
                 } else {
-                    alert('Lỗi: ' + res.error);
+                    $('#stock-date-result').show().removeClass('alert-info').addClass('alert-danger').html('<i class="fas fa-exclamation-triangle me-2"></i>' + (res.error || 'Không thể tra cứu'));
                 }
+            }).fail(function() {
+                $('#stock-date-result').show().removeClass('alert-info').addClass('alert-danger').html('<i class="fas fa-exclamation-triangle me-2"></i>Không thể kết nối đến máy chủ');
             });
         });
 
         const today = new Date();
         const formatDate = (date) => date.toISOString().slice(0,10);
         $('#stock-date').val(formatDate(today));
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
 
         loadProductSelect();
     </script>
