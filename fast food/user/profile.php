@@ -14,7 +14,7 @@ $success = '';
 
 // Fetch user information from database
 try {
-    $stmt = $pdo->prepare("SELECT id, full_name, username, email, phone, register_date, role, status, address, birthday FROM users WHERE id = ?");
+    $stmt = $pdo->prepare("SELECT id, full_name, username, email, phone, register_date, role, status, address, birthday, avatar FROM users WHERE id = ?");
     $stmt->execute([$user_id]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
     
@@ -48,6 +48,9 @@ try {
     
     // Address if exists
     $address = !empty($user['address']) ? $user['address'] : 'Chưa cập nhật';
+    
+    // Avatar path
+    $avatar = !empty($user['avatar']) ? $user['avatar'] : '';
     
 } catch (PDOException $e) {
     $error = "Lỗi khi tải thông tin: " . $e->getMessage();
@@ -113,6 +116,12 @@ $current_page = 'profile';
       object-fit: cover;
       margin-bottom: 15px;
       border: 3px solid #ffbe33;
+      background-color: #f0f0f0;
+    }
+    
+    /* Style for default avatar */
+    .profile-avatar.default-avatar {
+      object-fit: contain;
     }
     
     .info-group {
@@ -272,7 +281,15 @@ $current_page = 'profile';
           
           <div class="profile-card">
             <div class="profile-header">
-              <img src="../images/about-img.png" alt="Avatar" class="profile-avatar">
+              <?php 
+              // Determine avatar source
+              if (!empty($avatar) && file_exists('../' . $avatar)) {
+                  $avatar_src = '../' . htmlspecialchars($avatar);
+              } else {
+                  $avatar_src = '';
+              }
+              ?>
+              <img src="<?php echo $avatar_src; ?>" alt="Avatar" class="profile-avatar" id="profile-avatar" data-name="<?php echo htmlspecialchars($user['full_name']); ?>">
               <h3><?php echo htmlspecialchars($user['full_name']); ?></h3>
               <p>Thành viên từ: <?php echo $register_date; ?></p>
             </div>
@@ -388,6 +405,80 @@ $current_page = 'profile';
   <script src="../js/custom.js"></script>
   
   <script>
+    // Function to create default avatar with initials
+    function createDefaultAvatar(name, size = 120) {
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
+        
+        // Get initials (first character of each word, max 2 characters)
+        let initials = '';
+        const nameParts = name.trim().split(' ');
+        if (nameParts.length >= 2) {
+            initials = nameParts[0].charAt(0) + nameParts[1].charAt(0);
+        } else {
+            initials = name.charAt(0);
+        }
+        initials = initials.toUpperCase();
+        
+        // Generate random but consistent color based on name
+        let hash = 0;
+        for (let i = 0; i < name.length; i++) {
+            hash = name.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        const hue = Math.abs(hash % 360);
+        
+        // Draw background
+        ctx.fillStyle = `hsl(${hue}, 70%, 60%)`;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Draw text
+        ctx.fillStyle = '#ffffff';
+        ctx.font = `bold ${size * 0.4}px Arial`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(initials, canvas.width / 2, canvas.height / 2);
+        
+        return canvas.toDataURL();
+    }
+
+    // Handle avatar display
+    const avatarImg = document.getElementById('profile-avatar');
+    const userName = avatarImg.getAttribute('data-name') || 'User';
+    
+    function loadAvatar() {
+        const currentSrc = avatarImg.src;
+        if (!currentSrc || currentSrc.includes('null') || currentSrc.includes('undefined') || currentSrc === window.location.href) {
+            // No avatar found, create default
+            avatarImg.src = createDefaultAvatar(userName);
+            avatarImg.classList.add('default-avatar');
+        } else {
+            // Try to load the image
+            const testImg = new Image();
+            testImg.onload = function() {
+                avatarImg.src = testImg.src;
+                avatarImg.classList.remove('default-avatar');
+            };
+            testImg.onerror = function() {
+                // Image failed to load, create default
+                avatarImg.src = createDefaultAvatar(userName);
+                avatarImg.classList.add('default-avatar');
+            };
+            testImg.src = currentSrc;
+        }
+    }
+    
+    loadAvatar();
+    
+    // Handle image load error for avatar
+    avatarImg.onerror = function() {
+        if (!this.src.includes('data:image')) {
+            this.src = createDefaultAvatar(userName);
+            this.classList.add('default-avatar');
+        }
+    };
+    
     document.getElementById('displayYear').innerHTML = new Date().getFullYear();
   </script>
 </body>

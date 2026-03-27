@@ -49,7 +49,7 @@ try {
     $birthday_display = !empty($user['birthday']) ? date('d/m/Y', strtotime($user['birthday'])) : '';
     
     // Avatar path - with default avatar
-    $avatar = !empty($user['avatar']) ? $user['avatar'] : 'uploads/avatars/default-avatar.png';
+    $avatar = !empty($user['avatar']) ? $user['avatar'] : '';
     
 } catch (PDOException $e) {
     $error = "Lỗi khi tải thông tin: " . $e->getMessage();
@@ -190,6 +190,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['user_email'] = $email;
             $_SESSION['user_phone'] = $phone;
             $_SESSION['user_address'] = $address;
+            $_SESSION['user_avatar'] = $avatar_path;
             
             $success = "Thông tin đã được cập nhật thành công!";
             
@@ -279,17 +280,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       background-color: #f0f0f0;
       display: block;
       margin: 0 auto;
-    }
-    /* Style cho avatar mặc định */
-    .profile-avatar.default-avatar {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 48px;
-      color: white;
-      font-weight: bold;
-      text-transform: uppercase;
     }
     .avatar-upload {
       display: none;
@@ -532,7 +522,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
               <div class="profile-header">
                 <div class="avatar-container">
                   <input type="file" id="avatar-upload" class="avatar-upload" name="avatar" accept="image/*">
-                  <img src="../<?php echo htmlspecialchars($avatar); ?>" alt="Avatar" class="profile-avatar" id="profile-avatar">
+                  <?php 
+                  // Determine avatar source
+                  if (!empty($avatar) && file_exists('../' . $avatar)) {
+                      $avatar_src = '../' . htmlspecialchars($avatar);
+                  } else {
+                      $avatar_src = '';
+                  }
+                  ?>
+                  <img src="<?php echo $avatar_src; ?>" alt="Avatar" class="profile-avatar" id="profile-avatar" data-name="<?php echo htmlspecialchars($user['full_name']); ?>">
                 </div>
                 <label for="avatar-upload" class="avatar-upload-label">
                   <i class="fa fa-camera"></i> Thay đổi ảnh đại diện
@@ -685,79 +683,92 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   </footer>
 
   <script>
-    // Xử lý upload ảnh đại diện
-    document.getElementById('avatar-upload').addEventListener('change', function(e) {
-      const file = e.target.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          const avatarImg = document.getElementById('profile-avatar');
-          avatarImg.src = e.target.result;
-          // Xóa class default-avatar nếu có
-          avatarImg.classList.remove('default-avatar');
-          // Xóa style background nếu có
-          avatarImg.style.background = 'none';
+    // Function to create default avatar with initials
+    function createDefaultAvatar(name, size = 120) {
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
+        
+        // Get initials (first character of each word, max 2 characters)
+        let initials = '';
+        const nameParts = name.trim().split(' ');
+        if (nameParts.length >= 2) {
+            initials = nameParts[0].charAt(0) + nameParts[1].charAt(0);
+        } else {
+            initials = name.charAt(0);
         }
-        reader.readAsDataURL(file);
-      }
-    });
+        initials = initials.toUpperCase();
+        
+        // Generate random but consistent color based on name
+        let hash = 0;
+        for (let i = 0; i < name.length; i++) {
+            hash = name.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        const hue = Math.abs(hash % 360);
+        
+        // Draw background
+        ctx.fillStyle = `hsl(${hue}, 70%, 60%)`;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Draw text
+        ctx.fillStyle = '#ffffff';
+        ctx.font = `bold ${size * 0.4}px Arial`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(initials, canvas.width / 2, canvas.height / 2);
+        
+        return canvas.toDataURL();
+    }
 
-    // Xử lý avatar mặc định khi không có ảnh hoặc ảnh bị lỗi
+    // Handle avatar display
     const avatarImg = document.getElementById('profile-avatar');
     const userName = document.getElementById('user-name-display').innerText;
-
-    function createDefaultAvatar() {
-      // Lấy chữ cái đầu tiên của tên
-      const initial = userName.charAt(0).toUpperCase();
-      
-      // Tạo canvas để vẽ avatar mặc định
-      const canvas = document.createElement('canvas');
-      canvas.width = 120;
-      canvas.height = 120;
-      const ctx = canvas.getContext('2d');
-      
-      // Vẽ nền gradient
-      const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-      gradient.addColorStop(0, '#667eea');
-      gradient.addColorStop(1, '#764ba2');
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      
-      // Vẽ chữ
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 48px Arial';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(initial, canvas.width / 2, canvas.height / 2);
-      
-      // Chuyển canvas thành ảnh
-      return canvas.toDataURL();
-    }
-
-    // Kiểm tra nếu là avatar mặc định hoặc ảnh bị lỗi
-    avatarImg.onerror = function() {
-      // Tạo avatar mặc định từ tên
-      const defaultAvatarUrl = createDefaultAvatar();
-      this.src = defaultAvatarUrl;
-      this.classList.add('default-avatar');
-    };
-
-    // Kiểm tra nếu avatar là file mặc định (không tồn tại)
-    if (avatarImg.src.includes('default-avatar.png')) {
-      // Kiểm tra xem file có tồn tại không
-      fetch(avatarImg.src)
-        .then(response => {
-          if (!response.ok) {
-            // Nếu file không tồn tại, tạo avatar từ tên
-            avatarImg.src = createDefaultAvatar();
+    
+    function loadAvatar() {
+        const currentSrc = avatarImg.src;
+        if (!currentSrc || currentSrc.includes('null') || currentSrc.includes('undefined') || currentSrc === window.location.href) {
+            // No avatar found, create default
+            avatarImg.src = createDefaultAvatar(userName);
             avatarImg.classList.add('default-avatar');
-          }
-        })
-        .catch(() => {
-          avatarImg.src = createDefaultAvatar();
-          avatarImg.classList.add('default-avatar');
-        });
+        } else {
+            // Try to load the image
+            const testImg = new Image();
+            testImg.onload = function() {
+                avatarImg.src = testImg.src;
+                avatarImg.classList.remove('default-avatar');
+            };
+            testImg.onerror = function() {
+                // Image failed to load, create default
+                avatarImg.src = createDefaultAvatar(userName);
+                avatarImg.classList.add('default-avatar');
+            };
+            testImg.src = currentSrc;
+        }
     }
+    
+    loadAvatar();
+    
+    // Handle avatar upload preview
+    document.getElementById('avatar-upload').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                avatarImg.src = e.target.result;
+                avatarImg.classList.remove('default-avatar');
+            }
+            reader.readAsDataURL(file);
+        }
+    });
+    
+    // Handle image load error for avatar
+    avatarImg.onerror = function() {
+        if (!this.src.includes('data:image')) {
+            this.src = createDefaultAvatar(userName);
+            this.classList.add('default-avatar');
+        }
+    };
 
     // Focus vào ô đầu tiên khi trang load
     if (document.getElementById('full-name')) {
