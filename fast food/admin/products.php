@@ -21,7 +21,7 @@ try {
     die("Database connection failed: " . $e->getMessage());
 }
 
-// Lấy thông tin admin từ database
+// Lấy thông tin admin
 $admin_id = $_SESSION['admin_id'];
 $stmt = $pdo->prepare("SELECT id, full_name, username, email, phone, address, birthday, register_date, role, status, last_login FROM users WHERE id = ?");
 $stmt->execute([$admin_id]);
@@ -33,12 +33,7 @@ if (!$admin_info) {
     exit;
 }
 
-// Hàm định dạng tiền VNĐ
-function formatVND($amount) {
-    return number_format($amount, 0, ',', '.') . ' ₫';
-}
-
-// Xử lý AJAX requests
+// Xử lý AJAX
 if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
     header('Content-Type: application/json');
     $action = $_POST['action'] ?? $_GET['action'] ?? '';
@@ -128,27 +123,23 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
             case 'add':
                 $code = trim($_POST['code'] ?? '');
                 $name = trim($_POST['name'] ?? '');
-                $category_id = (int)($_POST['category_id'] ?? 0);
                 $description = trim($_POST['description'] ?? '');
-                $unit = trim($_POST['unit'] ?? 'cái');
-                $stock_quantity = (int)($_POST['stock_quantity'] ?? 0);
-                $profit_percentage = (int)($_POST['profit_percentage'] ?? 30);
+                $category_id = (int)($_POST['category_id'] ?? 0);
                 $status = $_POST['status'] ?? 'active';
-                $cost_price = (float)($_POST['cost_price'] ?? 0);
                 
                 if (empty($code)) throw new Exception('Vui lòng nhập mã sản phẩm');
                 if (empty($name)) throw new Exception('Vui lòng nhập tên sản phẩm');
                 if (!$category_id) throw new Exception('Vui lòng chọn loại sản phẩm');
-                if ($cost_price <= 0) throw new Exception('Vui lòng nhập giá nhập');
+                
+                // Kiểm tra định dạng mã: 2 chữ cái in hoa + 3 số
+                if (!preg_match('/^[A-Z]{2}\d{3}$/', $code)) {
+                    throw new Exception('Mã sản phẩm phải gồm 2 chữ cái in hoa và 3 số (VD: PZ001)');
+                }
                 
                 // Kiểm tra mã sản phẩm đã tồn tại
                 $stmt = $pdo->prepare("SELECT id FROM products WHERE code = ?");
                 $stmt->execute([$code]);
                 if ($stmt->fetch()) throw new Exception('Mã sản phẩm đã tồn tại');
-                
-                // Tính giá bán dựa trên tỷ lệ lợi nhuận
-                $selling_price = $cost_price * (1 + $profit_percentage / 100);
-                $selling_price = round($selling_price / 1000) * 1000;
                 
                 // Xử lý upload ảnh
                 $image_path = '';
@@ -175,6 +166,12 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
                     }
                 }
                 
+                // Giá trị mặc định
+                $cost_price = 0;
+                $selling_price = 0;
+                $profit_percentage = 0;
+                $stock_quantity = 0;
+                
                 $stmt = $pdo->prepare("INSERT INTO products (code, name, category_id, description, image, cost_price, selling_price, stock_quantity, status, profit_percentage, created_at, updated_at) 
                                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())");
                 $stmt->execute([$code, $name, $category_id, $description, $image_path, $cost_price, $selling_price, $stock_quantity, $status, $profit_percentage]);
@@ -186,20 +183,20 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
                 $product_id = (int)($_POST['product_id'] ?? 0);
                 $code = trim($_POST['code'] ?? '');
                 $name = trim($_POST['name'] ?? '');
-                $category_id = (int)($_POST['category_id'] ?? 0);
                 $description = trim($_POST['description'] ?? '');
-                $unit = trim($_POST['unit'] ?? 'cái');
-                $stock_quantity = (int)($_POST['stock_quantity'] ?? 0);
-                $profit_percentage = (int)($_POST['profit_percentage'] ?? 30);
+                $category_id = (int)($_POST['category_id'] ?? 0);
                 $status = $_POST['status'] ?? 'active';
-                $cost_price = (float)($_POST['cost_price'] ?? 0);
                 $reset_image = isset($_POST['reset_image']) && $_POST['reset_image'] == '1';
                 
                 if (!$product_id) throw new Exception('Thiếu ID sản phẩm');
                 if (empty($code)) throw new Exception('Vui lòng nhập mã sản phẩm');
                 if (empty($name)) throw new Exception('Vui lòng nhập tên sản phẩm');
                 if (!$category_id) throw new Exception('Vui lòng chọn loại sản phẩm');
-                if ($cost_price <= 0) throw new Exception('Vui lòng nhập giá nhập');
+                
+                // Kiểm tra định dạng mã: 2 chữ cái in hoa + 3 số
+                if (!preg_match('/^[A-Z]{2}\d{3}$/', $code)) {
+                    throw new Exception('Mã sản phẩm phải gồm 2 chữ cái in hoa và 3 số (VD: PZ001)');
+                }
                 
                 // Kiểm tra mã sản phẩm không trùng
                 $stmt = $pdo->prepare("SELECT id FROM products WHERE code = ? AND id != ?");
@@ -211,10 +208,6 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
                 $stmt->execute([$product_id]);
                 $old_product = $stmt->fetch();
                 $image_path = $old_product['image'] ?? '';
-                
-                // Tính giá bán mới
-                $selling_price = $cost_price * (1 + $profit_percentage / 100);
-                $selling_price = round($selling_price / 1000) * 1000;
                 
                 // Xử lý upload ảnh mới
                 if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
@@ -248,8 +241,8 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
                     $image_path = '';
                 }
                 
-                $stmt = $pdo->prepare("UPDATE products SET code = ?, name = ?, category_id = ?, description = ?, image = ?, cost_price = ?, selling_price = ?, stock_quantity = ?, status = ?, profit_percentage = ?, updated_at = NOW() WHERE id = ?");
-                $stmt->execute([$code, $name, $category_id, $description, $image_path, $cost_price, $selling_price, $stock_quantity, $status, $profit_percentage, $product_id]);
+                $stmt = $pdo->prepare("UPDATE products SET code = ?, name = ?, category_id = ?, description = ?, image = ?, status = ?, updated_at = NOW() WHERE id = ?");
+                $stmt->execute([$code, $name, $category_id, $description, $image_path, $status, $product_id]);
                 
                 echo json_encode(['success' => true]);
                 break;
@@ -596,26 +589,14 @@ $existing_products = $stmt->fetchAll();
             color: var(--secondary-color);
         }
         
-        .code-select-group {
-            position: relative;
+        .invalid-feedback {
+            display: none;
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
         }
         
-        .code-select-group .form-select {
-            width: 100%;
-        }
-        
-        .new-code-section {
-            margin-top: 15px;
-            padding-top: 15px;
-            border-top: 1px dashed #dee2e6;
-        }
-        
-        .info-alert {
-            background-color: #e7f3ff;
-            border-left: 4px solid var(--primary-color);
-            padding: 12px;
-            margin-bottom: 15px;
-            border-radius: 8px;
+        .is-invalid .invalid-feedback {
+            display: block;
         }
         
         @media (max-width: 768px) {
@@ -708,7 +689,6 @@ $existing_products = $stmt->fetchAll();
                 <div class="table-responsive">
                     <table class="table table-hover">
                         <thead>
-                            
                                 <th>Mã SP</th>
                                 <th>Tên sản phẩm</th>
                                 <th>Loại</th>
@@ -719,14 +699,14 @@ $existing_products = $stmt->fetchAll();
                                 <th>Lợi nhuận</th>
                                 <th>Trạng thái</th>
                                 <th>Thao tác</th>
-                            </thead>
-                            <tbody id="productsTableBody">
-                                <td colspan="10" class="text-center">Đang tải...<\/td>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div class="pagination-container" id="paginationContainer"></div>
+                            </tr>
+                        </thead>
+                        <tbody id="productsTableBody">
+                            <tr><td colspan="10" class="text-center">Đang tải...</td></tr>
+                        </tbody>
+                    </table>
                 </div>
+                <div class="pagination-container" id="paginationContainer"></div>
             </div>
         </div>
     </div>
@@ -758,7 +738,7 @@ $existing_products = $stmt->fetchAll();
 
     <!-- Modal Thêm/Sửa sản phẩm -->
     <div class="modal fade" id="productModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
+        <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="productModalTitle">Thêm sản phẩm</h5>
@@ -768,85 +748,41 @@ $existing_products = $stmt->fetchAll();
                     <form id="productForm" enctype="multipart/form-data">
                         <input type="hidden" id="product_id" name="product_id">
                         
+                        <div class="mb-3" id="codeGroup">
+                            <label class="form-label">Mã sản phẩm <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="code" name="code" 
+                                   placeholder="VD: PZ001" required pattern="[A-Z]{2}\d{3}"
+                                   title="Mã gồm 2 chữ cái in hoa và 3 số (VD: PZ001)">
+                            <div class="invalid-feedback" id="codeError"></div>
+                            <small class="text-muted">Định dạng: 2 chữ cái in hoa + 3 số (VD: PZ001)</small>
+                        </div>
+                        
                         <div class="mb-3">
-                            <label class="form-label">Chọn mã sản phẩm có sẵn <span class="text-muted">(hoặc nhập mã mới bên dưới)</span></label>
-                            <select class="form-select" id="select_code">
-                                <option value="">-- Chọn mã sản phẩm hiện có --</option>
-                                <?php foreach ($existing_products as $prod): ?>
-                                    <option value="<?php echo htmlspecialchars($prod['code']); ?>"><?php echo htmlspecialchars($prod['code']) . ' - ' . htmlspecialchars($prod['name']); ?></option>
+                            <label class="form-label">Tên sản phẩm <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="name" name="name" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Loại sản phẩm <span class="text-danger">*</span></label>
+                            <select class="form-select" id="category_id" name="category_id" required>
+                                <option value="">-- Chọn loại --</option>
+                                <?php foreach ($categories as $cat): ?>
+                                    <option value="<?php echo $cat['id']; ?>"><?php echo htmlspecialchars($cat['name']); ?></option>
                                 <?php endforeach; ?>
-                                <option value="new">+ Thêm mã sản phẩm mới</option>
                             </select>
                         </div>
                         
-                        <div class="info-alert" id="productInfoAlert" style="display: none;">
-                            <i class="fas fa-info-circle me-2"></i>
-                            <span id="productInfoText"></span>
-                        </div>
-                        
-                        <div class="new-code-section" id="newCodeSection" style="display: none;">
-                            <div class="row">
-                                <div class="col-md-12 mb-3">
-                                    <label class="form-label">Mã sản phẩm mới <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" id="code" name="code" placeholder="VD: PZ001">
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="row" id="productFields">
-                            <div class="col-md-12 mb-3">
-                                <label class="form-label">Tên sản phẩm <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="name" name="name" required>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Loại sản phẩm <span class="text-danger">*</span></label>
-                                <select class="form-select" id="category_id" name="category_id" required>
-                                    <option value="">-- Chọn loại --</option>
-                                    <?php foreach ($categories as $cat): ?>
-                                        <option value="<?php echo $cat['id']; ?>"><?php echo htmlspecialchars($cat['name']); ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Đơn vị tính</label>
-                                <input type="text" class="form-control" id="unit" name="unit" value="cái">
-                            </div>
+                        <div class="mb-3">
+                            <label class="form-label">Trạng thái</label>
+                            <select class="form-select" id="status" name="status">
+                                <option value="active">Đang bán</option>
+                                <option value="inactive">Ẩn</option>
+                            </select>
                         </div>
                         
                         <div class="mb-3">
                             <label class="form-label">Mô tả</label>
                             <textarea class="form-control" id="description" name="description" rows="3"></textarea>
-                        </div>
-                        
-                        <div class="row">
-                            <div class="col-md-4 mb-3">
-                                <label class="form-label">Giá nhập (VNĐ) <span class="text-danger">*</span></label>
-                                <input type="number" class="form-control" id="cost_price" name="cost_price" step="1000" min="0" required>
-                            </div>
-                            <div class="col-md-4 mb-3">
-                                <label class="form-label">Tỷ lệ lợi nhuận (%)</label>
-                                <input type="number" class="form-control" id="profit_percentage" name="profit_percentage" min="0" max="100" value="30">
-                                <small class="text-muted">Giá bán = Giá nhập × (100% + tỷ lệ)</small>
-                            </div>
-                            <div class="col-md-4 mb-3">
-                                <label class="form-label">Số lượng ban đầu</label>
-                                <input type="number" class="form-control" id="stock_quantity" name="stock_quantity" min="0" value="0">
-                            </div>
-                        </div>
-                        
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Trạng thái</label>
-                                <select class="form-select" id="status" name="status">
-                                    <option value="active">Đang bán</option>
-                                    <option value="inactive">Ẩn (không bán)</option>
-                                </select>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Giá bán dự kiến</label>
-                                <input type="text" class="form-control" id="estimated_price" readonly disabled>
-                                <small class="text-muted">Tự động tính theo giá nhập và tỷ lệ lợi nhuận</small>
-                            </div>
                         </div>
                         
                         <div class="mb-3">
@@ -939,81 +875,59 @@ $existing_products = $stmt->fetchAll();
             return new Intl.NumberFormat('vi-VN').format(amount) + ' ₫';
         }
 
-        // Tính giá bán dự kiến
-        function calculateEstimatedPrice() {
-            const costPrice = parseFloat($('#cost_price').val()) || 0;
-            const profitPercent = parseFloat($('#profit_percentage').val()) || 0;
-            const estimated = costPrice * (1 + profitPercent / 100);
-            const rounded = Math.round(estimated / 1000) * 1000;
-            $('#estimated_price').val(formatVND(rounded));
+        // Kiểm tra định dạng mã sản phẩm (client-side)
+        function validateProductCodeFormat(code) {
+            const pattern = /^[A-Z]{2}\d{3}$/;
+            return pattern.test(code);
         }
 
-        $('#cost_price, #profit_percentage').on('input', calculateEstimatedPrice);
-
-        // Xử lý chọn mã sản phẩm từ dropdown
-        $('#select_code').on('change', function() {
-            const selectedCode = $(this).val();
-            
-            if (selectedCode === 'new') {
-                // Hiển thị phần nhập mã mới
-                $('#newCodeSection').show();
-                $('#code').prop('required', true);
-                $('#productInfoAlert').hide();
-                // Reset các trường
-                $('#name').val('');
-                $('#category_id').val('');
-                $('#description').val('');
-                $('#cost_price').val('');
-                $('#profit_percentage').val('30');
-                $('#stock_quantity').val('0');
-                $('#status').val('active');
-                calculateEstimatedPrice();
-                // Enable các trường nhập
-                $('#name, #category_id, #description, #cost_price, #profit_percentage, #stock_quantity, #status').prop('disabled', false);
-                return;
-            }
-            
-            if (selectedCode && selectedCode !== '') {
-                // Gọi AJAX để lấy thông tin sản phẩm
-                $.getJSON(window.location.href, { ajax: 1, action: 'get_product_by_code', code: selectedCode }, function(res) {
+        // Kiểm tra mã trùng (AJAX)
+        function checkCodeExists(code, excludeId = null) {
+            return new Promise((resolve) => {
+                $.getJSON(window.location.href, {
+                    ajax: 1,
+                    action: 'get_product_by_code',
+                    code: code
+                }, function(res) {
                     if (res.success && res.exists) {
-                        const p = res.product;
-                        // Ẩn phần nhập mã mới
-                        $('#newCodeSection').hide();
-                        $('#code').prop('required', false);
-                        // Hiển thị thông tin
-                        $('#productInfoAlert').show();
-                        $('#productInfoText').html(`Đã tìm thấy sản phẩm: <strong>${escapeHtml(p.name)}</strong> - Loại: ${escapeHtml(p.category_name || 'Chưa xác định')}`);
-                        // Tự động điền thông tin
-                        $('#name').val(p.name);
-                        $('#category_id').val(p.category_id);
-                        $('#description').val(p.description || '');
-                        $('#cost_price').val(p.cost_price);
-                        $('#profit_percentage').val(p.profit_percentage || 30);
-                        $('#stock_quantity').val(p.stock_quantity);
-                        $('#status').val(p.status);
-                        calculateEstimatedPrice();
-                        // Disable các trường không nên sửa khi đã có sẵn
-                        $('#name, #category_id, #description').prop('disabled', true);
-                        $('#cost_price, #profit_percentage, #stock_quantity, #status').prop('disabled', false);
+                        if (excludeId && res.product.id == excludeId) {
+                            resolve(false); // chính nó khi sửa
+                        } else {
+                            resolve(true);
+                        }
+                    } else {
+                        resolve(false);
                     }
-                });
-            } else {
-                // Reset form
-                $('#newCodeSection').hide();
-                $('#productInfoAlert').hide();
-                $('#name').val('');
-                $('#category_id').val('');
-                $('#description').val('');
-                $('#cost_price').val('');
-                $('#profit_percentage').val('30');
-                $('#stock_quantity').val('0');
-                $('#status').val('active');
-                calculateEstimatedPrice();
-                $('#name, #category_id, #description, #cost_price, #profit_percentage, #stock_quantity, #status').prop('disabled', false);
-                $('#code').prop('required', false);
+                }).fail(() => resolve(false));
+            });
+        }
+
+        // Validate toàn bộ form
+        async function validateForm() {
+            const code = $('#code').val().trim();
+            const productId = $('#product_id').val();
+            
+            // Reset error
+            $('#codeGroup').removeClass('is-invalid');
+            $('#codeError').text('');
+            
+            // Kiểm tra định dạng
+            if (!validateProductCodeFormat(code)) {
+                $('#codeGroup').addClass('is-invalid');
+                $('#codeError').text('Mã phải gồm 2 chữ cái in hoa và 3 số (VD: PZ001)');
+                return false;
             }
-        });
+            
+            // Kiểm tra trùng
+            const exists = await checkCodeExists(code, productId ? parseInt(productId) : null);
+            if (exists) {
+                $('#codeGroup').addClass('is-invalid');
+                $('#codeError').text('Mã sản phẩm đã tồn tại');
+                return false;
+            }
+            
+            return true;
+        }
 
         // Load products
         function loadProducts() {
@@ -1107,13 +1021,11 @@ $existing_products = $stmt->fetchAll();
             $('#product_id').val('');
             $('#imagePreviewContainer').hide();
             $('#resetImageContainer').hide();
-            $('#newCodeSection').hide();
-            $('#productInfoAlert').hide();
-            $('#select_code').val('');
-            $('#name, #category_id, #description, #cost_price, #profit_percentage, #stock_quantity, #status').prop('disabled', false);
-            $('#code').prop('required', false);
             currentImagePath = '';
-            calculateEstimatedPrice();
+            $('#category_id').val('');
+            $('#status').val('active');
+            $('#codeGroup').removeClass('is-invalid');
+            $('#codeError').text('');
             $('#productModal').modal('show');
         }
 
@@ -1124,21 +1036,12 @@ $existing_products = $stmt->fetchAll();
                     const p = res.product;
                     $('#productModalTitle').text('Sửa sản phẩm');
                     $('#product_id').val(p.id);
-                    $('#select_code').val('');
-                    $('#newCodeSection').show();
-                    $('#productInfoAlert').hide();
-                    $('#code').val(p.code).prop('required', true);
+                    $('#code').val(p.code);
                     $('#name').val(p.name);
                     $('#category_id').val(p.category_id);
-                    $('#unit').val(p.unit || 'cái');
-                    $('#description').val(p.description || '');
-                    $('#cost_price').val(p.cost_price);
-                    $('#profit_percentage').val(p.profit_percentage || 30);
-                    $('#stock_quantity').val(p.stock_quantity);
                     $('#status').val(p.status);
+                    $('#description').val(p.description || '');
                     currentImagePath = p.image || '';
-                    calculateEstimatedPrice();
-                    $('#name, #category_id, #description, #cost_price, #profit_percentage, #stock_quantity, #status').prop('disabled', false);
                     
                     if (currentImagePath) {
                         const previewUrl = '../' + currentImagePath;
@@ -1149,6 +1052,8 @@ $existing_products = $stmt->fetchAll();
                         $('#imagePreviewContainer').hide();
                         $('#resetImageContainer').hide();
                     }
+                    $('#codeGroup').removeClass('is-invalid');
+                    $('#codeError').text('');
                     $('#productModal').modal('show');
                 } else {
                     alert('Lỗi: ' + res.error);
@@ -1175,29 +1080,20 @@ $existing_products = $stmt->fetchAll();
         });
 
         // Save product
-        $('#saveProductBtn').click(function() {
+        $('#saveProductBtn').click(async function() {
+            const isValid = await validateForm();
+            if (!isValid) return;
+            
             const productId = $('#product_id').val();
             const action = productId ? 'edit' : 'add';
             const formData = new FormData();
             formData.append('ajax', 1);
             formData.append('action', action);
-            
-            // Lấy mã sản phẩm
-            const selectedCode = $('#select_code').val();
-            if (selectedCode === 'new' || !selectedCode || productId) {
-                formData.append('code', $('#code').val());
-            } else if (selectedCode && selectedCode !== '') {
-                formData.append('code', selectedCode);
-            }
-            
+            formData.append('code', $('#code').val());
             formData.append('name', $('#name').val());
             formData.append('category_id', $('#category_id').val());
-            formData.append('description', $('#description').val());
-            formData.append('unit', $('#unit').val());
-            formData.append('stock_quantity', $('#stock_quantity').val());
-            formData.append('profit_percentage', $('#profit_percentage').val());
             formData.append('status', $('#status').val());
-            formData.append('cost_price', $('#cost_price').val());
+            formData.append('description', $('#description').val());
             
             const fileInput = $('#image')[0].files[0];
             if (fileInput) {
