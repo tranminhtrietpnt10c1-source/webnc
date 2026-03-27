@@ -83,6 +83,32 @@ function getStatusInfo($status) {
     return $statuses[$status] ?? ['class' => 'status-new', 'text' => 'Mới đặt', 'icon' => 'fa-star'];
 }
 
+// Hàm hiển thị trạng thái xác nhận đã nhận hàng
+function getConfirmationStatus($status, $order_id) {
+    // Kiểm tra nếu đơn hàng đã được xác nhận trong session
+    if (isset($_SESSION['confirmed_orders']) && in_array($order_id, $_SESSION['confirmed_orders'])) {
+        return '<span class="confirmation-status confirmed"><i class="fa fa-check-circle"></i> Đã nhận hàng</span>';
+    }
+    
+    // Nếu đơn hàng đã bị hủy
+    if ($status == 'cancelled') {
+        return '<span class="confirmation-status cancelled"><i class="fa fa-ban"></i> Đã hủy</span>';
+    }
+    
+    // Nếu đơn hàng đã giao (delivered)
+    if ($status == 'delivered') {
+        return '<span class="confirmation-status confirmed"><i class="fa fa-check-circle"></i> Đã nhận hàng</span>';
+    }
+    
+    // Nếu đơn hàng đang giao (shipped)
+    if ($status == 'shipped') {
+        return '<span class="confirmation-status waiting"><i class="fa fa-truck"></i> Chờ xác nhận</span>';
+    }
+    
+    // Các trạng thái khác (new, confirmed, processing)
+    return '<span class="confirmation-status not-available"><i class="fa fa-hourglass-half"></i> Chưa giao</span>';
+}
+
 $cart_count = 0;
 if (isset($_SESSION['cart'])) {
     foreach ($_SESSION['cart'] as $item) {
@@ -114,6 +140,41 @@ if (isset($_SESSION['cart'])) {
         .status-shipped { background: #d1ecf1; color: #0c5460; }
         .status-delivered { background: #d4edda; color: #155724; }
         .status-cancelled { background: #f8d7da; color: #721c24; }
+        
+        /* Styles cho cột xác nhận đã giao */
+        .confirmation-status {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            text-align: center;
+            min-width: 110px;
+        }
+        .confirmation-status i {
+            margin-right: 5px;
+        }
+        .confirmation-status.confirmed {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .confirmation-status.waiting {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .confirmation-status.cancelled {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .confirmation-status.not-available {
+            background: #e2e3e5;
+            color: #383d41;
+            border: 1px solid #d6d8db;
+        }
+        
         .empty-order { text-align: center; padding: 80px 0; background: white; border-radius: 10px; box-shadow: 0 0 15px rgba(0,0,0,0.1); }
         .btn-view { background-color: #ffbe33; color: #222; border: none; padding: 6px 12px; border-radius: 4px; text-decoration: none; display: inline-block; font-size: 13px; }
         .btn-view:hover { background-color: #e69c29; color: #222; text-decoration: none; }
@@ -144,6 +205,12 @@ if (isset($_SESSION['cart'])) {
             .order-table th, .order-table td { padding: 8px 10px; font-size: 14px; } 
             .status { padding: 3px 8px; font-size: 11px; }
             .btn-view { padding: 4px 8px; font-size: 11px; }
+            .confirmation-status { padding: 3px 8px; font-size: 11px; min-width: 90px; }
+        }
+        
+        @media (max-width: 480px) {
+            .order-table th, .order-table td { padding: 6px 5px; font-size: 12px; }
+            .confirmation-status { font-size: 10px; min-width: 80px; }
         }
     </style>
 </head>
@@ -248,33 +315,36 @@ if (isset($_SESSION['cart'])) {
                                 <th>Phí vận chuyển</th>
                                 <th>Thành tiền</th>
                                 <th>Trạng thái</th>
+                                <th>Xác nhận đã giao</th>
                                 <th>Chi tiết</th>
-                            </tr>
-                        </thead>
+                            </thead>
                         <tbody>
                             <?php foreach ($orders as $order): 
                                 $status_info = getStatusInfo($order['status']);
                                 $final_amount = $order['final_amount'] ?? ($order['total_amount'] + ($order['shipping_fee'] ?? 0));
                             ?>
-                            <tr>
-                                <td><a href="order_detail.php?id=<?= $order['id'] ?>" class="order-id-link"><?= htmlspecialchars($order['order_code'] ?? '#' . $order['id']) ?></a></td>
-                                <td><?= formatDate($order['created_at']) ?></td>
-                                <td><?= $order['item_count'] ?? 0 ?></td>
-                                <td><?= formatCurrency($order['total_amount']) ?></td>
-                                <td><?= formatCurrency($order['shipping_fee'] ?? 0) ?></td>
-                                <td><strong><?= formatCurrency($final_amount) ?></strong></td>
-                                <td>
+                             <tr>
+                                 <td><a href="order_detail.php?id=<?= $order['id'] ?>" class="order-id-link"><?= htmlspecialchars($order['order_code'] ?? '#' . $order['id']) ?></a></td>
+                                 <td><?= formatDate($order['created_at']) ?></td>
+                                 <td><?= $order['item_count'] ?? 0 ?></td>
+                                 <td><?= formatCurrency($order['total_amount']) ?></td>
+                                 <td><?= formatCurrency($order['shipping_fee'] ?? 0) ?></td>
+                                 <td><strong><?= formatCurrency($final_amount) ?></strong></td>
+                                 <td>
                                     <span class="status <?= $status_info['class'] ?>">
                                         <i class="fa <?= $status_info['icon'] ?>"></i>
                                         <?= $status_info['text'] ?>
                                     </span>
-                                </td>
-                                <td>
+                                 </td>
+                                 <td>
+                                    <?= getConfirmationStatus($order['status'], $order['id']) ?>
+                                 </td>
+                                 <td>
                                     <a href="order_detail.php?id=<?= $order['id'] ?>" class="btn-view">
                                         <i class="fa fa-eye"></i> Xem chi tiết
                                     </a>
-                                </td>
-                            </tr>
+                                 </td>
+                             </tr>
                             <?php endforeach; ?>
                         </tbody>
                     </table>

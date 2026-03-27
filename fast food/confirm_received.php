@@ -41,17 +41,7 @@ try {
         exit;
     }
     
-    // Cập nhật trạng thái thành 'delivered' và ghi notes
-    $notes = 'Đã giao hàng thành công đến khách hàng lúc ' . date('d/m/Y H:i:s');
-    $stmt = $pdo->prepare("
-        UPDATE orders 
-        SET status = 'delivered', 
-            notes = CONCAT(IFNULL(notes, ''), ?),
-            updated_at = NOW()
-        WHERE id = ?
-    ");
-    $stmt->execute(["\n" . $notes, $order_id]);
-    
+    // KHÔNG cập nhật database, chỉ hiển thị thông báo
     $_SESSION['success'] = 'Cảm ơn bạn đã xác nhận đã nhận hàng!';
     
     header('Location: order_detail.php?id=' . $order_id);

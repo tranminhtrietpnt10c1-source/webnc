@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Máy chủ: 127.0.0.1
--- Thời gian đã tạo: Th3 26, 2026 lúc 04:34 PM
+-- Thời gian đã tạo: Th3 27, 2026 lúc 02:54 AM
 -- Phiên bản máy phục vụ: 10.4.32-MariaDB
 -- Phiên bản PHP: 8.0.30
 
@@ -211,7 +211,10 @@ INSERT INTO `orders` (`id`, `order_code`, `user_id`, `customer_name`, `customer_
 (14, 'ORD014', 2, 'Nguyễn Văn A', '0912345678', 'nguyenvana@example.com', '12 Nguyễn Huệ, Quận 1, TP.HCM', '2026-03-26', 189000.00, 30000.00, 0.00, 219000.00, '', 'transfer', 'Đã xác nhận đơn hàng', '2026-03-26 11:00:00', '2026-03-26 14:29:00'),
 (19, 'ORD202603269864', 5, 'Trần Minh Triết', '0339111480', 'triet@gmail.com', '123 Đường ABC, Phường XYZ, Quận 1, TP.HCM', '2026-03-26', 164681.12, 30000.00, 0.00, 194681.12, 'pending', 'cash', '', '2026-03-26 14:53:22', '2026-03-26 14:53:22'),
 (20, 'ORD202603265630', 5, 'Trần Minh Triết', '0339111480', 'triet@gmail.com', '123 Đường ABC, Phường XYZ, Quận 1, TP.HCM', '2026-03-26', 103777.28, 30000.00, 0.00, 133777.28, 'cancelled', 'cash', '\n========== HỦY ĐƠN HÀNG ==========\nThời gian hủy: 2026-03-26 16:29:17\nLý do hủy: nghèo\n==================================\n', '2026-03-26 14:54:53', '2026-03-26 15:29:17'),
-(21, 'ORD202603264286', 5, 'Trần Minh Triết', '0339111480', 'triet@gmail.com', '123 Đường ABC, Phường XYZ, Quận 1, TP.HCM', '2026-03-26', 18250.01, 30000.00, 0.00, 48250.01, 'cancelled', 'cash', '\n========== HỦY ĐƠN HÀNG ==========\nThời gian hủy: 2026-03-26 16:28:38\nLý do hủy: hết tèn\n==================================\n', '2026-03-26 14:56:21', '2026-03-26 15:28:38');
+(21, 'ORD202603264286', 5, 'Trần Minh Triết', '0339111480', 'triet@gmail.com', '123 Đường ABC, Phường XYZ, Quận 1, TP.HCM', '2026-03-26', 18250.01, 30000.00, 0.00, 48250.01, 'cancelled', 'cash', '\n========== HỦY ĐƠN HÀNG ==========\nThời gian hủy: 2026-03-26 16:28:38\nLý do hủy: hết tèn\n==================================\n', '2026-03-26 14:56:21', '2026-03-26 15:28:38'),
+(22, 'ORD202603275880', 5, 'Trần Minh Triết', '0339111480', 'triet@gmail.com', '123 Đường ABC, Phường XYZ, Quận 1, TP.HCM', '2026-03-27', 103777.28, 30000.00, 0.00, 133777.28, 'shipped', 'cash', '', '2026-03-27 01:11:42', '2026-03-27 01:12:23'),
+(23, 'ORD202603270928', 5, 'Trần Minh Triết', '0339111480', 'triet@gmail.com', '123 Đường ABC, Phường XYZ, Quận 1, TP.HCM', '2026-03-27', 191452.85, 30000.00, 0.00, 221452.85, 'shipped', 'cash', '', '2026-03-27 01:49:52', '2026-03-27 01:50:20'),
+(24, 'ORD202603270577', 5, 'Trần Minh Triết', '0339111480', 'triet@gmail.com', '123 Đường ABC, Phường XYZ, Quận 1, TP.HCM', '2026-03-27', 6011055.67, 30000.00, 0.00, 6041055.67, 'cancelled', 'cash', '\n========== HỦY ĐƠN HÀNG ==========\nThời gian hủy: 2026-03-27 02:52:53\nLý do hủy: bữa nay ăn chay\n==================================\n', '2026-03-27 01:52:12', '2026-03-27 01:52:53');
 
 --
 -- Bẫy `orders`
@@ -283,7 +286,14 @@ INSERT INTO `order_details` (`id`, `order_id`, `product_id`, `quantity`, `unit_p
 (43, 19, 7, 1, 79153.84, 79153.84),
 (44, 20, 9, 1, 18250.01, 18250.01),
 (45, 20, 8, 1, 85527.27, 85527.27),
-(46, 21, 9, 1, 18250.01, 18250.01);
+(46, 21, 9, 1, 18250.01, 18250.01),
+(47, 22, 9, 1, 18250.01, 18250.01),
+(48, 22, 8, 1, 85527.27, 85527.27),
+(49, 23, 5, 1, 44718.75, 44718.75),
+(50, 23, 6, 1, 44734.09, 44734.09),
+(51, 23, 4, 1, 47250.00, 47250.00),
+(52, 23, 9, 3, 18250.01, 54750.02),
+(53, 24, 3, 41, 146611.11, 6011055.67);
 
 -- --------------------------------------------------------
 
@@ -361,12 +371,12 @@ INSERT INTO `products` (`id`, `code`, `name`, `category_id`, `description`, `ima
 (1, 'PZ001', 'Pizza hải sản', 1, 'Đế bánh giòn tan, phủ hải sản tươi ngon (tôm, mực, nghêu), phô mai béo mịn, sốt cà chua đậm đà', 'images/f1.png', 105161.29, 132096.77, 90, 'active', '2026-03-21 05:51:52', '2026-03-26 13:48:51', 30),
 (2, 'PZ002', 'Pizza phô mai', 1, 'Đế giòn vàng, phô mai mozzarella béo ngậy tan chảy, sốt cà chua, hương vị thơm lừng', 'images/f3.png', 91785.71, 119321.43, 55, 'active', '2026-03-21 05:51:52', '2026-03-23 07:00:00', 30),
 (3, 'PZ003', 'Pizza 3 vị', 1, 'Đế pizza giòn thơm, kết hợp ba hương vị: hải sản, phô mai, pepperoni, hấp dẫn mọi thực khách', 'images/f6.png', 112777.78, 146611.11, 45, 'active', '2026-03-21 05:51:52', '2026-03-24 07:00:00', 30),
-(4, 'BG001', 'Burger bò', 2, 'Thịt bò Úc nướng than hoa, rau tươi, sốt đặc trưng, phô mai cheddar tan chảy', 'images/f2.png', 35000.00, 47828.57, 90, 'active', '2026-03-21 05:51:52', '2026-03-26 13:48:51', 35),
-(5, 'BG002', 'Burger gà chiên', 2, 'Ức gà chiên giòn, sốt bơ tỏi, rau tươi, phô mai, bánh mì mềm', 'images/f7.png', 33125.00, 44718.75, 70, 'active', '2026-03-21 05:51:52', '2026-03-24 07:00:00', 35),
-(6, 'BG003', 'Burger ức gà', 2, 'Burger ức gà mềm, sốt mật ong, rau tươi, phô mai, bánh mì đen', 'images/f8.png', 33136.36, 45675.00, 65, 'active', '2026-03-21 05:51:52', '2026-03-26 13:48:51', 35),
+(4, 'BG001', 'Burger bò', 2, 'Thịt bò Úc nướng than hoa, rau tươi, sốt đặc trưng, phô mai cheddar tan chảy', 'images/f2.png', 35000.00, 47828.57, 89, 'active', '2026-03-21 05:51:52', '2026-03-27 01:50:07', 35),
+(5, 'BG002', 'Burger gà chiên', 2, 'Ức gà chiên giòn, sốt bơ tỏi, rau tươi, phô mai, bánh mì mềm', 'images/f7.png', 33125.00, 44718.75, 69, 'active', '2026-03-21 05:51:52', '2026-03-27 01:50:07', 35),
+(6, 'BG003', 'Burger ức gà', 2, 'Burger ức gà mềm, sốt mật ong, rau tươi, phô mai, bánh mì đen', 'images/f8.png', 33136.36, 45675.00, 64, 'active', '2026-03-21 05:51:52', '2026-03-27 01:50:07', 35),
 (7, 'PA001', 'Pasta rau củ', 3, 'Sợi mì spaghetti mềm mịn hòa quyện sốt kem béo ngậy, rau củ tươi (bông cải, cà rốt, nấm)', 'images/f4.png', 56538.46, 79153.85, 65, 'active', '2026-03-21 05:51:52', '2026-03-25 07:00:00', 40),
-(8, 'PA002', 'Pasta phô mai', 3, 'Sợi mì fettuccine hòa quyện sốt kem phô mai Parmesan, thịt xông khói, hương vị Ý đậm đà', 'images/f9.png', 61090.91, 85527.27, 55, 'active', '2026-03-21 05:51:52', '2026-03-25 07:00:00', 40),
-(9, 'FR001', 'Khoai tây chiên', 4, 'Khoai tây chiên vàng giòn, muối vừa, thơm ngon, chấm sốt cà chua hoặc sốt mayonnaise', 'images/f5.png', 12166.67, 18250.00, 180, 'active', '2026-03-21 05:51:52', '2026-03-25 07:00:00', 50);
+(8, 'PA002', 'Pasta phô mai', 3, 'Sợi mì fettuccine hòa quyện sốt kem phô mai Parmesan, thịt xông khói, hương vị Ý đậm đà', 'images/f9.png', 61090.91, 85527.27, 54, 'active', '2026-03-21 05:51:52', '2026-03-27 01:12:02', 40),
+(9, 'FR001', 'Khoai tây chiên', 4, 'Khoai tây chiên vàng giòn, muối vừa, thơm ngon, chấm sốt cà chua hoặc sốt mayonnaise', 'images/f5.png', 12166.67, 18250.00, 176, 'active', '2026-03-21 05:51:52', '2026-03-27 01:50:07', 50);
 
 -- --------------------------------------------------------
 
@@ -404,7 +414,7 @@ INSERT INTO `users` (`id`, `full_name`, `username`, `email`, `phone`, `password`
 (4, 'Lê Văn C', 'levanc', 'levanc@example.com', '0123456789', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '78 Pasteur, Quận 1, TP.HCM', '1995-12-10', '2026-03-21', 'user', 'locked', 'Tài khoản bị khóa do vi phạm', NULL, '2026-03-20 08:00:00', '2026-03-21 05:52:21', '2026-03-23 07:30:00'),
 (5, 'Trần Minh Triết', 'triet', 'triet@gmail.com', '0339111480', '$2y$10$eN/XTYaJJ.T8OcnygzYAmu/vVRn2pMdzUlV3T6MJWIvny39r5/B0y', '123 Đường ABC, Phường XYZ, Quận 1, TP.HCM', '2006-07-13', '2026-03-22', 'user', 'active', 'Khách hàng mới', '../images/about-img.png', '2026-03-23 12:00:00', '2026-03-22 02:27:33', '2026-03-23 07:30:00'),
 (6, 'Phạm Thị D', 'phamthid', 'phamthid@gmail.com', '0909888777', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '222 Lý Tự Trọng, Quận 1, TP.HCM', '1992-03-18', '2026-03-23', 'user', 'locked', 'Khách hàng mới', NULL, NULL, '2026-03-23 07:30:00', '2026-03-24 00:07:07'),
-(7, 'Lê Đỗ Hoà Thương', 'thuong', 'thuong@gmail.com', '0909876543', 'thuong123', '456 Đường X, Phường Y, Quận Z, TP.HCM', '1996-03-02', '2026-03-12', 'admin', 'active', 'Admin phụ trách marketing', NULL, '2026-03-26 21:28:14', '2026-03-23 01:22:11', '2026-03-26 14:28:14'),
+(7, 'Lê Đỗ Hoà Thương', 'thuong', 'thuong@gmail.com', '0909876543', 'thuong123', '456 Đường X, Phường Y, Quận Z, TP.HCM', '1996-03-02', '2026-03-12', 'admin', 'active', 'Admin phụ trách marketing', NULL, '2026-03-27 08:11:00', '2026-03-23 01:22:11', '2026-03-27 01:11:00'),
 (8, 'khánh ly', 'ly', 'ly@gmail.com', '0123456789', '$2y$10$oRy2FK/vJPbz.tFQHP8D2O7LOqy9tJWPrm2vzA.PKr5KpW88quhOe', '123 đường A, phường B, quận C', '2012-02-22', '2026-03-24', 'user', 'active', NULL, NULL, NULL, '2026-03-24 00:06:10', '2026-03-24 00:07:00'),
 (9, 'nguyen thi t', 'nguyen@gmail.com', 'nguyen@gmail.com', '0395489754', '$2y$10$llY0kUa4v7CpQxmv5Jq93.BOlgZKG4a11KLJWYYCsoFEDT.7KarYm', '789 Đường DEF, Quận 3, TP.HCM', '2009-07-09', '2026-03-25', 'user', 'active', NULL, NULL, NULL, '2026-03-25 14:25:29', '2026-03-25 14:25:29'),
 (10, 'hoang khoi', 'hoangkhoinpk@gmail.com', 'hoangkhoinpk@gmail.com', '0906985122', '$2y$10$bbqRO3dMeYg17Vj/l.T1pOh8JjOD./r/Zb6qpM30hRwhWr.1v16aa', 'quận câm', '2006-06-12', '2026-03-26', 'user', 'active', NULL, NULL, NULL, '2026-03-26 01:04:13', '2026-03-26 01:04:13'),
@@ -517,13 +527,13 @@ ALTER TABLE `import_details`
 -- AUTO_INCREMENT cho bảng `orders`
 --
 ALTER TABLE `orders`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=22;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=25;
 
 --
 -- AUTO_INCREMENT cho bảng `order_details`
 --
 ALTER TABLE `order_details`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=47;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=54;
 
 --
 -- AUTO_INCREMENT cho bảng `pricing_log`

@@ -110,6 +110,10 @@ $final_amount = $order_info['final_amount'] ?? ($order_info['total_amount'] + ($
 
 // Kiểm tra có thể hiển thị nút đã nhận hàng không
 $show_received_btn = ($order_info['status'] == 'shipped');
+// Kiểm tra nếu đơn hàng đã được xác nhận trong session thì ẩn nút
+if (isset($_SESSION['confirmed_orders']) && in_array($order_info['id'], $_SESSION['confirmed_orders'])) {
+    $show_received_btn = false;
+}
 // Kiểm tra có thể hiển thị nút hủy không (cho phép hủy khi đơn hàng ở trạng thái pending hoặc new)
 $show_cancel_btn = ($order_info['status'] == 'pending' || $order_info['status'] == 'new');
 
@@ -203,6 +207,20 @@ if ($order_info['status'] == 'cancelled') {
             margin-right: 8px;
         }
         
+        /* Confirmation message */
+        .confirmation-message {
+            background-color: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 12px 15px;
+            margin-top: 15px;
+            border-radius: 5px;
+            color: #155724;
+            font-size: 14px;
+        }
+        .confirmation-message i {
+            margin-right: 8px;
+        }
+        
         @media (max-width: 768px) { 
             .order-header, .order-status, .order-info-section { padding: 20px; } 
             .product-table th, .product-table td { padding: 10px; font-size: 14px; } 
@@ -292,10 +310,18 @@ if ($order_info['status'] == 'cancelled') {
                         <span class="status-badge <?= $status_info['class'] ?>">
                             <i class="fa <?= $status_info['icon'] ?>"></i> <?= $status_info['text'] ?>
                         </span>
+                        
                         <?php if ($order_info['status'] == 'pending'): ?>
                         <div class="warning-message mt-2">
                             <i class="fa fa-info-circle"></i> 
                             Đơn hàng đang trong trạng thái chờ xử lý. Bạn có thể hủy đơn hàng nếu cần.
+                        </div>
+                        <?php endif; ?>
+                        
+                        <?php if (isset($_SESSION['confirmed_orders']) && in_array($order_info['id'], $_SESSION['confirmed_orders']) && $order_info['status'] == 'shipped'): ?>
+                        <div class="confirmation-message mt-2">
+                            <i class="fa fa-check-circle"></i> 
+                            Cảm ơn bạn đã xác nhận đã nhận hàng!
                         </div>
                         <?php endif; ?>
                     </div>
@@ -490,7 +516,7 @@ if ($order_info['status'] == 'cancelled') {
         }
     });
     
-    // Đã nhận hàng
+    // Đã nhận hàng - KHÔNG cập nhật database
     function confirmReceived(orderId, orderCode) {
         currentOrderId = orderId;
         currentOrderCode = orderCode;
@@ -505,6 +531,7 @@ if ($order_info['status'] == 'cancelled') {
             btn.disabled = true;
             btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Đang xử lý...';
             
+            // Gọi đến file confirm_received.php để hiển thị thông báo
             $.ajax({
                 url: 'confirm_received.php',
                 type: 'POST',
@@ -512,7 +539,20 @@ if ($order_info['status'] == 'cancelled') {
                     id: currentOrderId
                 },
                 success: function(response) {
-                    window.location.href = 'order_detail.php?id=' + currentOrderId;
+                    // Lưu vào session thông qua file save_confirmation_session.php
+                    $.ajax({
+                        url: 'save_confirmation_session.php',
+                        type: 'POST',
+                        data: {
+                            order_id: currentOrderId
+                        },
+                        success: function() {
+                            window.location.href = 'order_detail.php?id=' + currentOrderId;
+                        },
+                        error: function() {
+                            window.location.href = 'order_detail.php?id=' + currentOrderId;
+                        }
+                    });
                 },
                 error: function() {
                     alert('Có lỗi xảy ra khi xác nhận đã nhận hàng');
