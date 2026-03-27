@@ -48,8 +48,8 @@ try {
     $birthday = !empty($user['birthday']) ? date('Y-m-d', strtotime($user['birthday'])) : '';
     $birthday_display = !empty($user['birthday']) ? date('d/m/Y', strtotime($user['birthday'])) : '';
     
-    // Avatar path
-    $avatar = !empty($user['avatar']) ? $user['avatar'] : '../images/about-img.png';
+    // Avatar path - with default avatar
+    $avatar = !empty($user['avatar']) ? $user['avatar'] : 'uploads/avatars/default-avatar.png';
     
 } catch (PDOException $e) {
     $error = "Lỗi khi tải thông tin: " . $e->getMessage();
@@ -259,15 +259,65 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     .profile-header {
       text-align: center;
       margin-bottom: 30px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .avatar-container {
+      position: relative;
+      display: inline-block;
+      margin-bottom: 15px;
     }
     .profile-avatar {
       width: 120px;
       height: 120px;
       border-radius: 50%;
       object-fit: cover;
-      margin-bottom: 15px;
       border: 3px solid #ffbe33;
       cursor: pointer;
+      background-color: #f0f0f0;
+      display: block;
+      margin: 0 auto;
+    }
+    /* Style cho avatar mặc định */
+    .profile-avatar.default-avatar {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 48px;
+      color: white;
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+    .avatar-upload {
+      display: none;
+    }
+    .avatar-upload-label {
+      display: inline-block;
+      text-align: center;
+      color: #ffbe33;
+      cursor: pointer;
+      margin-top: 10px;
+      font-weight: bold;
+      font-size: 14px;
+      transition: all 0.3s;
+    }
+    .avatar-upload-label:hover {
+      color: #e69c00;
+      text-decoration: underline;
+    }
+    .user-name {
+      font-size: 24px;
+      font-weight: bold;
+      color: #333;
+      margin: 10px 0 5px 0;
+    }
+    .register-date {
+      color: #666;
+      font-size: 14px;
+      margin: 0;
     }
     .info-group {
       margin-bottom: 20px;
@@ -330,17 +380,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       background-color: #545b62;
       color: white;
       text-decoration: none;
-    }
-    .avatar-upload {
-      display: none;
-    }
-    .avatar-upload-label {
-      display: block;
-      text-align: center;
-      color: #ffbe33;
-      cursor: pointer;
-      margin-top: 10px;
-      font-weight: bold;
     }
     .alert {
       padding: 12px 15px;
@@ -491,11 +530,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <div class="profile-card">
             <form method="POST" action="" enctype="multipart/form-data">
               <div class="profile-header">
-                <input type="file" id="avatar-upload" class="avatar-upload" name="avatar" accept="image/*">
-                <img src="../<?php echo htmlspecialchars($avatar); ?>" alt="Avatar" class="profile-avatar" id="profile-avatar">
-                <label for="avatar-upload" class="avatar-upload-label">Thay đổi ảnh đại diện</label>
-                <h3 id="user-name-display"><?php echo htmlspecialchars($user['full_name']); ?></h3>
-                <p>Thành viên từ: <?php echo $register_date; ?></p>
+                <div class="avatar-container">
+                  <input type="file" id="avatar-upload" class="avatar-upload" name="avatar" accept="image/*">
+                  <img src="../<?php echo htmlspecialchars($avatar); ?>" alt="Avatar" class="profile-avatar" id="profile-avatar">
+                </div>
+                <label for="avatar-upload" class="avatar-upload-label">
+                  <i class="fa fa-camera"></i> Thay đổi ảnh đại diện
+                </label>
+                <h3 class="user-name" id="user-name-display"><?php echo htmlspecialchars($user['full_name']); ?></h3>
+                <p class="register-date">Thành viên từ: <?php echo $register_date; ?></p>
               </div>
               
               <div class="row">
@@ -648,17 +691,83 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       if (file) {
         const reader = new FileReader();
         reader.onload = function(e) {
-          document.getElementById('profile-avatar').src = e.target.result;
+          const avatarImg = document.getElementById('profile-avatar');
+          avatarImg.src = e.target.result;
+          // Xóa class default-avatar nếu có
+          avatarImg.classList.remove('default-avatar');
+          // Xóa style background nếu có
+          avatarImg.style.background = 'none';
         }
         reader.readAsDataURL(file);
       }
     });
 
+    // Xử lý avatar mặc định khi không có ảnh hoặc ảnh bị lỗi
+    const avatarImg = document.getElementById('profile-avatar');
+    const userName = document.getElementById('user-name-display').innerText;
+
+    function createDefaultAvatar() {
+      // Lấy chữ cái đầu tiên của tên
+      const initial = userName.charAt(0).toUpperCase();
+      
+      // Tạo canvas để vẽ avatar mặc định
+      const canvas = document.createElement('canvas');
+      canvas.width = 120;
+      canvas.height = 120;
+      const ctx = canvas.getContext('2d');
+      
+      // Vẽ nền gradient
+      const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+      gradient.addColorStop(0, '#667eea');
+      gradient.addColorStop(1, '#764ba2');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Vẽ chữ
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 48px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(initial, canvas.width / 2, canvas.height / 2);
+      
+      // Chuyển canvas thành ảnh
+      return canvas.toDataURL();
+    }
+
+    // Kiểm tra nếu là avatar mặc định hoặc ảnh bị lỗi
+    avatarImg.onerror = function() {
+      // Tạo avatar mặc định từ tên
+      const defaultAvatarUrl = createDefaultAvatar();
+      this.src = defaultAvatarUrl;
+      this.classList.add('default-avatar');
+    };
+
+    // Kiểm tra nếu avatar là file mặc định (không tồn tại)
+    if (avatarImg.src.includes('default-avatar.png')) {
+      // Kiểm tra xem file có tồn tại không
+      fetch(avatarImg.src)
+        .then(response => {
+          if (!response.ok) {
+            // Nếu file không tồn tại, tạo avatar từ tên
+            avatarImg.src = createDefaultAvatar();
+            avatarImg.classList.add('default-avatar');
+          }
+        })
+        .catch(() => {
+          avatarImg.src = createDefaultAvatar();
+          avatarImg.classList.add('default-avatar');
+        });
+    }
+
     // Focus vào ô đầu tiên khi trang load
-    document.getElementById('full-name').focus();
+    if (document.getElementById('full-name')) {
+      document.getElementById('full-name').focus();
+    }
 
     // Display current year
-    document.getElementById('displayYear').innerHTML = new Date().getFullYear();
+    if (document.getElementById('displayYear')) {
+      document.getElementById('displayYear').innerHTML = new Date().getFullYear();
+    }
   </script>
 
 </body>
