@@ -494,6 +494,64 @@ $status_colors = [
             display: inline-block;
         }
         
+        /* Form nhập địa chỉ */
+        .address-form-container {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            display: none;
+        }
+        .form-group-custom {
+            margin-bottom: 15px;
+        }
+        .form-group-custom label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #333;
+        }
+        .form-group-custom input, 
+        .form-group-custom select, 
+        .form-group-custom textarea {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        .form-row-custom {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        .form-row-custom .form-group-custom {
+            flex: 1;
+            min-width: 150px;
+        }
+        .btn-save {
+            background: #ffbe33;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        .btn-save:hover {
+            background: #e69c00;
+        }
+        .btn-cancel {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
         @media (max-width: 768px) {
             .user-name {
                 display: none;
@@ -679,13 +737,70 @@ $status_colors = [
                         </div>
                         <?php endif; ?>
                         
+                        <!-- Nút cập nhật địa chỉ mới -->
                         <div class="mt-3">
-                            <a href="user/profile.php" class="btn btn-outline-secondary btn-sm">
-                                <i class="fa fa-edit"></i> Cập nhật địa chỉ tài khoản
+                            <button type="button" class="btn btn-outline-warning btn-sm" onclick="toggleAddressForm()">
+                                <i class="fa fa-pencil-square-o"></i> Cập nhật địa chỉ mới
+                            </button>
+                            <a href="user/profile.php" class="btn btn-outline-secondary btn-sm ml-2">
+                                <i class="fa fa-edit"></i> Sửa địa chỉ tài khoản
                             </a>
-                            <a href="cart.php" class="btn btn-outline-secondary btn-sm ml-2">
-                                <i class="fa fa-shopping-cart"></i> Cập nhật địa chỉ giỏ hàng
-                            </a>
+                        </div>
+                        
+                        <!-- Form nhập địa chỉ mới (ẩn ban đầu) -->
+                        <div id="addressFormContainer" class="address-form-container">
+                            <h5 class="mb-3"><i class="fa fa-pencil-square-o"></i> Nhập địa chỉ giao hàng mới</h5>
+                            <div id="shippingAddressForm">
+                                <div class="form-row-custom">
+                                    <div class="form-group-custom">
+                                        <label>Họ tên người nhận *</label>
+                                        <input type="text" id="recv_name" value="<?= htmlspecialchars($tempAddress['full_name'] ?? $user['full_name']) ?>">
+                                    </div>
+                                    <div class="form-group-custom">
+                                        <label>Số điện thoại *</label>
+                                        <input type="tel" id="recv_phone" value="<?= htmlspecialchars($tempAddress['phone'] ?? $user['phone']) ?>">
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group-custom">
+                                    <label>Địa chỉ chi tiết *</label>
+                                    <input type="text" id="recv_street" value="<?= htmlspecialchars($tempAddress['address'] ?? '') ?>" placeholder="Số nhà, tên đường">
+                                </div>
+                                
+                                <div class="form-row-custom">
+                                    <div class="form-group-custom">
+                                        <label>Tỉnh/Thành phố *</label>
+                                        <select id="recv_city">
+                                            <option value="">Chọn tỉnh/thành phố</option>
+                                            <option value="TP.HCM" <?= ($tempAddress['city'] ?? '') == 'TP.HCM' ? 'selected' : '' ?>>TP. Hồ Chí Minh</option>
+                                            <option value="Hà Nội" <?= ($tempAddress['city'] ?? '') == 'Hà Nội' ? 'selected' : '' ?>>Hà Nội</option>
+                                            <option value="Đà Nẵng" <?= ($tempAddress['city'] ?? '') == 'Đà Nẵng' ? 'selected' : '' ?>>Đà Nẵng</option>
+                                            <option value="Cần Thơ" <?= ($tempAddress['city'] ?? '') == 'Cần Thơ' ? 'selected' : '' ?>>Cần Thơ</option>
+                                            <option value="Hải Phòng" <?= ($tempAddress['city'] ?? '') == 'Hải Phòng' ? 'selected' : '' ?>>Hải Phòng</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group-custom">
+                                        <label>Quận/Huyện *</label>
+                                        <select id="recv_district">
+                                            <option value="">Chọn quận/huyện</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group-custom">
+                                        <label>Phường/Xã *</label>
+                                        <input type="text" id="recv_ward" value="<?= htmlspecialchars($tempAddress['ward'] ?? '') ?>" placeholder="Phường/Xã">
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group-custom">
+                                    <label>Ghi chú (tùy chọn)</label>
+                                    <textarea id="recv_notes" rows="2" placeholder="Ghi chú cho người giao hàng..."><?= htmlspecialchars($tempAddress['notes'] ?? '') ?></textarea>
+                                </div>
+                                
+                                <div>
+                                    <button type="button" class="btn-save" onclick="saveShippingAddress()">💾 Lưu địa chỉ</button>
+                                    <button type="button" class="btn-cancel" onclick="cancelAddressForm()">❌ Hủy</button>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -918,6 +1033,116 @@ $status_colors = [
             }
         });
     });
+    
+    // ========== HÀM XỬ LÝ ĐỊA CHỈ ==========
+    function toggleAddressForm() {
+        const formContainer = document.getElementById('addressFormContainer');
+        if (formContainer.style.display === 'none' || formContainer.style.display === '') {
+            formContainer.style.display = 'block';
+            loadDistrictsForCheckout();
+        } else {
+            formContainer.style.display = 'none';
+        }
+    }
+    
+    function cancelAddressForm() {
+        document.getElementById('addressFormContainer').style.display = 'none';
+    }
+    
+    function loadDistrictsForCheckout() {
+        const city = document.getElementById('recv_city').value;
+        const districtSelect = document.getElementById('recv_district');
+        
+        const districts = {
+            'TP.HCM': ['Quận 1', 'Quận 2', 'Quận 3', 'Quận 4', 'Quận 5', 'Quận 6', 'Quận 7', 'Quận 8', 'Quận 9', 'Quận 10', 'Quận 11', 'Quận 12', 'Bình Thạnh', 'Gò Vấp', 'Tân Bình', 'Tân Phú', 'Phú Nhuận'],
+            'Hà Nội': ['Quận Ba Đình', 'Quận Hoàn Kiếm', 'Quận Hai Bà Trưng', 'Quận Đống Đa', 'Quận Tây Hồ', 'Quận Cầu Giấy', 'Quận Thanh Xuân', 'Quận Hoàng Mai', 'Quận Long Biên'],
+            'Đà Nẵng': ['Quận Hải Châu', 'Quận Thanh Khê', 'Quận Sơn Trà', 'Quận Ngũ Hành Sơn', 'Quận Liên Chiểu', 'Quận Cẩm Lệ'],
+            'Cần Thơ': ['Quận Ninh Kiều', 'Quận Bình Thủy', 'Quận Cái Răng', 'Quận Ô Môn', 'Quận Thốt Nốt'],
+            'Hải Phòng': ['Quận Hồng Bàng', 'Quận Ngô Quyền', 'Quận Lê Chân', 'Quận Hải An', 'Quận Kiến An']
+        };
+        
+        districtSelect.innerHTML = '<option value="">Chọn quận/huyện</option>';
+        
+        if (districts[city]) {
+            districts[city].forEach(district => {
+                const option = document.createElement('option');
+                option.value = district;
+                option.textContent = district;
+                districtSelect.appendChild(option);
+            });
+        }
+    }
+    
+    function saveShippingAddress() {
+        const recvName = document.getElementById('recv_name').value.trim();
+        const recvPhone = document.getElementById('recv_phone').value.trim();
+        const recvStreet = document.getElementById('recv_street').value.trim();
+        const recvCity = document.getElementById('recv_city').value;
+        const recvDistrict = document.getElementById('recv_district').value;
+        const recvWard = document.getElementById('recv_ward').value.trim();
+        
+        if (!recvName) {
+            alert('Vui lòng nhập họ tên người nhận');
+            return;
+        }
+        if (!recvPhone || !/^[0-9]{10,11}$/.test(recvPhone)) {
+            alert('Vui lòng nhập số điện thoại hợp lệ (10-11 số)');
+            return;
+        }
+        if (!recvStreet) {
+            alert('Vui lòng nhập địa chỉ chi tiết');
+            return;
+        }
+        if (!recvCity) {
+            alert('Vui lòng chọn tỉnh/thành phố');
+            return;
+        }
+        if (!recvDistrict) {
+            alert('Vui lòng chọn quận/huyện');
+            return;
+        }
+        if (!recvWard) {
+            alert('Vui lòng nhập phường/xã');
+            return;
+        }
+        
+        $.ajax({
+            url: 'cart.php',
+            type: 'POST',
+            data: {
+                action: 'save_address',
+                full_name: recvName,
+                phone: recvPhone,
+                address: recvStreet,
+                city: recvCity,
+                district: recvDistrict,
+                ward: recvWard,
+                notes: document.getElementById('recv_notes').value
+            },
+            dataType: 'json',
+            success: function(data) {
+                if (data.success) {
+                    alert('Đã cập nhật địa chỉ thành công! Vui lòng chọn "Địa chỉ từ giỏ hàng" để sử dụng.');
+                    location.reload();
+                } else {
+                    alert('Lỗi: ' + data.message);
+                }
+            },
+            error: function() {
+                alert('Có lỗi xảy ra, vui lòng thử lại');
+            }
+        });
+    }
+    
+    document.getElementById('recv_city').addEventListener('change', loadDistrictsForCheckout);
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        const selectedCity = document.getElementById('recv_city').value;
+        if (selectedCity) {
+            loadDistrictsForCheckout();
+        }
+    });
+    // ========== KẾT THÚC ==========
     
     // Display current year
     document.getElementById('displayYear').innerHTML = new Date().getFullYear();

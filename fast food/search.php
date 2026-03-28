@@ -735,7 +735,7 @@ $display_max_price = isset($_GET['max_price']) && $_GET['max_price'] !== '' ? (f
     
     .price-unit {
         font-size: 11px;
-        color: #181616;
+        color: #eeeded;
         margin-top: 12px;
         display: block;
         text-align: center;
@@ -1027,7 +1027,7 @@ $display_max_price = isset($_GET['max_price']) && $_GET['max_price'] !== '' ? (f
             </div>
             
             <!-- Tiêu chí 2: Phân loại danh mục -->
-            <div class="form-group form-group-center">
+            <div class="form-group">
               <label><i class="fa fa-tags"></i> Phân loại</label>
               <select name="category" class="form-control form-control-lg">
                 <option value="all">-- Tất cả danh mục --</option>
