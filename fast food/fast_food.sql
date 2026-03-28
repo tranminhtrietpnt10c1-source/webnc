@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Máy chủ: 127.0.0.1
--- Thời gian đã tạo: Th3 27, 2026 lúc 04:41 PM
+-- Thời gian đã tạo: Th3 28, 2026 lúc 03:32 PM
 -- Phiên bản máy phục vụ: 10.4.32-MariaDB
 -- Phiên bản PHP: 8.0.30
 
@@ -210,7 +210,6 @@ INSERT INTO `orders` (`id`, `order_code`, `user_id`, `customer_name`, `customer_
 (11, 'ORD011', 9, 'nguyen thi t', '0395489754', 'nguyen@gmail.com', '789 Đường DEF, Quận 3, TP.HCM', '2026-03-25', 156000.00, 30000.00, 5000.00, 181000.00, 'shipped', 'zalopay', 'Đã giao hàng thành công', '2026-03-25 10:30:00', '2026-03-25 10:30:00'),
 (12, 'ORD012', 10, 'hoang khoi', '0906985122', 'hoangkhoinpk@gmail.com', 'quận câm', '2026-03-26', 245000.00, 30000.00, 0.00, 275000.00, 'cancelled', 'cash', 'Khách hủy đơn', '2026-03-26 08:00:00', '2026-03-26 08:00:00'),
 (13, 'ORD013', 11, 'Trung Hiếu', '0334291210', 'mtriet@gmail.com', 'Bến xe buýt Hiệp Thành', '2026-03-26', 265806.90, 30000.00, 0.00, 295806.90, 'pending', 'bank_transfer', 'Đang chờ xác nhận thanh toán', '2026-03-26 07:24:05', '2026-03-26 07:24:05'),
-(14, 'ORD014', 2, 'Nguyễn Văn A', '0912345678', 'nguyenvana@example.com', '12 Nguyễn Huệ, Quận 1, TP.HCM', '2026-03-26', 189000.00, 30000.00, 0.00, 219000.00, '', 'transfer', 'Đã xác nhận đơn hàng', '2026-03-26 11:00:00', '2026-03-26 14:29:00'),
 (19, 'ORD202603269864', 5, 'Trần Minh Triết', '0339111480', 'triet@gmail.com', '123 Đường ABC, Phường XYZ, Quận 1, TP.HCM', '2026-03-26', 164681.12, 30000.00, 0.00, 194681.12, 'pending', 'cash', '', '2026-03-26 14:53:22', '2026-03-26 14:53:22'),
 (20, 'ORD202603265630', 5, 'Trần Minh Triết', '0339111480', 'triet@gmail.com', '123 Đường ABC, Phường XYZ, Quận 1, TP.HCM', '2026-03-26', 103777.28, 30000.00, 0.00, 133777.28, 'cancelled', 'cash', '\n========== HỦY ĐƠN HÀNG ==========\nThời gian hủy: 2026-03-26 16:29:17\nLý do hủy: nghèo\n==================================\n', '2026-03-26 14:54:53', '2026-03-26 15:29:17'),
 (21, 'ORD202603264286', 5, 'Trần Minh Triết', '0339111480', 'triet@gmail.com', '123 Đường ABC, Phường XYZ, Quận 1, TP.HCM', '2026-03-26', 18250.01, 30000.00, 0.00, 48250.01, 'cancelled', 'cash', '\n========== HỦY ĐƠN HÀNG ==========\nThời gian hủy: 2026-03-26 16:28:38\nLý do hủy: hết tèn\n==================================\n', '2026-03-26 14:56:21', '2026-03-26 15:28:38'),
@@ -281,9 +280,6 @@ INSERT INTO `order_details` (`id`, `order_id`, `product_id`, `quantity`, `unit_p
 (29, 13, 8, 1, 85527.27, 85527.27),
 (30, 13, 1, 1, 132096.77, 132096.77),
 (31, 13, 4, 1, 48182.86, 48182.86),
-(32, 14, 5, 2, 44718.75, 89437.50),
-(33, 14, 9, 1, 18000.00, 18000.00),
-(34, 14, 7, 1, 79153.85, 79153.85),
 (42, 19, 8, 1, 85527.27, 85527.27),
 (43, 19, 7, 1, 79153.84, 79153.84),
 (44, 20, 9, 1, 18250.01, 18250.01),
@@ -343,7 +339,8 @@ INSERT INTO `pricing_log` (`id`, `product_id`, `old_cost_price`, `new_cost_price
 (21, 6, 33833.33, 33136.36, NULL, NULL, 7, 'Cập nhật từ phiếu nhập PN-20260326-69C53934', '2026-03-26 13:48:51'),
 (22, 1, 101612.90, 105161.29, NULL, NULL, 7, 'Cập nhật từ phiếu nhập PN-20260326-69C53934', '2026-03-26 13:48:51'),
 (23, 11, 0.00, 32000.00, NULL, NULL, 7, 'Cập nhật từ phiếu nhập PN-20260327-69C6933D', '2026-03-27 14:25:04'),
-(24, 11, NULL, NULL, 0.00, 45000.00, 7, 'Cập nhật tỷ lệ lợi nhuận từ 0% lên 42%', '2026-03-27 14:25:18');
+(24, 11, NULL, NULL, 0.00, 45000.00, 7, 'Cập nhật tỷ lệ lợi nhuận từ 0% lên 42%', '2026-03-27 14:25:18'),
+(25, 9, NULL, NULL, 18250.00, 19000.00, 7, 'Cập nhật tỷ lệ lợi nhuận từ 50% lên 55%', '2026-03-28 13:55:16');
 
 -- --------------------------------------------------------
 
@@ -380,9 +377,30 @@ INSERT INTO `products` (`id`, `code`, `name`, `category_id`, `description`, `ima
 (6, 'BG003', 'Burger ức gà', 2, 'Burger ức gà mềm, sốt mật ong, rau tươi, phô mai, bánh mì đen', 'images/f8.png', 33136.36, 45675.00, 64, 'active', '2026-03-21 05:51:52', '2026-03-27 01:50:07', 35),
 (7, 'PA001', 'Pasta rau củ', 3, 'Sợi mì spaghetti mềm mịn hòa quyện sốt kem béo ngậy, rau củ tươi (bông cải, cà rốt, nấm)', 'images/f4.png', 56538.46, 79153.85, 65, 'active', '2026-03-21 05:51:52', '2026-03-25 07:00:00', 40),
 (8, 'PA002', 'Pasta phô mai', 3, 'Sợi mì fettuccine hòa quyện sốt kem phô mai Parmesan, thịt xông khói, hương vị Ý đậm đà', 'images/f9.png', 61090.91, 85527.27, 54, 'active', '2026-03-21 05:51:52', '2026-03-27 01:12:02', 40),
-(9, 'FR001', 'Khoai tây chiên', 4, 'Khoai tây chiên vàng giòn, muối vừa, thơm ngon, chấm sốt cà chua hoặc sốt mayonnaise', 'images/f5.png', 12166.67, 18250.00, 176, 'active', '2026-03-21 05:51:52', '2026-03-27 01:50:07', 50),
-(10, 'PZ004', 'Pizza thập cẩm', 1, 'Pizza thập cẩm, nhiều tâng hương vị', 'images/product_1774594186_69c6288a2fe33.png', 0.00, 0.00, 0, 'active', '2026-03-27 06:49:46', '2026-03-27 06:49:46', 0),
-(11, 'BG004', 'Burger tôm', 2, 'burger tôm với thịt tôm tươi, mềm mại mang đến hương vị thanh mát', '', 32000.00, 45000.00, 10, 'active', '2026-03-27 14:24:37', '2026-03-27 15:03:07', 42);
+(9, 'FR001', 'Khoai tây chiên', 4, 'Khoai tây chiên vàng giòn, muối vừa, thơm ngon, chấm sốt cà chua hoặc sốt mayonnaise', 'images/f5.png', 12166.67, 19000.00, 176, 'active', '2026-03-21 05:51:52', '2026-03-28 13:55:16', 55),
+(10, 'PZ004', 'Pizza thập cẩm', 1, 'Pizza thập cẩm, nhiều tâng hương vị', 'images/product_1774706669_69c7dfed5992f.png', 0.00, 0.00, 0, 'active', '2026-03-27 06:49:46', '2026-03-28 14:04:29', 0),
+(11, 'BG004', 'Burger tôm', 2, 'burger tôm với thịt tôm tươi, mềm mại mang đến hương vị thanh mát', 'images/product_1774706688_69c7e000bdf48.png', 32000.00, 45000.00, 10, 'active', '2026-03-27 14:24:37', '2026-03-28 14:04:48', 42);
+
+-- --------------------------------------------------------
+
+--
+-- Cấu trúc bảng cho bảng `system_settings`
+--
+
+CREATE TABLE `system_settings` (
+  `id` int(11) NOT NULL,
+  `setting_key` varchar(100) NOT NULL,
+  `setting_value` text NOT NULL,
+  `created_at` datetime DEFAULT current_timestamp(),
+  `updated_at` datetime DEFAULT NULL ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Đang đổ dữ liệu cho bảng `system_settings`
+--
+
+INSERT INTO `system_settings` (`id`, `setting_key`, `setting_value`, `created_at`, `updated_at`) VALUES
+(1, 'low_stock_threshold', '10', '2026-03-28 19:48:07', '2026-03-28 21:30:14');
 
 -- --------------------------------------------------------
 
@@ -420,7 +438,7 @@ INSERT INTO `users` (`id`, `full_name`, `username`, `email`, `phone`, `password`
 (4, 'Lê Văn C', 'levanc', 'levanc@example.com', '0123456789', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '78 Pasteur, Quận 1, TP.HCM', '1995-12-10', '2026-03-21', 'user', 'locked', 'Tài khoản bị khóa do vi phạm', NULL, '2026-03-20 08:00:00', '2026-03-21 05:52:21', '2026-03-23 07:30:00'),
 (5, 'Trần Minh Triết', 'triet', 'triet@gmail.com', '0339111480', '$2y$10$eN/XTYaJJ.T8OcnygzYAmu/vVRn2pMdzUlV3T6MJWIvny39r5/B0y', '123 Đường ABC, Phường XYZ, Quận 1, TP.HCM', '2006-07-13', '2026-03-22', 'user', 'active', 'Khách hàng mới', '../images/about-img.png', '2026-03-23 12:00:00', '2026-03-22 02:27:33', '2026-03-23 07:30:00'),
 (6, 'Phạm Thị D', 'phamthid', 'phamthid@gmail.com', '0909888777', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '222 Lý Tự Trọng, Quận 1, TP.HCM', '1992-03-18', '2026-03-23', 'user', 'locked', 'Khách hàng mới', NULL, NULL, '2026-03-23 07:30:00', '2026-03-24 00:07:07'),
-(7, 'Lê Đỗ Hoà Thương', 'thuong', 'thuong@gmail.com', '0909876543', 'thuong123', '456 Đường X, Phường Y, Quận Z, TP.HCM', '1996-03-02', '2026-03-12', 'admin', 'active', 'Admin phụ trách marketing', NULL, '2026-03-27 19:06:38', '2026-03-23 01:22:11', '2026-03-27 12:06:38'),
+(7, 'Lê Đỗ Hoà Thương', 'thuong', 'thuong@gmail.com', '0909876543', 'thuong123', '456 Đường X, Phường Y, Quận Z, TP.HCM', '1996-03-02', '2026-03-12', 'admin', 'active', 'Admin phụ trách marketing', NULL, '2026-03-28 19:26:16', '2026-03-23 01:22:11', '2026-03-28 12:26:16'),
 (8, 'khánh ly', 'ly', 'ly@gmail.com', '0123456789', '$2y$10$oRy2FK/vJPbz.tFQHP8D2O7LOqy9tJWPrm2vzA.PKr5KpW88quhOe', '123 đường A, phường B, quận C', '2012-02-22', '2026-03-24', 'user', 'active', NULL, NULL, NULL, '2026-03-24 00:06:10', '2026-03-24 00:07:00'),
 (9, 'nguyen thi t', 'nguyen@gmail.com', 'nguyen@gmail.com', '0395489754', '$2y$10$llY0kUa4v7CpQxmv5Jq93.BOlgZKG4a11KLJWYYCsoFEDT.7KarYm', '789 Đường DEF, Quận 3, TP.HCM', '2009-07-09', '2026-03-25', 'user', 'active', NULL, NULL, NULL, '2026-03-25 14:25:29', '2026-03-25 14:25:29'),
 (10, 'hoang khoi', 'hoangkhoinpk@gmail.com', 'hoangkhoinpk@gmail.com', '0906985122', '$2y$10$bbqRO3dMeYg17Vj/l.T1pOh8JjOD./r/Zb6qpM30hRwhWr.1v16aa', 'quận câm', '2006-06-12', '2026-03-26', 'user', 'active', NULL, NULL, NULL, '2026-03-26 01:04:13', '2026-03-26 01:04:13'),
@@ -494,6 +512,13 @@ ALTER TABLE `products`
   ADD KEY `category_id` (`category_id`);
 
 --
+-- Chỉ mục cho bảng `system_settings`
+--
+ALTER TABLE `system_settings`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `setting_key` (`setting_key`);
+
+--
 -- Chỉ mục cho bảng `users`
 --
 ALTER TABLE `users`
@@ -515,19 +540,19 @@ ALTER TABLE `cart`
 -- AUTO_INCREMENT cho bảng `categories`
 --
 ALTER TABLE `categories`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT cho bảng `imports`
 --
 ALTER TABLE `imports`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
 
 --
 -- AUTO_INCREMENT cho bảng `import_details`
 --
 ALTER TABLE `import_details`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=24;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=34;
 
 --
 -- AUTO_INCREMENT cho bảng `orders`
@@ -545,13 +570,19 @@ ALTER TABLE `order_details`
 -- AUTO_INCREMENT cho bảng `pricing_log`
 --
 ALTER TABLE `pricing_log`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=25;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=26;
 
 --
 -- AUTO_INCREMENT cho bảng `products`
 --
 ALTER TABLE `products`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
+
+--
+-- AUTO_INCREMENT cho bảng `system_settings`
+--
+ALTER TABLE `system_settings`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT cho bảng `users`

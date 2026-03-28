@@ -161,7 +161,6 @@ $profit_stats = $stmt->fetch();
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        /* Các style giữ nguyên như cũ */
         :root {
             --primary-color: #ffbe33;
             --secondary-color: #222831;
@@ -501,27 +500,6 @@ $profit_stats = $stmt->fetch();
             <h2><i class="fas fa-dollar-sign me-2"></i>Quản lý giá bán</h2>
         </div>
 
-        <!-- Search Container -->
-        <div class="global-search-container">
-            <h5 class="mb-3"><i class="fas fa-search me-2"></i>Tra cứu sản phẩm</h5>
-            <form class="search-form" id="global-search-form">
-                <div class="search-input-container">
-                    <input type="text" class="form-control search-input" id="global-search-input" placeholder="Nhập tên hoặc mã sản phẩm...">
-                    <i class="fas fa-search search-icon"></i>
-                </div>
-                <div class="search-input-container">
-                    <select class="form-select" id="category-filter">
-                        <option value="">Tất cả loại</option>
-                        <?php foreach ($categories as $cat): ?>
-                            <option value="<?php echo $cat['id']; ?>"><?php echo htmlspecialchars($cat['name']); ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                <button type="submit" class="btn btn-custom search-btn"><i class="fas fa-check me-2"></i>Tìm kiếm</button>
-                <button type="button" class="btn btn-secondary" id="reset-search"><i class="fas fa-redo me-2"></i>Đặt lại</button>
-            </form>
-        </div>
-
         <!-- Tabs Navigation -->
         <ul class="nav nav-tabs" id="pricingTabs" role="tablist">
             <li class="nav-item">
@@ -538,15 +516,29 @@ $profit_stats = $stmt->fetch();
                 <div class="card card-custom mt-4">
                     <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
                         <h5 class="card-title mb-0">Tỷ lệ lợi nhuận theo sản phẩm</h5>
-                        <div class="mt-2 mt-sm-0">
-                            <span class="stat-badge">
-                                📉 Thấp: <?php echo number_format($profit_stats['min_profit'] ?? 0, 2); ?>% | 
-                                📊 TB: <?php echo number_format($profit_stats['avg_profit'] ?? 0, 2); ?>% | 
-                                📈 Cao: <?php echo number_format($profit_stats['max_profit'] ?? 0, 2); ?>%
-                            </span>
-                        </div>
+                        
                     </div>
                     <div class="card-body">
+                        <!-- Khung tìm kiếm đã được đưa vào đây -->
+                        <div class="global-search-container">
+                            <h5 class="mb-3"><i class="fas fa-search me-2"></i>Tra cứu sản phẩm</h5>
+                            <form class="search-form" id="global-search-form">
+                                <div class="search-input-container">
+                                    <input type="text" class="form-control search-input" id="global-search-input" placeholder="Nhập tên hoặc mã sản phẩm...">
+                                    <i class="fas fa-search search-icon"></i>
+                                </div>
+                                <div class="search-input-container">
+                                    <select class="form-select" id="category-filter">
+                                        <option value="">Tất cả loại</option>
+                                        <?php foreach ($categories as $cat): ?>
+                                            <option value="<?php echo $cat['id']; ?>"><?php echo htmlspecialchars($cat['name']); ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                                <button type="submit" class="btn btn-custom search-btn"><i class="fas fa-check me-2"></i>Tìm kiếm</button>
+                                <button type="button" class="btn btn-secondary" id="reset-search"><i class="fas fa-redo me-2"></i>Đặt lại</button>
+                            </form>
+                        </div>
                         <div class="table-responsive">
                             <table class="table table-hover">
                                 <thead>
@@ -618,9 +610,14 @@ $profit_stats = $stmt->fetch();
                                     <label class="form-label">Đến ngày</label>
                                     <input type="date" id="import-date-to" class="form-control">
                                 </div>
-                                <div class="col-md-2">
-                                    <label class="form-label">&nbsp;</label>
-                                    <button id="search-import-lots" class="btn btn-custom w-100"><i class="fas fa-search me-1"></i>Tìm</button>
+                                <div class="col-md-2 d-flex gap-2 align-items-end">
+                                    <div class="w-100">
+                                        <label class="form-label">&nbsp;</label>
+                                        <div class="d-flex gap-2">
+                                            <button id="search-import-lots" class="btn btn-custom flex-grow-1"><i class="fas fa-search me-1"></i>Tìm</button>
+                                            <button id="reset-import-filter" class="btn btn-secondary flex-grow-1"><i class="fas fa-redo me-1"></i>Đặt lại</button>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                             <div class="row mt-3">
@@ -829,7 +826,7 @@ $profit_stats = $stmt->fetch();
             input.focus();
         }
 
-        // Lọc sản phẩm (Tab 1) - chỉ gọi khi bấm nút Tìm kiếm
+        // Lọc sản phẩm (Tab 1)
         function filterProducts() {
             const searchTerm = $('#global-search-input').val().toLowerCase().trim();
             const categoryId = $('#category-filter').val();
@@ -851,7 +848,7 @@ $profit_stats = $stmt->fetch();
             });
         }
 
-        // Lọc lô hàng (Tab 2) - giữ nguyên
+        // Hàm lọc lô hàng (chỉ gọi khi bấm tìm kiếm)
         function filterImportLots() {
             const productId = $('#product-filter-import').val();
             const dateFrom = $('#import-date-from').val();
@@ -877,29 +874,40 @@ $profit_stats = $stmt->fetch();
             });
         }
 
-        // Gắn sự kiện cho nút Tìm kiếm (submit form)
+        // Hàm đặt lại bộ lọc cho tab 2
+        function resetImportFilters() {
+            $('#product-filter-import').val('');
+            $('#import-date-from').val('');
+            $('#import-date-to').val('');
+            $('#min-profit').val('');
+            $('#max-profit').val('');
+            // Hiển thị lại toàn bộ
+            $('#import-tbody tr').show();
+        }
+
+        // Gắn sự kiện cho Tab 1 (Tìm kiếm và Đặt lại)
         $('#global-search-form').submit(function(e) {
             e.preventDefault();
             filterProducts();
         });
         
-        // Nút Đặt lại: xóa giá trị input và select, hiển thị lại toàn bộ
         $('#reset-search').click(function() {
             $('#global-search-input').val('');
             $('#category-filter').val('');
             $('#product-tbody tr').show();
         });
         
-        // Lọc lô hàng
+        // Gắn sự kiện cho Tab 2: Nút Tìm kiếm và Đặt lại
         $('#search-import-lots').click(filterImportLots);
+        $('#reset-import-filter').click(resetImportFilters);
+        
+        // Gắn sự kiện cho nút áp dụng và xóa % lợi nhuận (cũng chỉ áp dụng khi bấm)
         $('#apply-profit-filter').click(filterImportLots);
         $('#clear-profit-filter').click(function() {
             $('#min-profit').val('');
             $('#max-profit').val('');
-            filterImportLots();
+            filterImportLots(); // Gọi lại filter để cập nhật sau khi xóa
         });
-        $('#product-filter-import').change(filterImportLots);
-        $('#import-date-from, #import-date-to').on('change', filterImportLots);
         
         // Xem lô nhập của sản phẩm
         $(document).on('click', '.view-lots', function() {
@@ -907,6 +915,7 @@ $profit_stats = $stmt->fetch();
             const productName = $(this).data('name');
             $('#import-tab').tab('show');
             $('#product-filter-import').val(productId);
+            // Gọi filter ngay sau khi chuyển tab để hiển thị kết quả
             filterImportLots();
             showNotification(`Đang hiển thị lô nhập của sản phẩm: ${productName}`, 'success');
         });

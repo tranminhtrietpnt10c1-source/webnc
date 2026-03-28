@@ -412,55 +412,57 @@ if (isset($_REQUEST['action'])) {
             color: var(--secondary-color);
         }
         
-        /* Styles cho select có tìm kiếm */
-        .searchable-select {
+        /* Styles cho autocomplete */
+        .autocomplete-container {
             position: relative;
+        }
+        .autocomplete-input {
             width: 100%;
         }
-        .searchable-select .form-select {
-            cursor: pointer;
-        }
-        .searchable-select .search-box {
+        .autocomplete-dropdown {
             position: absolute;
             top: 100%;
             left: 0;
             right: 0;
             background: white;
-            border: 1px solid #ddd;
+            border: 1px solid #ced4da;
             border-top: none;
             border-radius: 0 0 8px 8px;
             z-index: 1000;
+            max-height: 250px;
+            overflow-y: auto;
             display: none;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
-        .searchable-select .search-box input {
-            width: 100%;
-            padding: 10px;
-            border: none;
-            border-bottom: 1px solid #ddd;
-            outline: none;
-        }
-        .searchable-select .options-list {
-            max-height: 250px;
-            overflow-y: auto;
-        }
-        .searchable-select .option-item {
+        .autocomplete-item {
             padding: 10px 15px;
             cursor: pointer;
             transition: background 0.2s;
+            border-bottom: 1px solid #f0f0f0;
         }
-        .searchable-select .option-item:hover {
+        .autocomplete-item:last-child {
+            border-bottom: none;
+        }
+        .autocomplete-item:hover {
             background-color: #fff3e0;
         }
-        .searchable-select .option-item.selected {
+        .autocomplete-item.selected {
             background-color: #ffbe33;
             color: #fff;
         }
-        .searchable-select .option-item.highlight {
-            background-color: #ffbe33;
+        .autocomplete-item .product-code {
+            font-size: 0.75rem;
+            color: #6c757d;
+            margin-left: 8px;
+        }
+        .autocomplete-item.selected .product-code {
             color: #fff;
         }
-        .searchable-select .no-results {
+        .autocomplete-highlight {
+            font-weight: bold;
+            background-color: #fff3e0;
+        }
+        .no-results {
             padding: 10px 15px;
             color: #999;
             text-align: center;
@@ -516,9 +518,7 @@ if (isset($_REQUEST['action'])) {
                 <li class="nav-item" role="presentation">
                     <a class="nav-link" href="import_export.php">Tra cứu nhập - xuất kho</a>
                 </li>
-                <li class="nav-item" role="presentation">
-                    <a class="nav-link" href="out_of_stock.php">Sản phẩm sắp hết hàng</a>
-                </li>
+                
             </ul>
 
             <!-- Tra cứu tồn tại thời điểm -->
@@ -527,15 +527,13 @@ if (isset($_REQUEST['action'])) {
                 <div class="row g-3 align-items-end">
                     <div class="col-md-5">
                         <label class="form-label">Chọn sản phẩm <small class="text-muted">(Để trống để xem tất cả)</small></label>
-                        <div class="searchable-select" id="product-select-container">
-                            <select id="stock-date-product" class="form-select">
-                                <option value="">-- Tất cả sản phẩm --</option>
-                            </select>
-                            <div class="search-box">
-                                <input type="text" id="product-search-input" placeholder="Nhập tên sản phẩm để tìm kiếm...">
-                                <div class="options-list" id="product-options-list"></div>
-                            </div>
+                        <div class="autocomplete-container">
+                            <input type="text" id="product-search-input" class="form-control autocomplete-input" placeholder="Nhập tên sản phẩm để tìm kiếm...">
+                            <div id="autocomplete-dropdown" class="autocomplete-dropdown"></div>
                         </div>
+                        <input type="hidden" id="selected-product-id" value="">
+                        <small class="text-muted mt-1 d-block">
+                        </small>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">Chỉ có thể tra cứu đến ngày <?php echo date('d/m/Y'); ?></label>
@@ -545,14 +543,6 @@ if (isset($_REQUEST['action'])) {
                     </div>
                     <div class="col-md-3">
                         <button id="check-stock-date" class="btn btn-dark w-100">Tra cứu</button>
-                    </div>
-                </div>
-                <div class="row mt-2">
-                    <div class="col-12">
-                        <small class="text-muted">
-                            <i class="fas fa-info-circle me-1"></i>
-                            Nhập tên sản phẩm vào ô tìm kiếm để lọc nhanh danh sách
-                        </small>
                     </div>
                 </div>
                 <div id="stock-date-result" class="alert alert-info mt-3" style="display: none;"></div>
@@ -581,19 +571,19 @@ if (isset($_REQUEST['action'])) {
                     <div class="table-responsive">
                         <table class="table table-hover products-table">
                             <thead>
-                                
+                                <tr>
                                     <th>Mã SP</th>
                                     <th>Tên sản phẩm</th>
                                     <th>Loại</th>
                                     <th class="text-center">Số lượng tồn</th>
-                                
+                                </tr>
                             </thead>
                             <tbody id="all-products-table-body">
-                                
+                                <tr>
                                     <td colspan="4" class="text-center">Đang tải...</td>
-                                
+                                </tr>
                             </tbody>
-                        
+                        </table>
                     </div>
                 </div>
             </div>
@@ -665,110 +655,127 @@ if (isset($_REQUEST['action'])) {
         function loadProducts() {
             $.getJSON('inventory_detail.php', { action: 'get_products' }, function(products) {
                 productsList = products;
-                renderSelectOptions(products);
             });
         }
 
-        // Render select options
-        function renderSelectOptions(products) {
-            let html = '<option value="">-- Tất cả sản phẩm --</option>';
-            products.forEach(p => {
-                html += `<option value="${p.id}">${escapeHtml(p.name)}</option>`;
-            });
-            $('#stock-date-product').html(html);
-            
-            // Cập nhật lại options list cho tìm kiếm
-            renderOptionsList(products, '');
-        }
+        // Xử lý autocomplete
+        function setupAutocomplete() {
+            const $input = $('#product-search-input');
+            const $dropdown = $('#autocomplete-dropdown');
+            let currentFocus = -1;
 
-        // Render danh sách options cho ô tìm kiếm
-        function renderOptionsList(products, searchText) {
-            const container = $('#product-options-list');
-            let filteredProducts = products;
-            
-            if (searchText.trim() !== '') {
-                filteredProducts = products.filter(p => 
+            // Hiển thị gợi ý
+            function showSuggestions(searchText) {
+                if (searchText === '') {
+                    $dropdown.hide();
+                    return;
+                }
+
+                const filteredProducts = productsList.filter(p => 
                     p.name.toLowerCase().includes(searchText.toLowerCase())
                 );
-            }
-            
-            if (filteredProducts.length === 0) {
-                container.html('<div class="no-results">Không tìm thấy sản phẩm</div>');
-                return;
-            }
-            
-            let html = '';
-            filteredProducts.forEach(p => {
-                let displayName = p.name;
-                if (searchText.trim() !== '') {
-                    const regex = new RegExp(`(${escapeRegExp(searchText)})`, 'gi');
-                    displayName = p.name.replace(regex, '<strong>$1</strong>');
+
+                if (filteredProducts.length === 0) {
+                    $dropdown.html('<div class="no-results">Không tìm thấy sản phẩm</div>').show();
+                    return;
                 }
-                const isSelected = (selectedProductId == p.id);
-                html += `
-                    <div class="option-item ${isSelected ? 'selected' : ''}" data-id="${p.id}" data-name="${escapeHtml(p.name)}">
-                        <i class="fas fa-box me-2 text-muted"></i>
-                        ${displayName}
-                    </div>
-                `;
+
+                let html = '';
+                filteredProducts.forEach((p, index) => {
+                    // Highlight phần text khớp
+                    let displayName = p.name;
+                    if (searchText.trim() !== '') {
+                        const regex = new RegExp(`(${escapeRegExp(searchText)})`, 'gi');
+                        displayName = p.name.replace(regex, '<strong style="background-color: #ffbe33; color: #222;">$1</strong>');
+                    }
+                    html += `
+                        <div class="autocomplete-item" data-id="${p.id}" data-name="${escapeHtml(p.name)}" data-index="${index}">
+                            <i class="fas fa-box me-2 text-muted"></i>
+                            ${displayName}
+                            <span class="product-code">(ID: ${p.id})</span>
+                        </div>
+                    `;
+                });
+                $dropdown.html(html).show();
+                currentFocus = -1;
+            }
+
+            // Xử lý sự kiện input
+            $input.on('input', function() {
+                const searchText = $(this).val();
+                showSuggestions(searchText);
             });
-            container.html(html);
-            
-            // Thêm sự kiện click cho từng option
-            $('.option-item').off('click').on('click', function() {
+
+            // Xử lý click vào item
+            $(document).on('click', '.autocomplete-item', function() {
                 const id = $(this).data('id');
                 const name = $(this).data('name');
                 selectProduct(id, name);
-                $('.searchable-select .search-box').hide();
+                $dropdown.hide();
+            });
+
+            // Xử lý phím mũi tên và Enter
+            $input.on('keydown', function(e) {
+                const items = $('.autocomplete-item');
+                if (items.length === 0) return;
+
+                if (e.key === 'ArrowDown') {
+                    currentFocus++;
+                    if (currentFocus >= items.length) currentFocus = 0;
+                    updateHighlight(items);
+                    e.preventDefault();
+                } else if (e.key === 'ArrowUp') {
+                    currentFocus--;
+                    if (currentFocus < 0) currentFocus = items.length - 1;
+                    updateHighlight(items);
+                    e.preventDefault();
+                } else if (e.key === 'Enter') {
+                    if (currentFocus >= 0 && items[currentFocus]) {
+                        const id = $(items[currentFocus]).data('id');
+                        const name = $(items[currentFocus]).data('name');
+                        selectProduct(id, name);
+                        $dropdown.hide();
+                        e.preventDefault();
+                    }
+                } else if (e.key === 'Escape') {
+                    $dropdown.hide();
+                }
+            });
+
+            function updateHighlight(items) {
+                items.removeClass('selected');
+                if (currentFocus >= 0 && items[currentFocus]) {
+                    $(items[currentFocus]).addClass('selected');
+                    // Cuộn đến item được chọn
+                    const container = $dropdown[0];
+                    const selectedItem = items[currentFocus];
+                    if (selectedItem && container) {
+                        selectedItem.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                    }
+                }
+            }
+
+            // Đóng dropdown khi click ra ngoài
+            $(document).on('click', function(e) {
+                if (!$(e.target).closest('.autocomplete-container').length) {
+                    $dropdown.hide();
+                }
             });
         }
 
         function selectProduct(id, name) {
             selectedProductId = id;
             selectedProductName = name;
-            $('#stock-date-product').val(id);
-            // Cập nhật lại highlight trong options list
-            renderOptionsList(productsList, $('#product-search-input').val());
+            $('#product-search-input').val(name);
+            $('#selected-product-id').val(id);
         }
 
         function escapeRegExp(string) {
             return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         }
 
-        // Xử lý click vào select để hiển thị/ẩn ô tìm kiếm
-        $('#stock-date-product').click(function(e) {
-            e.stopPropagation();
-            const searchBox = $('.searchable-select .search-box');
-            if (searchBox.is(':visible')) {
-                searchBox.hide();
-            } else {
-                // Cập nhật lại danh sách trước khi hiển thị
-                renderOptionsList(productsList, $('#product-search-input').val());
-                searchBox.show();
-                $('#product-search-input').focus();
-            }
-        });
-
-        // Xử lý tìm kiếm khi gõ vào ô input
-        $('#product-search-input').on('input', function() {
-            const searchText = $(this).val();
-            renderOptionsList(productsList, searchText);
-        });
-
-        // Đóng search box khi click ra ngoài
-        $(document).on('click', function(e) {
-            if (!$(e.target).closest('.searchable-select').length) {
-                $('.searchable-select .search-box').hide();
-            }
-        });
-
-        // Ngăn click vào search box không đóng
-        $('.searchable-select .search-box').click(function(e) {
-            e.stopPropagation();
-        });
-
         $('#check-stock-date').click(function() {
-            const productId = $('#stock-date-product').val();
+            const productId = $('#selected-product-id').val();
             const date = $('#stock-date').val();
             
             if (!date) { 
@@ -871,6 +878,7 @@ if (isset($_REQUEST['action'])) {
 
         // Khởi tạo
         loadProducts();
+        setTimeout(setupAutocomplete, 500); // Chờ loadProducts xong
     </script>
 </body>
 </html>
