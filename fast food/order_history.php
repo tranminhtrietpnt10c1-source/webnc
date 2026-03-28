@@ -307,7 +307,7 @@ if (isset($_SESSION['cart'])) {
                             <tr>
                                 <th>Mã đơn hàng</th>
                                 <th>Ngày đặt</th>
-                                <th>Số lượng SP</th>
+                                <th>Số loại SP</th>
                                 <th>Tổng tiền</th>
                                 <th>Phí vận chuyển</th>
                                 <th>Thành tiền</th>
