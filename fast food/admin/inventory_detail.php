@@ -411,6 +411,62 @@ if (isset($_REQUEST['action'])) {
             font-weight: 600;
             color: var(--secondary-color);
         }
+        
+        /* Styles cho autocomplete */
+        .autocomplete-container {
+            position: relative;
+        }
+        .autocomplete-input {
+            width: 100%;
+        }
+        .autocomplete-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #ced4da;
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+            z-index: 1000;
+            max-height: 250px;
+            overflow-y: auto;
+            display: none;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .autocomplete-item {
+            padding: 10px 15px;
+            cursor: pointer;
+            transition: background 0.2s;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .autocomplete-item:last-child {
+            border-bottom: none;
+        }
+        .autocomplete-item:hover {
+            background-color: #fff3e0;
+        }
+        .autocomplete-item.selected {
+            background-color: #ffbe33;
+            color: #fff;
+        }
+        .autocomplete-item .product-code {
+            font-size: 0.75rem;
+            color: #6c757d;
+            margin-left: 8px;
+        }
+        .autocomplete-item.selected .product-code {
+            color: #fff;
+        }
+        .autocomplete-highlight {
+            font-weight: bold;
+            background-color: #fff3e0;
+        }
+        .no-results {
+            padding: 10px 15px;
+            color: #999;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
@@ -462,9 +518,7 @@ if (isset($_REQUEST['action'])) {
                 <li class="nav-item" role="presentation">
                     <a class="nav-link" href="import_export.php">Tra cứu nhập - xuất kho</a>
                 </li>
-                <li class="nav-item" role="presentation">
-                    <a class="nav-link" href="out_of_stock.php">Sản phẩm sắp hết hàng</a>
-                </li>
+                
             </ul>
 
             <!-- Tra cứu tồn tại thời điểm -->
@@ -473,9 +527,13 @@ if (isset($_REQUEST['action'])) {
                 <div class="row g-3 align-items-end">
                     <div class="col-md-5">
                         <label class="form-label">Chọn sản phẩm <small class="text-muted">(Để trống để xem tất cả)</small></label>
-                        <select id="stock-date-product" class="form-select">
-                            <option value="">-- Tất cả sản phẩm --</option>
-                        </select>
+                        <div class="autocomplete-container">
+                            <input type="text" id="product-search-input" class="form-control autocomplete-input" placeholder="Nhập tên sản phẩm để tìm kiếm...">
+                            <div id="autocomplete-dropdown" class="autocomplete-dropdown"></div>
+                        </div>
+                        <input type="hidden" id="selected-product-id" value="">
+                        <small class="text-muted mt-1 d-block">
+                        </small>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">Chỉ có thể tra cứu đến ngày <?php echo date('d/m/Y'); ?></label>
@@ -513,12 +571,12 @@ if (isset($_REQUEST['action'])) {
                     <div class="table-responsive">
                         <table class="table table-hover products-table">
                             <thead>
-                                
+                                <tr>
                                     <th>Mã SP</th>
                                     <th>Tên sản phẩm</th>
                                     <th>Loại</th>
                                     <th class="text-center">Số lượng tồn</th>
-                                
+                                </tr>
                             </thead>
                             <tbody id="all-products-table-body">
                                 <tr>
@@ -560,6 +618,10 @@ if (isset($_REQUEST['action'])) {
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        let productsList = [];
+        let selectedProductId = '';
+        let selectedProductName = '';
+
         $('#toggle-sidebar').click(function() {
             const sidebar = $('.sidebar');
             const mainContent = $('.main-content');
@@ -589,21 +651,137 @@ if (isset($_REQUEST['action'])) {
         adjustSidebar();
         $(window).resize(adjustSidebar);
 
-        function loadProductSelect() {
+        // Load danh sách sản phẩm
+        function loadProducts() {
             $.getJSON('inventory_detail.php', { action: 'get_products' }, function(products) {
-                let options = '<option value="">-- Tất cả sản phẩm --</option>';
-                products.forEach(p => {
-                    options += `<option value="${p.id}">${escapeHtml(p.name)}</option>`;
-                });
-                $('#stock-date-product').html(options);
+                productsList = products;
             });
         }
 
+        // Xử lý autocomplete
+        function setupAutocomplete() {
+            const $input = $('#product-search-input');
+            const $dropdown = $('#autocomplete-dropdown');
+            let currentFocus = -1;
+
+            // Hiển thị gợi ý
+            function showSuggestions(searchText) {
+                if (searchText === '') {
+                    $dropdown.hide();
+                    return;
+                }
+
+                const filteredProducts = productsList.filter(p => 
+                    p.name.toLowerCase().includes(searchText.toLowerCase())
+                );
+
+                if (filteredProducts.length === 0) {
+                    $dropdown.html('<div class="no-results">Không tìm thấy sản phẩm</div>').show();
+                    return;
+                }
+
+                let html = '';
+                filteredProducts.forEach((p, index) => {
+                    // Highlight phần text khớp
+                    let displayName = p.name;
+                    if (searchText.trim() !== '') {
+                        const regex = new RegExp(`(${escapeRegExp(searchText)})`, 'gi');
+                        displayName = p.name.replace(regex, '<strong style="background-color: #ffbe33; color: #222;">$1</strong>');
+                    }
+                    html += `
+                        <div class="autocomplete-item" data-id="${p.id}" data-name="${escapeHtml(p.name)}" data-index="${index}">
+                            <i class="fas fa-box me-2 text-muted"></i>
+                            ${displayName}
+                            <span class="product-code">(ID: ${p.id})</span>
+                        </div>
+                    `;
+                });
+                $dropdown.html(html).show();
+                currentFocus = -1;
+            }
+
+            // Xử lý sự kiện input
+            $input.on('input', function() {
+                const searchText = $(this).val();
+                showSuggestions(searchText);
+            });
+
+            // Xử lý click vào item
+            $(document).on('click', '.autocomplete-item', function() {
+                const id = $(this).data('id');
+                const name = $(this).data('name');
+                selectProduct(id, name);
+                $dropdown.hide();
+            });
+
+            // Xử lý phím mũi tên và Enter
+            $input.on('keydown', function(e) {
+                const items = $('.autocomplete-item');
+                if (items.length === 0) return;
+
+                if (e.key === 'ArrowDown') {
+                    currentFocus++;
+                    if (currentFocus >= items.length) currentFocus = 0;
+                    updateHighlight(items);
+                    e.preventDefault();
+                } else if (e.key === 'ArrowUp') {
+                    currentFocus--;
+                    if (currentFocus < 0) currentFocus = items.length - 1;
+                    updateHighlight(items);
+                    e.preventDefault();
+                } else if (e.key === 'Enter') {
+                    if (currentFocus >= 0 && items[currentFocus]) {
+                        const id = $(items[currentFocus]).data('id');
+                        const name = $(items[currentFocus]).data('name');
+                        selectProduct(id, name);
+                        $dropdown.hide();
+                        e.preventDefault();
+                    }
+                } else if (e.key === 'Escape') {
+                    $dropdown.hide();
+                }
+            });
+
+            function updateHighlight(items) {
+                items.removeClass('selected');
+                if (currentFocus >= 0 && items[currentFocus]) {
+                    $(items[currentFocus]).addClass('selected');
+                    // Cuộn đến item được chọn
+                    const container = $dropdown[0];
+                    const selectedItem = items[currentFocus];
+                    if (selectedItem && container) {
+                        selectedItem.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                    }
+                }
+            }
+
+            // Đóng dropdown khi click ra ngoài
+            $(document).on('click', function(e) {
+                if (!$(e.target).closest('.autocomplete-container').length) {
+                    $dropdown.hide();
+                }
+            });
+        }
+
+        function selectProduct(id, name) {
+            selectedProductId = id;
+            selectedProductName = name;
+            $('#product-search-input').val(name);
+            $('#selected-product-id').val(id);
+        }
+
+        function escapeRegExp(string) {
+            return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
+
         $('#check-stock-date').click(function() {
-            const productId = $('#stock-date-product').val();
+            const productId = $('#selected-product-id').val();
             const date = $('#stock-date').val();
             
-            if (!date) { alert('Vui lòng chọn ngày'); return; }
+            if (!date) { 
+                alert('Vui lòng chọn ngày'); 
+                return; 
+            }
             
             // Ẩn các kết quả cũ
             $('#detail-result').hide();
@@ -630,7 +808,6 @@ if (isset($_REQUEST['action'])) {
                             stockColor = '#28a745';
                         }
                         
-                        // Hiển thị số lượng với màu sắc tương ứng
                         $('#result-stock').html(`<span style="color: ${stockColor};">${res.stock}</span>`);
                         
                         $('#detail-result').show();
@@ -646,7 +823,6 @@ if (isset($_REQUEST['action'])) {
                             let rowClass = '';
                             let stockClass = '';
                             
-                            // Xác định class cho hàng và số lượng
                             if (stockValue <= 0) {
                                 rowClass = 'out-stock-row';
                                 stockClass = 'status-danger';
@@ -665,7 +841,7 @@ if (isset($_REQUEST['action'])) {
                                     <td class="text-center align-middle">
                                         <strong class="${stockClass}">${stockValue}</strong>
                                     </td>
-                                </tr>
+                                 </tr>
                             `;
                         });
                         
@@ -700,7 +876,9 @@ if (isset($_REQUEST['action'])) {
             });
         }
 
-        loadProductSelect();
+        // Khởi tạo
+        loadProducts();
+        setTimeout(setupAutocomplete, 500); // Chờ loadProducts xong
     </script>
 </body>
 </html>

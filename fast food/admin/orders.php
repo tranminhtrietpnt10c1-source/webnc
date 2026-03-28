@@ -45,7 +45,6 @@ if (isset($_REQUEST['action'])) {
                 $start_date = $_GET['start_date'] ?? '';
                 $end_date = $_GET['end_date'] ?? '';
                 $status = $_GET['status'] ?? '';
-                $sort_ward = isset($_GET['sort_ward']) && $_GET['sort_ward'] === 'true';
                 $page = (int)($_GET['page'] ?? 1);
                 $limit = 5;
                 $offset = ($page - 1) * $limit;
@@ -73,11 +72,7 @@ if (isset($_REQUEST['action'])) {
                     $params[':status'] = $status;
                 }
 
-                if ($sort_ward) {
-                    $sql .= " ORDER BY SUBSTRING_INDEX(customer_address, ',', -1) ASC, o.order_date DESC";
-                } else {
-                    $sql .= " ORDER BY o.order_date DESC, o.id DESC";
-                }
+                $sql .= " ORDER BY o.order_date DESC, o.id DESC";
 
                 $sql .= " LIMIT :limit OFFSET :offset";
                 $params[':limit'] = $limit;
@@ -115,14 +110,6 @@ if (isset($_REQUEST['action'])) {
                 $total = $countStmt->fetch()['total'];
                 $totalPages = ceil($total / $limit);
 
-                $statsSql = "SELECT 
-                                SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
-                                SUM(CASE WHEN status = 'confirmed' THEN 1 ELSE 0 END) as confirmed,
-                                SUM(CASE WHEN status = 'shipped' THEN 1 ELSE 0 END) as shipped,
-                                SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as cancelled
-                             FROM orders";
-                $stats = $pdo->query($statsSql)->fetch();
-
                 echo json_encode([
                     'success' => true,
                     'data' => $orders,
@@ -130,8 +117,7 @@ if (isset($_REQUEST['action'])) {
                         'current_page' => $page,
                         'total_pages' => $totalPages,
                         'total_records' => $total
-                    ],
-                    'stats' => $stats
+                    ]
                 ]);
                 break;
 
@@ -307,83 +293,14 @@ if (isset($_REQUEST['action'])) {
             margin-bottom: 20px;
             color: var(--dark-color);
         }
-        .stats-row {
+        .action-buttons {
             display: flex;
             flex-wrap: wrap;
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-        .stat-card {
-            flex: 1;
-            min-width: 180px;
-            border-radius: 12px;
-            transition: transform 0.2s, box-shadow 0.2s;
-            cursor: pointer;
-            color: white;
-            overflow: hidden;
-        }
-        .stat-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
-        }
-        .stat-card .card-body {
-            padding: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        .stat-info h3 {
-            font-size: 2rem;
-            font-weight: 700;
-            margin: 0;
-            line-height: 1.2;
-            color: white;
-        }
-        .stat-info p {
-            margin: 5px 0 0;
-            font-weight: 500;
-            color: rgba(255,255,255,0.9);
-        }
-        .stat-icon {
-            font-size: 2.5rem;
-            opacity: 0.9;
-            color: white;
-        }
-        .bg-primary-custom {
-            background-color: #007bff !important;
-        }
-        .bg-warning-custom {
-            background-color: #ffc107 !important;
-            color: #212529 !important;
-        }
-        .bg-warning-custom .stat-info h3,
-        .bg-warning-custom .stat-info p,
-        .bg-warning-custom .stat-icon {
-            color: #212529 !important;
-        }
-        .bg-success-custom {
-            background-color: #28a745 !important;
-        }
-        .bg-danger-custom {
-            background-color: #dc3545 !important;
-        }
-        .order-link, .customer-link {
-            color: var(--secondary-color);
-            text-decoration: none;
-            transition: color 0.3s;
-        }
-        .order-link:hover, .customer-link:hover {
-            color: var(--primary-color);
-        }
-        .order-link {
-            cursor: pointer;
-        }
-
-        /* Bộ điều khiển cập nhật trạng thái theo bước */
-        .status-update-step {
-            display: inline-flex;
             align-items: center;
             gap: 8px;
+        }
+        .view-button {
+            white-space: nowrap;
         }
         .btn-step {
             background-color: var(--primary-color);
@@ -416,8 +333,6 @@ if (isset($_REQUEST['action'])) {
             border-radius: 20px;
             display: inline-block;
         }
-
-        /* Thông báo toast */
         .toast-notification {
             position: fixed;
             top: 20px;
@@ -447,7 +362,6 @@ if (isset($_REQUEST['action'])) {
                 opacity: 1;
             }
         }
-
         .modal-header {
             background-color: var(--secondary-color);
             color: var(--light-color);
@@ -500,15 +414,40 @@ if (isset($_REQUEST['action'])) {
         .profile-info-value {
             color: #555;
         }
-        /* Căn chỉnh cột thao tác và xem thẳng hàng dọc */
-        .action-buttons {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            gap: 8px;
+        .order-detail-card {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 10px;
         }
-        .view-button {
-            white-space: nowrap;
+        .order-detail-label {
+            font-size: 0.85rem;
+            color: #6c757d;
+        }
+        .order-detail-value {
+            font-weight: 500;
+        }
+        .product-table th, .product-table td {
+            vertical-align: middle;
+        }
+        .order-summary-row {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+        }
+        .order-summary-item {
+            border-right: 1px solid #dee2e6;
+        }
+        .order-summary-item:last-child {
+            border-right: none;
+        }
+        .order-summary-label {
+            font-size: 0.85rem;
+            color: #6c757d;
+        }
+        .order-summary-value {
+            font-weight: 600;
+            font-size: 1.1rem;
         }
     </style>
 </head>
@@ -557,11 +496,11 @@ if (isset($_REQUEST['action'])) {
                         <div class="row">
                             <div class="col-md-4 mb-3">
                                 <label for="start-date" class="form-label">Ngày bắt đầu</label>
-                                <input type="date" class="form-control" id="start-date" name="start-date">
+                                <input type="date" class="form-control" id="start-date" name="start-date" max="<?php echo date('Y-m-d', strtotime('-1 day')); ?>">
                             </div>
                             <div class="col-md-4 mb-3">
                                 <label for="end-date" class="form-label">Ngày kết thúc</label>
-                                <input type="date" class="form-control" id="end-date" name="end-date">
+                                <input type="date" class="form-control" id="end-date" name="end-date" max="<?php echo date('Y-m-d'); ?>">
                             </div>
                             <div class="col-md-4 mb-3">
                                 <label for="status-filter" class="form-label">Tình trạng</label>
@@ -575,13 +514,7 @@ if (isset($_REQUEST['action'])) {
                             </div>
                         </div>
                         <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="sort-ward">
-                                    <label class="form-check-label" for="sort-ward">Sắp xếp theo phường (địa chỉ)</label>
-                                </div>
-                            </div>
-                            <div class="col-md-6 text-end">
+                            <div class="col-md-12 text-end">
                                 <button type="submit" class="btn btn-dark"><i class="fas fa-search me-2"></i>Tìm kiếm</button>
                                 <button type="reset" class="btn btn-outline-dark ms-2"><i class="fas fa-undo me-2"></i>Đặt lại</button>
                             </div>
@@ -589,42 +522,9 @@ if (isset($_REQUEST['action'])) {
                     </form>
                 </div>
 
-                <div class="stats-row">
-                    <div class="stat-card bg-primary-custom" data-status="pending">
-                        <div class="card-body">
-                            <div class="stat-info"><h3 id="pending-orders">0</h3><p>Chưa xử lý</p></div>
-                            <div class="stat-icon"><i class="fas fa-shopping-cart"></i></div>
-                        </div>
-                    </div>
-                    <div class="stat-card bg-warning-custom" data-status="confirmed">
-                        <div class="card-body">
-                            <div class="stat-info"><h3 id="confirmed-orders">0</h3><p>Đã xác nhận</p></div>
-                            <div class="stat-icon"><i class="fas fa-cog"></i></div>
-                        </div>
-                    </div>
-                    <div class="stat-card bg-success-custom" data-status="shipped">
-                        <div class="card-body">
-                            <div class="stat-info"><h3 id="shipped-orders">0</h3><p>Đã giao</p></div>
-                            <div class="stat-icon"><i class="fas fa-truck"></i></div>
-                        </div>
-                    </div>
-                    <div class="stat-card bg-danger-custom" data-status="cancelled">
-                        <div class="card-body">
-                            <div class="stat-info"><h3 id="cancelled-orders">0</h3><p>Đã hủy</p></div>
-                            <div class="stat-icon"><i class="fas fa-times-circle"></i></div>
-                        </div>
-                    </div>
-                </div>
-
                 <div class="card card-custom">
-                    <div class="card-header d-flex justify-content-between align-items-center">
+                    <div class="card-header">
                         <h5 class="card-title mb-0">Danh sách đơn hàng</h5>
-                        <div class="search-box">
-                            <div class="input-group">
-                                <input type="text" class="form-control" placeholder="Tìm kiếm đơn hàng..." id="search-order">
-                                <button class="btn btn-outline-secondary" type="button" id="search-order-btn"><i class="fas fa-search"></i></button>
-                            </div>
-                        </div>
                     </div>
                     <div class="card-body">
                         <div class="table-responsive">
@@ -646,35 +546,6 @@ if (isset($_REQUEST['action'])) {
                             </table>
                         </div>
                         <nav aria-label="Page navigation"><ul class="pagination justify-content-center mt-4" id="pagination-container"></ul></nav>
-                    </div>
-                </div>
-
-                <div class="row mt-4">
-                    <div class="col-md-4">
-                        <div class="card card-custom">
-                            <div class="card-header"><h5 class="card-title mb-0">Sản phẩm bán chạy</h5></div>
-                            <div class="card-body">
-                                <ul class="list-group list-group-flush">
-                                    <li class="list-group-item d-flex justify-content-between align-items-center">Pizza Hải Sản<span class="badge bg-primary rounded-pill">156</span></li>
-                                    <li class="list-group-item d-flex justify-content-between align-items-center">Burger Bò Phô Mai<span class="badge bg-primary rounded-pill">142</span></li>
-                                    <li class="list-group-item d-flex justify-content-between align-items-center">Mỳ Ý Sốt Bò Bằm<span class="badge bg-primary rounded-pill">128</span></li>
-                                    <li class="list-group-item d-flex justify-content-between align-items-center">Khoai Tây Chiên<span class="badge bg-primary rounded-pill">115</span></li>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-8">
-                        <div class="card card-custom">
-                            <div class="card-header"><h5 class="card-title mb-0">Đơn hàng gần đây</h5></div>
-                            <div class="card-body">
-                                <div class="table-responsive">
-                                    <table class="table table-hover">
-                                        <thead><tr><th>Mã đơn</th><th>Khách hàng</th><th>Ngày đặt</th><th>Tổng tiền</th><th>Trạng thái</th></tr></thead>
-                                        <tbody id="recent-orders-body"></tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -726,7 +597,7 @@ if (isset($_REQUEST['action'])) {
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         let currentPage = 1;
-        let currentFilters = { search: '', start_date: '', end_date: '', status: '', sort_ward: false };
+        let currentFilters = { search: '', start_date: '', end_date: '', status: '' };
 
         $('#toggle-sidebar').click(function() {
             const sidebar = $('.sidebar');
@@ -758,13 +629,18 @@ if (isset($_REQUEST['action'])) {
         $(window).resize(adjustSidebar);
 
         function loadOrders() {
-            const params = { action: 'list', page: currentPage, search: currentFilters.search, start_date: currentFilters.start_date, end_date: currentFilters.end_date, status: currentFilters.status, sort_ward: currentFilters.sort_ward };
+            const params = { 
+                action: 'list', 
+                page: currentPage, 
+                search: currentFilters.search, 
+                start_date: currentFilters.start_date, 
+                end_date: currentFilters.end_date, 
+                status: currentFilters.status
+            };
             $.getJSON('orders.php', params, function(response) {
                 if (response.success) {
                     renderTable(response.data);
                     renderPagination(response.pagination);
-                    updateStats(response.stats);
-                    updateRecentOrders(response.data.slice(0, 3));
                 } else alert('Lỗi tải dữ liệu: ' + response.error);
             });
         }
@@ -816,21 +692,6 @@ if (isset($_REQUEST['action'])) {
             html += `<li class="page-item ${pagination.current_page === pagination.total_pages ? 'disabled' : ''}"><a class="page-link" href="#" data-page="${pagination.current_page + 1}">Tiếp</a></li>`;
             container.html(html);
             container.find('.page-link').click(function(e) { e.preventDefault(); const page = $(this).data('page'); if (page && page !== currentPage) { currentPage = page; loadOrders(); } });
-        }
-
-        function updateStats(stats) { 
-            $('#pending-orders').text(stats.pending || 0);
-            $('#confirmed-orders').text(stats.confirmed || 0);
-            $('#shipped-orders').text(stats.shipped || 0);
-            $('#cancelled-orders').text(stats.cancelled || 0);
-        }
-
-        function updateRecentOrders(orders) {
-            const tbody = $('#recent-orders-body');
-            if (!orders.length) { tbody.html('<tr><td colspan="5" class="text-center">Chưa có đơn hàng</td></tr>'); return; }
-            let html = '';
-            orders.forEach(order => { const totalAmount = new Intl.NumberFormat('vi-VN').format(order.total_amount); html += `<tr><td><a href="#" class="order-link" data-id="${order.id}">${order.order_code}</a></td><td>${escapeHtml(order.customer_name)}</td><td>${new Date(order.order_date).toLocaleDateString('vi-VN')}</td><td>${totalAmount} ₫</td><td><span class="badge badge-status-${order.status}">${getStatusText(order.status)}</span></td></tr>`; });
-            tbody.html(html);
         }
 
         function updateOrderStatus(orderId, newStatus, btn) {
@@ -914,11 +775,8 @@ if (isset($_REQUEST['action'])) {
         }
 
         $(document).ready(function() {
-            $('#order-filter-form').submit(function(e) { e.preventDefault(); currentFilters.start_date = $('#start-date').val(); currentFilters.end_date = $('#end-date').val(); currentFilters.status = $('#status-filter').val(); currentFilters.sort_ward = $('#sort-ward').is(':checked'); currentPage = 1; loadOrders(); });
-            $('#order-filter-form button[type="reset"]').click(function() { $('#start-date').val(''); $('#end-date').val(''); $('#status-filter').val(''); $('#sort-ward').prop('checked', false); $('#search-order').val(''); currentFilters = { search: '', start_date: '', end_date: '', status: '', sort_ward: false }; currentPage = 1; loadOrders(); });
-            $('#search-order-btn').click(function() { currentFilters.search = $('#search-order').val(); currentPage = 1; loadOrders(); });
-            $('#search-order').keypress(function(e) { if (e.which === 13) { currentFilters.search = $(this).val(); currentPage = 1; loadOrders(); } });
-            $('.stat-card').click(function() { const status = $(this).data('status'); $('#status-filter').val(status); $('#order-filter-form').submit(); });
+            $('#order-filter-form').submit(function(e) { e.preventDefault(); currentFilters.start_date = $('#start-date').val(); currentFilters.end_date = $('#end-date').val(); currentFilters.status = $('#status-filter').val(); currentPage = 1; loadOrders(); });
+            $('#order-filter-form button[type="reset"]').click(function() { $('#start-date').val(''); $('#end-date').val(''); $('#status-filter').val(''); currentFilters = { search: '', start_date: '', end_date: '', status: '' }; currentPage = 1; loadOrders(); });
             $(document).on('click', '.order-link', function(e) { e.preventDefault(); const orderId = $(this).data('id'); viewOrderDetail(orderId); });
             $(document).on('click', '.view-detail', function() { const orderId = $(this).data('id'); viewOrderDetail(orderId); });
             loadOrders();

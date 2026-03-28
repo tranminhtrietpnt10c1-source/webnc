@@ -33,6 +33,56 @@ if (!$admin_info) {
     exit;
 }
 
+// Lấy ngưỡng sắp hết hàng từ database (mặc định 10 nếu chưa có)
+$low_stock_threshold = 10;
+$stmt = $pdo->prepare("SELECT setting_value FROM system_settings WHERE setting_key = 'low_stock_threshold'");
+$stmt->execute();
+$threshold_row = $stmt->fetch();
+if ($threshold_row) {
+    $low_stock_threshold = (int)$threshold_row['setting_value'];
+}
+
+// Xử lý cập nhật ngưỡng sắp hết hàng
+if (isset($_POST['update_threshold'])) {
+    $new_threshold = (int)$_POST['low_stock_threshold'];
+    if ($new_threshold >= 0) {
+        $stmt = $pdo->prepare("INSERT INTO system_settings (setting_key, setting_value, updated_at) 
+                                VALUES ('low_stock_threshold', :value, NOW())
+                                ON DUPLICATE KEY UPDATE setting_value = :value, updated_at = NOW()");
+        $stmt->execute([':value' => $new_threshold]);
+        $low_stock_threshold = $new_threshold;
+        $_SESSION['success'] = "Đã cập nhật ngưỡng sắp hết hàng thành " . $new_threshold;
+        header('Location: inventory.php');
+        exit;
+    }
+}
+
+// Xử lý ẩn sản phẩm (cập nhật status thành inactive)
+if (isset($_POST['hide_product'])) {
+    $product_id = (int)$_POST['product_id'];
+    $stmt = $pdo->prepare("UPDATE products SET status = 'inactive', updated_at = NOW() WHERE id = ?");
+    $stmt->execute([$product_id]);
+    $_SESSION['success'] = "Đã ẩn sản phẩm thành công";
+    header('Location: inventory.php');
+    exit;
+}
+
+// Xử lý hiển thị lại sản phẩm (cập nhật status thành active)
+if (isset($_POST['show_product'])) {
+    $product_id = (int)$_POST['product_id'];
+    $stmt = $pdo->prepare("UPDATE products SET status = 'active', updated_at = NOW() WHERE id = ?");
+    $stmt->execute([$product_id]);
+    $_SESSION['success'] = "Đã hiển thị lại sản phẩm";
+    header('Location: inventory.php');
+    exit;
+}
+
+// Lấy thông báo từ session
+$success_message = isset($_SESSION['success']) ? $_SESSION['success'] : '';
+$error_message = isset($_SESSION['error']) ? $_SESSION['error'] : '';
+unset($_SESSION['success']);
+unset($_SESSION['error']);
+
 // Xử lý AJAX request
 if (isset($_REQUEST['action'])) {
     header('Content-Type: application/json');
@@ -46,7 +96,7 @@ if (isset($_REQUEST['action'])) {
                     echo json_encode([]);
                     break;
                 }
-                $stmt = $pdo->prepare("SELECT id, code, name FROM products WHERE status = 'active' AND (name LIKE :search OR code LIKE :search) LIMIT 10");
+                $stmt = $pdo->prepare("SELECT id, code, name FROM products WHERE (name LIKE :search OR code LIKE :search) LIMIT 10");
                 $stmt->execute([':search' => "%$search%"]);
                 $suggestions = $stmt->fetchAll();
                 echo json_encode($suggestions);
@@ -55,12 +105,16 @@ if (isset($_REQUEST['action'])) {
             case 'list':
                 $search = $_GET['search'] ?? '';
                 $max_stock = isset($_GET['max_stock']) && $_GET['max_stock'] !== '' ? (int)$_GET['max_stock'] : null;
+                $stock_status = $_GET['stock_status'] ?? 'all'; // all, sufficient, low, out
                 $page = (int)($_GET['page'] ?? 1);
                 $limit = 5;
                 $offset = ($page - 1) * $limit;
+                
+                // Lấy ngưỡng hiện tại
+                $threshold = $low_stock_threshold;
 
-                // Lấy tất cả sản phẩm active
-                $sql = "SELECT p.id, p.code, p.name, p.category_id,
+                // Lấy tất cả sản phẩm
+                $sql = "SELECT p.id, p.code, p.name, p.category_id, p.status,
                                c.name as category_name,
                                COALESCE((
                                    SELECT SUM(d.quantity)
@@ -75,12 +129,11 @@ if (isset($_REQUEST['action'])) {
                                    WHERE od.product_id = p.id AND o.status != 'cancelled' AND o.status != 'new'
                                ), 0) AS total_export
                         FROM products p
-                        LEFT JOIN categories c ON p.category_id = c.id
-                        WHERE p.status = 'active'";
+                        LEFT JOIN categories c ON p.category_id = c.id";
                 $params = [];
 
                 if ($search) {
-                    $sql .= " AND (p.name LIKE :search OR p.code LIKE :search)";
+                    $sql .= " WHERE (p.name LIKE :search OR p.code LIKE :search)";
                     $params[':search'] = "%$search%";
                 }
 
@@ -93,18 +146,37 @@ if (isset($_REQUEST['action'])) {
                 $stmt->execute();
                 $all_products = $stmt->fetchAll();
 
-                // Cập nhật stock_quantity từ dữ liệu nhập/xuất thực tế và lọc
+                // Cập nhật stock_quantity và lọc theo trạng thái
                 $filtered_products = [];
                 foreach ($all_products as $product) {
                     $actual_stock = $product['total_import'] - $product['total_export'];
                     $product['stock_quantity'] = $actual_stock;
                     
-                    // Lọc theo số lượng tồn <= max_stock (nếu có)
-                    if ($max_stock !== null && $max_stock > 0) {
-                        if ($actual_stock <= $max_stock) {
-                            $filtered_products[] = $product;
-                        }
+                    // Xác định trạng thái tồn kho
+                    if ($product['status'] === 'inactive') {
+                        $product['stock_status'] = 'inactive';
+                    } elseif ($actual_stock <= 0) {
+                        $product['stock_status'] = 'out';
+                    } elseif ($actual_stock <= $threshold) {
+                        $product['stock_status'] = 'low';
                     } else {
+                        $product['stock_status'] = 'sufficient';
+                    }
+                    
+                    // Lọc theo trạng thái
+                    $include = true;
+                    if ($stock_status !== 'all') {
+                        if ($stock_status === 'sufficient' && $product['stock_status'] !== 'sufficient') $include = false;
+                        if ($stock_status === 'low' && $product['stock_status'] !== 'low') $include = false;
+                        if ($stock_status === 'out' && $product['stock_status'] !== 'out') $include = false;
+                    }
+                    
+                    // Lọc theo số lượng tồn <= max_stock (nếu có)
+                    if ($include && $max_stock !== null && $max_stock > 0) {
+                        if ($actual_stock > $max_stock) $include = false;
+                    }
+                    
+                    if ($include) {
                         $filtered_products[] = $product;
                     }
                 }
@@ -123,7 +195,8 @@ if (isset($_REQUEST['action'])) {
                         'current_page' => $page,
                         'total_pages' => $total_pages,
                         'total_records' => $total_records
-                    ]
+                    ],
+                    'threshold' => $threshold
                 ]);
                 break;
 
@@ -137,8 +210,8 @@ if (isset($_REQUEST['action'])) {
                 $product_id = (int)($_GET['id'] ?? 0);
                 if (!$product_id) throw new Exception('Missing product ID');
                 
-                $stmt = $pdo->prepare("SELECT p.id, p.code, p.name, p.category_id, c.name as category_name, 
-                                              p.cost_price, p.selling_price, p.stock_quantity,
+                $stmt = $pdo->prepare("SELECT p.id, p.code, p.name, p.category_id, p.status, c.name as category_name, 
+                                              p.cost_price, p.selling_price,
                                               COALESCE((SELECT SUM(d.quantity) FROM import_details d JOIN imports i ON d.import_id = i.id WHERE d.product_id = p.id AND i.status = 'completed'), 0) as total_import,
                                               COALESCE((SELECT SUM(od.quantity) FROM order_details od JOIN orders o ON od.order_id = o.id WHERE od.product_id = p.id AND o.status != 'cancelled' AND o.status != 'new'), 0) as total_export
                                        FROM products p 
@@ -151,6 +224,10 @@ if (isset($_REQUEST['action'])) {
                 $product['stock_quantity'] = $product['total_import'] - $product['total_export'];
                 
                 echo json_encode(['success' => true, 'product' => $product]);
+                break;
+
+            case 'get_threshold':
+                echo json_encode(['success' => true, 'threshold' => $low_stock_threshold]);
                 break;
 
             default:
@@ -308,6 +385,10 @@ if (isset($_REQUEST['action'])) {
             color: #28a745;
             font-weight: bold;
         }
+        .status-inactive {
+            color: #6c757d;
+            font-weight: bold;
+        }
         .product-link {
             color: var(--secondary-color);
             text-decoration: none;
@@ -419,6 +500,100 @@ if (isset($_REQUEST['action'])) {
         .pagination-wrapper {
             margin-top: 20px;
         }
+        .threshold-section {
+            background: linear-gradient(135deg, #fff8e7 0%, #fff3e0 100%);
+            border-left: 5px solid var(--primary-color);
+            margin-bottom: 20px;
+            padding: 15px 20px;
+            border-radius: 10px;
+        }
+        .threshold-label {
+            font-weight: 600;
+            color: var(--secondary-color);
+            margin-right: 10px;
+        }
+        .threshold-value {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #ff8c00;
+            background: #fff;
+            padding: 4px 12px;
+            border-radius: 20px;
+            display: inline-block;
+        }
+        .btn-threshold {
+            background-color: var(--primary-color);
+            color: var(--dark-color);
+            border: none;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            transition: all 0.3s;
+        }
+        .btn-threshold:hover {
+            background-color: #e6a500;
+            transform: scale(1.02);
+        }
+        .warning-box {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin-top: 8px;
+        }
+        .warning-box i {
+            color: #ffc107;
+            margin-right: 8px;
+        }
+        .warning-text {
+            color: #856404;
+            font-size: 0.85rem;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+            min-width: 100px;
+        }
+        .btn-hide {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 5px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            white-space: nowrap;
+            min-width: 85px;
+        }
+        .btn-hide:hover {
+            background-color: #c82333;
+            transform: scale(1.02);
+        }
+        .btn-show {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 5px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            white-space: nowrap;
+            min-width: 85px;
+        }
+        .btn-show:hover {
+            background-color: #218838;
+            transform: scale(1.02);
+        }
         
         /* Autocomplete styles */
         .autocomplete-container {
@@ -458,6 +633,163 @@ if (isset($_REQUEST['action'])) {
             font-size: 0.85rem;
             color: #6c757d;
             margin-left: 10px;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .status-badge.inactive {
+            background: #e2e3e5;
+            color: #383d41;
+        }
+        
+        /* ========== BỐ CỤC BẢNG CÂN XỨNG ========== */
+        .table-responsive {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .table {
+            min-width: 100%;
+            width: 100%;
+            table-layout: fixed;
+            margin-bottom: 0;
+        }
+        
+        /* Đặt độ rộng cố định cho các cột */
+        .table thead th:nth-child(1) { width: 10%; }  /* Mã SP */
+        .table thead th:nth-child(2) { width: 18%; }  /* Tên sản phẩm */
+        .table thead th:nth-child(3) { width: 10%; }  /* Loại */
+        .table thead th:nth-child(4) { width: 10%; }  /* Số lượng tồn */
+        .table thead th:nth-child(5) { width: 12%; }  /* Trạng thái */
+        .table thead th:nth-child(6) { width: 27%; }  /* Cảnh báo */
+        .table thead th:nth-child(7) { width: 13%; }  /* Thao tác */
+        
+        /* Căn chỉnh nội dung các ô */
+        .table td {
+            vertical-align: middle;
+            word-wrap: break-word;
+            word-break: break-word;
+        }
+        
+        /* Đảm bảo cột cảnh báo có chiều cao tối thiểu */
+        .table td:nth-child(6) {
+            min-height: 60px;
+        }
+        
+        /* Style cho cảnh báo khi có nội dung */
+        .warning-message {
+            display: inline-block;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            line-height: 1.4;
+        }
+        
+        /* Style cho ô trống - hiển thị dấu gạch ngang để giữ khoảng trống đồng đều */
+        .table td:nth-child(6):empty::before,
+        .table td:nth-child(6):contains("")::before {
+            content: "—";
+            color: #dee2e6;
+            display: inline-block;
+            text-align: center;
+            width: 100%;
+        }
+        
+        /* Đảm bảo các nút thao tác có kích thước đồng nhất */
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+            min-width: 100px;
+        }
+        
+        /* Đảm bảo cột trạng thái có độ rộng ổn định */
+        .status-danger, .status-warning, .status-success, .status-inactive {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            white-space: nowrap;
+            min-width: 95px;
+            justify-content: center;
+        }
+        
+        /* Đảm bảo cột số lượng tồn căn giữa đẹp */
+        .table td:nth-child(4) {
+            text-align: center !important;
+        }
+        
+        /* Style cho select status filter */
+        .status-select {
+            background-color: white;
+            border: 1px solid #ced4da;
+            border-radius: 5px;
+            padding: 8px 12px;
+            width: 100%;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+        .status-select:focus {
+            border-color: var(--primary-color);
+            outline: none;
+            box-shadow: 0 0 0 0.2rem rgba(255, 190, 51, 0.25);
+        }
+        
+        /* Responsive: trên màn hình nhỏ, cho phép cuộn ngang */
+        @media (max-width: 992px) {
+            .table thead th:nth-child(1) { width: 12%; }
+            .table thead th:nth-child(2) { width: 20%; }
+            .table thead th:nth-child(3) { width: 12%; }
+            .table thead th:nth-child(4) { width: 10%; }
+            .table thead th:nth-child(5) { width: 12%; }
+            .table thead th:nth-child(6) { width: 24%; }
+            .table thead th:nth-child(7) { width: 10%; }
+            
+            .status-danger, .status-warning, .status-success, .status-inactive {
+                white-space: normal;
+                min-width: 70px;
+                font-size: 11px;
+                padding: 4px 8px;
+            }
+            
+            .btn-hide, .btn-show {
+                padding: 4px 8px;
+                font-size: 11px;
+                min-width: 70px;
+            }
+            
+            .action-buttons {
+                min-width: 80px;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .table thead th:nth-child(1) { width: 12%; }
+            .table thead th:nth-child(2) { width: 22%; }
+            .table thead th:nth-child(3) { width: 12%; }
+            .table thead th:nth-child(4) { width: 10%; }
+            .table thead th:nth-child(5) { width: 12%; }
+            .table thead th:nth-child(6) { width: 22%; }
+            .table thead th:nth-child(7) { width: 10%; }
+        }
+        
+        @media (max-width: 576px) {
+            .table thead th {
+                font-size: 12px;
+                padding: 8px 4px;
+            }
+            .table td {
+                font-size: 12px;
+                padding: 8px 4px;
+            }
         }
     </style>
 </head>
@@ -510,10 +842,25 @@ if (isset($_REQUEST['action'])) {
                 <li class="nav-item" role="presentation">
                     <a class="nav-link" href="import_export.php">Tra cứu nhập - xuất kho</a>
                 </li>
-                <li class="nav-item" role="presentation">
-                    <a class="nav-link" href="out_of_stock.php">Sản phẩm sắp hết hàng</a>
-                </li>
             </ul>
+
+            <!-- Threshold Setting Section -->
+            <div class="threshold-section">
+                <div class="d-flex justify-content-between align-items-center flex-wrap">
+                    <div class="d-flex align-items-center mb-2 mb-md-0">
+                        <i class="fas fa-sliders-h me-2" style="color: var(--primary-color); font-size: 1.2rem;"></i>
+                        <span class="threshold-label">Ngưỡng cảnh báo sắp hết hàng:</span>
+                        <span class="threshold-value ms-2" id="threshold-display">≤ <?php echo $low_stock_threshold; ?></span>
+                    </div>
+                    <button class="btn-threshold" id="btnUpdateThreshold">
+                        <i class="fas fa-edit me-1"></i> Cập nhật ngưỡng
+                    </button>
+                </div>
+                <div class="warning-box mt-2">
+                    <i class="fas fa-info-circle"></i>
+                    <span class="warning-text">Sản phẩm có số lượng tồn ≤ <strong id="threshold-value-text"><?php echo $low_stock_threshold; ?></strong> sẽ được đánh dấu là <strong class="status-warning">"Sắp hết hàng"</strong>. Sản phẩm có số lượng tồn = 0 sẽ được đánh dấu là <strong class="status-danger">"Hết hàng"</strong> và có thể ẩn khỏi menu.</span>
+                </div>
+            </div>
 
             <!-- Filter Section -->
             <div class="filter-section">
@@ -527,15 +874,28 @@ if (isset($_REQUEST['action'])) {
                                 <div class="autocomplete-suggestions" id="autocomplete-suggestions"></div>
                             </div>
                         </div>
-                        <div class="col-md-4 mb-3">
+                        <div class="col-md-3 mb-3">
                             <label for="max-stock" class="form-label">Lọc tồn kho ≤</label>
                             <input type="number" class="form-control" id="max-stock" name="max-stock" placeholder="Nhập số lượng tối đa">
                         </div>
-                        <div class="col-md-4 mb-3 d-flex align-items-end">
+                        <div class="col-md-3 mb-3">
+                            <label for="stock-status" class="form-label">Lọc theo trạng thái</label>
+                            <select class="status-select" id="stock-status" name="stock_status">
+                                <option value="all"> Tất cả</option>
+                                <option value="sufficient"> Đủ hàng</option>
+                                <option value="low"> Sắp hết hàng</option>
+                                <option value="out"> Hết hàng</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2 mb-3 d-flex align-items-end">
                             <div class="d-flex gap-2 w-100">
-                                <button type="submit" class="btn btn-primary-custom flex-grow-1"><i class="fas fa-search me-2"></i>Tìm kiếm</button>
-                                <button type="reset" class="btn btn-outline-secondary flex-grow-1"><i class="fas fa-undo me-2"></i>Đặt lại</button>
+                                <button type="submit" class="btn btn-primary-custom w-100"><i class="fas fa-search me-2"></i>Tìm kiếm</button>
                             </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-12 d-flex justify-content-end">
+                            <button type="reset" class="btn btn-outline-secondary"><i class="fas fa-undo me-2"></i>Đặt lại</button>
                         </div>
                     </div>
                 </form>
@@ -556,10 +916,12 @@ if (isset($_REQUEST['action'])) {
                                     <th>Loại</th>
                                     <th class="text-center">Số lượng tồn</th>
                                     <th>Trạng thái</th>
+                                    <th>Cảnh báo</th>
+                                    <th>Thao tác</th>
                                 </tr>
                             </thead>
                             <tbody id="stock-table-body">
-                                <tr><td colspan="5" class="text-center">Đang tải...</td></tr>
+                                <tr><td colspan="7" class="text-center">Đang tải...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -598,6 +960,35 @@ if (isset($_REQUEST['action'])) {
         </div>
     </div>
 
+    <!-- Modal cập nhật ngưỡng sắp hết hàng -->
+    <div class="modal fade" id="thresholdModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-sliders-h me-2"></i> Cập nhật ngưỡng sắp hết hàng</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="POST" action="">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="low_stock_threshold" class="form-label">Nhập ngưỡng số lượng tồn:</label>
+                            <input type="number" class="form-control" id="low_stock_threshold" name="low_stock_threshold" value="<?php echo $low_stock_threshold; ?>" min="0" required>
+                            <div class="form-text">Sản phẩm có số lượng tồn ≤ ngưỡng này sẽ được đánh dấu là "Sắp hết hàng".</div>
+                        </div>
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Lưu ý: Sản phẩm có số lượng tồn = 0 sẽ được đánh dấu là "Hết hàng" và có thể ẩn khỏi menu.
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                        <button type="submit" name="update_threshold" class="btn btn-primary-custom">Cập nhật</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal chi tiết sản phẩm -->
     <div class="modal fade" id="productDetailModal" tabindex="-1">
         <div class="modal-dialog modal-lg modal-dialog-scrollable">
@@ -618,8 +1009,9 @@ if (isset($_REQUEST['action'])) {
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         let currentPage = 1;
-        let currentFilters = { search: '', max_stock: '' };
+        let currentFilters = { search: '', max_stock: '', stock_status: 'all' };
         let searchTimeout = null;
+        let currentThreshold = <?php echo $low_stock_threshold; ?>;
 
         $('#toggle-sidebar').click(function() {
             const sidebar = $('.sidebar');
@@ -650,11 +1042,15 @@ if (isset($_REQUEST['action'])) {
         adjustSidebar();
         $(window).resize(adjustSidebar);
 
+        // Modal cập nhật ngưỡng
+        $('#btnUpdateThreshold').click(function() {
+            $('#thresholdModal').modal('show');
+        });
+
         // Autocomplete functionality
         $('#search-name').on('input', function() {
             const searchText = $(this).val().trim();
             
-            // Clear previous timeout
             if (searchTimeout) {
                 clearTimeout(searchTimeout);
             }
@@ -664,7 +1060,6 @@ if (isset($_REQUEST['action'])) {
                 return;
             }
             
-            // Debounce search
             searchTimeout = setTimeout(function() {
                 $.ajax({
                     url: 'inventory.php',
@@ -694,7 +1089,6 @@ if (isset($_REQUEST['action'])) {
             
             let html = '';
             suggestions.forEach(item => {
-                // Highlight matching text
                 const nameHighlighted = item.name.replace(new RegExp(`(${escapeRegExp(searchText)})`, 'gi'), '<strong>$1</strong>');
                 const codeHighlighted = item.code.replace(new RegExp(`(${escapeRegExp(searchText)})`, 'gi'), '<strong>$1</strong>');
                 
@@ -709,12 +1103,10 @@ if (isset($_REQUEST['action'])) {
             
             container.html(html).addClass('show');
             
-            // Add click event to suggestions
             $('.autocomplete-item').off('click').on('click', function() {
                 const productName = $(this).data('name');
                 $('#search-name').val(productName);
                 container.removeClass('show');
-                // Auto search when selecting suggestion
                 currentFilters.search = productName;
                 currentPage = 1;
                 loadStock();
@@ -725,7 +1117,6 @@ if (isset($_REQUEST['action'])) {
             return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         }
         
-        // Close suggestions when clicking outside
         $(document).on('click', function(e) {
             if (!$(e.target).closest('.autocomplete-container').length) {
                 $('#autocomplete-suggestions').removeClass('show').empty();
@@ -737,31 +1128,44 @@ if (isset($_REQUEST['action'])) {
                 action: 'list',
                 page: currentPage,
                 search: currentFilters.search,
-                max_stock: currentFilters.max_stock !== '' ? currentFilters.max_stock : null
+                max_stock: currentFilters.max_stock !== '' ? currentFilters.max_stock : null,
+                stock_status: currentFilters.stock_status
             };
             
-            $('#stock-table-body').html('<tr><td colspan="5" class="text-center"><div class="spinner-border spinner-border-sm text-primary me-2"></div>Đang tải...</td></tr>');
+            $('#stock-table-body').html('<tr><td colspan="7" class="text-center"><div class="spinner-border spinner-border-sm text-primary me-2"></div>Đang tải...</td></tr>');
             
             $.getJSON('inventory.php', params, function(response) {
                 if (response.success) {
+                    if (response.threshold) {
+                        currentThreshold = response.threshold;
+                        $('#threshold-display').text('≤ ' + currentThreshold);
+                        $('#threshold-value-text').text(currentThreshold);
+                    }
                     renderStockTable(response.data);
                     renderPagination(response.pagination);
                 } else {
-                    $('#stock-table-body').html('<tr><td colspan="5" class="text-center text-danger">Lỗi: ' + (response.error || 'Không thể tải dữ liệu') + '</td></tr>');
+                    $('#stock-table-body').html('<tr><td colspan="7" class="text-center text-danger">Lỗi: ' + (response.error || 'Không thể tải dữ liệu') + '</td></tr>');
                 }
             }).fail(function() {
-                $('#stock-table-body').html('<tr><td colspan="5" class="text-center text-danger">Không thể kết nối đến máy chủ</td></tr>');
+                $('#stock-table-body').html('<tr><td colspan="7" class="text-center text-danger">Không thể kết nối đến máy chủ</td></tr>');
             });
         }
 
-        function getStockStatus(stock) {
+        function getStockStatus(stock, productStatus = 'active') {
+            if (productStatus === 'inactive') {
+                return {
+                    text: 'Đã ẩn',
+                    class: 'status-inactive',
+                    icon: 'fa-eye-slash'
+                };
+            }
             if (stock <= 0) {
                 return {
                     text: 'Hết hàng',
                     class: 'status-danger',
                     icon: 'fa-times-circle'
                 };
-            } else if (stock <= 10) {
+            } else if (stock <= currentThreshold) {
                 return {
                     text: 'Sắp hết hàng',
                     class: 'status-warning',
@@ -776,23 +1180,78 @@ if (isset($_REQUEST['action'])) {
             }
         }
 
+        function getWarningMessage(stock, productStatus) {
+            if (productStatus === 'inactive') {
+                return '<span class="text-muted"><i class="fas fa-eye-slash me-1"></i>Sản phẩm đã bị ẩn khỏi menu</span>';
+            }
+            if (stock <= 0) {
+                return '<span class="text-danger"><i class="fas fa-exclamation-circle me-1"></i>Sản phẩm đã hết hàng! Vui lòng nhập kho hoặc ẩn sản phẩm.</span>';
+            } else if (stock <= currentThreshold) {
+                return '<span class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>Cần nhập hàng ngay! Tồn kho chỉ còn ' + stock + ' sản phẩm.</span>';
+            }
+            return '—';
+        }
+
+        function getActionButtons(product) {
+            const stock = product.stock_quantity;
+            const productStatus = product.status || 'active';
+            
+            if (productStatus === 'inactive') {
+                return `
+                    <div class="action-buttons">
+                        <form method="POST" style="display: inline-block;" onsubmit="return confirm('Bạn có chắc muốn hiển thị lại sản phẩm này?');">
+                            <input type="hidden" name="show_product" value="1">
+                            <input type="hidden" name="product_id" value="${product.id}">
+                            <button type="submit" class="btn-show"><i class="fas fa-eye me-1"></i>Hiển thị</button>
+                        </form>
+                    </div>
+                `;
+            }
+            
+            if (stock <= 0) {
+                return `
+                    <div class="action-buttons">
+                        <form method="POST" style="display: inline-block;" onsubmit="return confirm('Bạn có chắc muốn ẩn sản phẩm này khỏi menu?');">
+                            <input type="hidden" name="hide_product" value="1">
+                            <input type="hidden" name="product_id" value="${product.id}">
+                            <button type="submit" class="btn-hide"><i class="fas fa-eye-slash me-1"></i>Ẩn sản phẩm</button>
+                        </form>
+                    </div>
+                `;
+            }
+            
+            return '<div class="action-buttons">—</div>';
+        }
+
         function renderStockTable(products) {
             const tbody = $('#stock-table-body');
             if (!products.length) {
-                tbody.html('<tr><td colspan="5" class="text-center text-muted py-4"><i class="fas fa-box-open me-2"></i>Không tìm thấy sản phẩm nào</td></tr>');
+                tbody.html('<tr><td colspan="7" class="text-center text-muted py-4"><i class="fas fa-box-open me-2"></i>Không tìm thấy sản phẩm nào</td></tr>');
                 return;
             }
             let html = '';
             products.forEach(p => {
-                const status = getStockStatus(p.stock_quantity);
-                const rowClass = p.stock_quantity <= 0 ? 'out-stock' : (p.stock_quantity <= 10 ? 'low-stock' : '');
+                const status = getStockStatus(p.stock_quantity, p.status);
+                const warningMsg = getWarningMessage(p.stock_quantity, p.status);
+                const actionBtns = getActionButtons(p);
+                const rowClass = p.status === 'inactive' ? '' : (p.stock_quantity <= 0 ? 'out-stock' : (p.stock_quantity <= currentThreshold ? 'low-stock' : ''));
+                
                 html += `
                     <tr class="${rowClass}">
                         <td class="align-middle">${escapeHtml(p.code)}</td>
-                        <td class="align-middle"><a href="#" class="product-link view-detail" data-id="${p.id}">${escapeHtml(p.name)}</a></td>
+                        <td class="align-middle">
+                            <a href="#" class="product-link view-detail" data-id="${p.id}">${escapeHtml(p.name)}</a>
+                            ${p.status === 'inactive' ? '<span class="status-badge inactive ms-2"><i class="fas fa-eye-slash"></i> Đã ẩn</span>' : ''}
+                        </td>
                         <td class="align-middle">${escapeHtml(p.category_name || '')}</td>
                         <td class="text-center align-middle"><strong>${p.stock_quantity}</strong></td>
-                        <td class="align-middle"><span class="${status.class}"><i class="fas ${status.icon} me-1"></i>${status.text}</span></td>
+                        <td class="align-middle">
+                            <span class="${status.class}">
+                                <i class="fas ${status.icon} me-1"></i>${status.text}
+                            </span>
+                        </td>
+                        <td class="align-middle">${warningMsg}</td>
+                        <td class="align-middle">${actionBtns}</td>
                     </tr>
                 `;
             });
@@ -810,7 +1269,6 @@ if (isset($_REQUEST['action'])) {
                         <a class="page-link" href="#" data-page="${pagination.current_page - 1}">« Trước</a>
                      </li>`;
             
-            // Hiển thị tối đa 5 số trang
             let startPage = Math.max(1, pagination.current_page - 2);
             let endPage = Math.min(pagination.total_pages, pagination.current_page + 2);
             
@@ -850,16 +1308,17 @@ if (isset($_REQUEST['action'])) {
             e.preventDefault();
             currentFilters.search = $('#search-name').val().trim();
             currentFilters.max_stock = $('#max-stock').val();
+            currentFilters.stock_status = $('#stock-status').val();
             currentPage = 1;
             loadStock();
-            // Close suggestions after search
             $('#autocomplete-suggestions').removeClass('show');
         });
         
         $('#stock-filter-form button[type="reset"]').click(function() {
             $('#search-name').val('');
             $('#max-stock').val('');
-            currentFilters = { search: '', max_stock: '' };
+            $('#stock-status').val('all');
+            currentFilters = { search: '', max_stock: '', stock_status: 'all' };
             currentPage = 1;
             loadStock();
             $('#autocomplete-suggestions').removeClass('show').empty();
@@ -878,7 +1337,7 @@ if (isset($_REQUEST['action'])) {
                     const product = productRes.product;
                     
                     const formatMoney = (amount) => new Intl.NumberFormat('vi-VN').format(amount);
-                    const status = getStockStatus(product.stock_quantity);
+                    const status = getStockStatus(product.stock_quantity, product.status);
 
                     let html = `
                         <div class="row mb-3">
@@ -892,6 +1351,10 @@ if (isset($_REQUEST['action'])) {
                         <div class="row mb-3">
                             <div class="col-md-6"><div class="info-card"><div class="info-label">Giá bán (VNĐ)</div><div class="info-value">${formatMoney(product.selling_price)}</div></div></div>
                             <div class="col-md-6"><div class="info-card"><div class="info-label">Tồn kho hiện tại</div><div class="info-value"><span class="${status.class}">${product.stock_quantity}</span></div></div></div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6"><div class="info-card"><div class="info-label">Trạng thái sản phẩm</div><div class="info-value">${product.status === 'active' ? '<span class="status-success">Đang bán</span>' : '<span class="status-inactive">Đã ẩn</span>'}</div></div></div>
+                            <div class="col-md-6"><div class="info-card"><div class="info-label">Ngưỡng cảnh báo</div><div class="info-value">≤ ${currentThreshold}</div></div></div>
                         </div>
                         <div class="stock-summary mb-4"><div class="row text-center"><div class="col-6"><div class="stock-summary-label">Tổng nhập</div><div class="stock-summary-value">${product.total_import}</div></div><div class="col-6"><div class="stock-summary-label">Tổng xuất</div><div class="stock-summary-value">${product.total_export}</div></div></div></div>
                     `;

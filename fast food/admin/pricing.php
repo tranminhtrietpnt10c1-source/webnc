@@ -109,7 +109,7 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
 // Lấy danh sách sản phẩm với giá nhập bình quân, giá bán, tỷ lệ lợi nhuận
 $stmt = $pdo->query("
     SELECT p.id, p.code, p.name, p.cost_price, p.selling_price, 
-           p.profit_percentage, c.name as category_name
+           p.profit_percentage, c.name as category_name, c.id as category_id
     FROM products p
     JOIN categories c ON p.category_id = c.id
     WHERE p.status = 'active'
@@ -167,13 +167,11 @@ $profit_stats = $stmt->fetch();
             --light-color: #ffffff;
             --dark-color: #121618;
         }
-        
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: #f8f9fa;
             overflow-x: hidden;
         }
-        
         .sidebar {
             min-height: 100vh;
             background-color: var(--secondary-color);
@@ -183,7 +181,6 @@ $profit_stats = $stmt->fetch();
             z-index: 100;
             width: 250px;
         }
-        
         .sidebar .nav-link {
             color: rgba(255, 255, 255, 0.8);
             padding: 0.75rem 1rem;
@@ -191,24 +188,19 @@ $profit_stats = $stmt->fetch();
             border-radius: 0.25rem;
             transition: all 0.2s;
         }
-        
-        .sidebar .nav-link:hover, 
-        .sidebar .nav-link.active {
+        .sidebar .nav-link:hover, .sidebar .nav-link.active {
             background-color: var(--primary-color);
             color: var(--dark-color);
         }
-        
         .sidebar .nav-link i {
             width: 20px;
             margin-right: 10px;
         }
-        
         .main-content {
             margin-left: 250px;
             padding: 20px;
             transition: all 0.3s;
         }
-        
         .navbar-custom {
             background-color: var(--light-color);
             box-shadow: 0 2px 4px rgba(0,0,0,.1);
@@ -216,18 +208,15 @@ $profit_stats = $stmt->fetch();
             padding: 12px 20px;
             margin-bottom: 20px;
         }
-        
         .card-custom {
             border: none;
             border-radius: 10px;
             box-shadow: 0 4px 6px rgba(0,0,0,.1);
             transition: transform 0.3s;
         }
-        
         .card-custom:hover {
             transform: translateY(-5px);
         }
-        
         .btn-custom {
             background-color: var(--primary-color);
             color: var(--dark-color);
@@ -236,39 +225,31 @@ $profit_stats = $stmt->fetch();
             padding: 8px 15px;
             transition: all 0.3s;
         }
-        
         .btn-custom:hover {
             background-color: #e6a500;
             transform: translateY(-2px);
         }
-        
         .toggle-sidebar {
             display: none;
         }
-        
         @media (max-width: 768px) {
             .sidebar {
                 width: 70px;
                 text-align: center;
             }
-            
             .sidebar .nav-link span {
                 display: none;
             }
-            
             .sidebar .nav-link i {
                 margin-right: 0;
             }
-            
             .main-content {
                 margin-left: 70px;
             }
-            
             .toggle-sidebar {
                 display: block;
             }
         }
-        
         .avatar-btn {
             background: transparent;
             border: none;
@@ -276,16 +257,13 @@ $profit_stats = $stmt->fetch();
             padding: 0;
             transition: transform 0.2s;
         }
-        
         .avatar-btn:hover {
             transform: scale(1.05);
         }
-        
         .avatar-btn i {
             font-size: 2rem;
             color: var(--primary-color);
         }
-        
         .profile-avatar {
             width: 100px;
             height: 100px;
@@ -296,57 +274,46 @@ $profit_stats = $stmt->fetch();
             justify-content: center;
             margin: 0 auto 20px;
         }
-        
         .profile-avatar i {
             font-size: 3rem;
             color: var(--dark-color);
         }
-        
         .profile-info-item {
             padding: 10px 0;
             border-bottom: 1px solid #eee;
         }
-        
         .profile-info-item:last-child {
             border-bottom: none;
         }
-        
         .profile-info-label {
             font-weight: 600;
             color: var(--secondary-color);
             width: 120px;
             display: inline-block;
         }
-        
         .profile-info-value {
             color: #555;
         }
-        
         .modal-header {
             background-color: var(--secondary-color);
             color: white;
             border-bottom: none;
         }
-        
         .modal-header .btn-close {
             filter: invert(1);
         }
-        
         .profit-percentage {
             font-weight: bold;
             color: #28a745;
         }
-        
         .cost-price {
             color: #6c757d;
             font-weight: 600;
         }
-        
         .selling-price {
             font-weight: bold;
             color: #dc3545;
         }
-        
         .global-search-container {
             background-color: white;
             border-radius: 10px;
@@ -354,24 +321,20 @@ $profit_stats = $stmt->fetch();
             margin-bottom: 20px;
             box-shadow: 0 2px 4px rgba(0,0,0,.1);
         }
-        
         .search-form {
             display: flex;
             gap: 10px;
             align-items: center;
             flex-wrap: wrap;
         }
-        
         .search-input-container {
             flex-grow: 1;
             position: relative;
             min-width: 200px;
         }
-        
         .search-input {
             padding-right: 45px;
         }
-        
         .search-icon {
             position: absolute;
             right: 15px;
@@ -379,27 +342,22 @@ $profit_stats = $stmt->fetch();
             transform: translateY(-50%);
             color: #6c757d;
         }
-        
         .nav-tabs .nav-link.active {
             background-color: var(--primary-color);
             color: var(--dark-color);
             border-color: var(--primary-color);
         }
-        
         .nav-tabs .nav-link {
             color: var(--secondary-color);
         }
-        
         .table th {
             background-color: var(--secondary-color);
             color: var(--light-color);
             vertical-align: middle;
         }
-        
         .table td {
             vertical-align: middle;
         }
-        
         .edit-profit-btn {
             background-color: var(--primary-color);
             color: var(--dark-color);
@@ -410,18 +368,15 @@ $profit_stats = $stmt->fetch();
             cursor: pointer;
             transition: all 0.3s;
         }
-        
         .edit-profit-btn:hover {
             background-color: #e6a500;
             transform: translateY(-1px);
         }
-        
         .edit-form {
             display: inline-flex;
             gap: 5px;
             align-items: center;
         }
-        
         .edit-input {
             width: 80px;
             padding: 4px 8px;
@@ -429,7 +384,6 @@ $profit_stats = $stmt->fetch();
             border-radius: 4px;
             text-align: center;
         }
-        
         .save-profit-btn {
             background-color: #28a745;
             color: white;
@@ -439,7 +393,6 @@ $profit_stats = $stmt->fetch();
             font-size: 11px;
             cursor: pointer;
         }
-        
         .cancel-profit-btn {
             background-color: #6c757d;
             color: white;
@@ -449,7 +402,6 @@ $profit_stats = $stmt->fetch();
             font-size: 11px;
             cursor: pointer;
         }
-        
         .stat-badge {
             background-color: var(--primary-color);
             color: var(--dark-color);
@@ -458,37 +410,31 @@ $profit_stats = $stmt->fetch();
             font-size: 12px;
             font-weight: 600;
         }
-        
         .filter-card {
             background-color: #f8f9fa;
             border-radius: 8px;
             padding: 15px;
             margin-bottom: 15px;
         }
-        
         .profit-range {
             display: flex;
             gap: 10px;
             align-items: center;
             flex-wrap: wrap;
         }
-        
         .profit-range input {
             width: 100px;
         }
-        
         .page-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 30px;
         }
-        
         .page-header h2 {
             margin: 0;
             color: var(--secondary-color);
         }
-        
         .loading-spinner {
             display: inline-block;
             width: 12px;
@@ -499,16 +445,13 @@ $profit_stats = $stmt->fetch();
             animation: spin 0.6s linear infinite;
             margin-right: 4px;
         }
-        
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
-        
         .text-warning {
             color: #ffc107 !important;
             font-weight: bold;
         }
-        
         .text-danger {
             color: #dc3545 !important;
             font-weight: bold;
@@ -557,27 +500,6 @@ $profit_stats = $stmt->fetch();
             <h2><i class="fas fa-dollar-sign me-2"></i>Quản lý giá bán</h2>
         </div>
 
-        <!-- Search Container -->
-        <div class="global-search-container">
-            <h5 class="mb-3"><i class="fas fa-search me-2"></i>Tra cứu sản phẩm</h5>
-            <form class="search-form" id="global-search-form">
-                <div class="search-input-container">
-                    <input type="text" class="form-control search-input" id="global-search-input" placeholder="Nhập tên hoặc mã sản phẩm...">
-                    <i class="fas fa-search search-icon"></i>
-                </div>
-                <div class="search-input-container">
-                    <select class="form-select" id="category-filter">
-                        <option value="">Tất cả loại</option>
-                        <?php foreach ($categories as $cat): ?>
-                            <option value="<?php echo $cat['id']; ?>"><?php echo htmlspecialchars($cat['name']); ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                <button type="submit" class="btn btn-custom search-btn"><i class="fas fa-check me-2"></i>Tìm kiếm</button>
-                <button type="button" class="btn btn-secondary" id="reset-search"><i class="fas fa-redo me-2"></i>Đặt lại</button>
-            </form>
-        </div>
-
         <!-- Tabs Navigation -->
         <ul class="nav nav-tabs" id="pricingTabs" role="tablist">
             <li class="nav-item">
@@ -594,15 +516,29 @@ $profit_stats = $stmt->fetch();
                 <div class="card card-custom mt-4">
                     <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
                         <h5 class="card-title mb-0">Tỷ lệ lợi nhuận theo sản phẩm</h5>
-                        <div class="mt-2 mt-sm-0">
-                            <span class="stat-badge">
-                                📉 Thấp: <?php echo number_format($profit_stats['min_profit'] ?? 0, 2); ?>% | 
-                                📊 TB: <?php echo number_format($profit_stats['avg_profit'] ?? 0, 2); ?>% | 
-                                📈 Cao: <?php echo number_format($profit_stats['max_profit'] ?? 0, 2); ?>%
-                            </span>
-                        </div>
+                        
                     </div>
                     <div class="card-body">
+                        <!-- Khung tìm kiếm đã được đưa vào đây -->
+                        <div class="global-search-container">
+                            <h5 class="mb-3"><i class="fas fa-search me-2"></i>Tra cứu sản phẩm</h5>
+                            <form class="search-form" id="global-search-form">
+                                <div class="search-input-container">
+                                    <input type="text" class="form-control search-input" id="global-search-input" placeholder="Nhập tên hoặc mã sản phẩm...">
+                                    <i class="fas fa-search search-icon"></i>
+                                </div>
+                                <div class="search-input-container">
+                                    <select class="form-select" id="category-filter">
+                                        <option value="">Tất cả loại</option>
+                                        <?php foreach ($categories as $cat): ?>
+                                            <option value="<?php echo $cat['id']; ?>"><?php echo htmlspecialchars($cat['name']); ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                                <button type="submit" class="btn btn-custom search-btn"><i class="fas fa-check me-2"></i>Tìm kiếm</button>
+                                <button type="button" class="btn btn-secondary" id="reset-search"><i class="fas fa-redo me-2"></i>Đặt lại</button>
+                            </form>
+                        </div>
                         <div class="table-responsive">
                             <table class="table table-hover">
                                 <thead>
@@ -616,9 +552,11 @@ $profit_stats = $stmt->fetch();
                                         <th class="text-center">Thao tác</th>
                                     </tr>
                                 </thead>
-                                <tbody>
+                                <tbody id="product-tbody">
                                     <?php foreach ($products as $product): ?>
-                                    <tr data-id="<?php echo $product['id']; ?>" data-cost="<?php echo $product['cost_price']; ?>">
+                                    <tr data-id="<?php echo $product['id']; ?>" 
+                                        data-cost="<?php echo $product['cost_price']; ?>"
+                                        data-category-id="<?php echo $product['category_id']; ?>">
                                         <td class="text-center"><strong><?php echo htmlspecialchars($product['code']); ?></strong></td>
                                         <td><?php echo htmlspecialchars($product['name']); ?></td>
                                         <td><?php echo htmlspecialchars($product['category_name']); ?></td>
@@ -672,9 +610,14 @@ $profit_stats = $stmt->fetch();
                                     <label class="form-label">Đến ngày</label>
                                     <input type="date" id="import-date-to" class="form-control">
                                 </div>
-                                <div class="col-md-2">
-                                    <label class="form-label">&nbsp;</label>
-                                    <button id="search-import-lots" class="btn btn-custom w-100"><i class="fas fa-search me-1"></i>Tìm</button>
+                                <div class="col-md-2 d-flex gap-2 align-items-end">
+                                    <div class="w-100">
+                                        <label class="form-label">&nbsp;</label>
+                                        <div class="d-flex gap-2">
+                                            <button id="search-import-lots" class="btn btn-custom flex-grow-1"><i class="fas fa-search me-1"></i>Tìm</button>
+                                            <button id="reset-import-filter" class="btn btn-secondary flex-grow-1"><i class="fas fa-redo me-1"></i>Đặt lại</button>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                             <div class="row mt-3">
@@ -883,34 +826,29 @@ $profit_stats = $stmt->fetch();
             input.focus();
         }
 
-        // Filter products (Tab 1)
+        // Lọc sản phẩm (Tab 1)
         function filterProducts() {
-            const searchTerm = $('#global-search-input').val().toLowerCase();
+            const searchTerm = $('#global-search-input').val().toLowerCase().trim();
             const categoryId = $('#category-filter').val();
-            
+
             $('#product-tbody tr').each(function() {
-                const code = $(this).find('td:first').text().toLowerCase();
-                const name = $(this).find('td:eq(1)').text().toLowerCase();
-                const category = $(this).find('td:eq(2)').text().toLowerCase();
+                const $row = $(this);
+                const code = $row.find('td:first').text().toLowerCase();
+                const name = $row.find('td:eq(1)').text().toLowerCase();
+                const rowCategoryId = $row.data('category-id');
+
                 const matchesSearch = searchTerm === '' || code.includes(searchTerm) || name.includes(searchTerm);
-                
-                let matchesCategory = true;
-                if (categoryId) {
-                    const categoryName = $(this).find('td:eq(2)').text();
-                    const categories = <?php echo json_encode($categories); ?>;
-                    const cat = categories.find(c => c.name === categoryName);
-                    matchesCategory = cat && cat.id == categoryId;
-                }
-                
+                const matchesCategory = !categoryId || rowCategoryId == categoryId;
+
                 if (matchesSearch && matchesCategory) {
-                    $(this).show();
+                    $row.show();
                 } else {
-                    $(this).hide();
+                    $row.hide();
                 }
             });
         }
 
-        // Filter import lots (Tab 2)
+        // Hàm lọc lô hàng (chỉ gọi khi bấm tìm kiếm)
         function filterImportLots() {
             const productId = $('#product-filter-import').val();
             const dateFrom = $('#import-date-from').val();
@@ -919,9 +857,10 @@ $profit_stats = $stmt->fetch();
             const maxProfit = $('#max-profit').val() ? parseFloat($('#max-profit').val()) : null;
             
             $('#import-tbody tr').each(function() {
-                const lotProductId = $(this).data('product-id');
-                const lotDate = $(this).data('date');
-                const profitText = $(this).find('td:last span').text().replace('%', '');
+                const $row = $(this);
+                const lotProductId = $row.data('product-id');
+                const lotDate = $row.data('date');
+                const profitText = $row.find('td:last span').text().replace('%', '');
                 const profit = parseFloat(profitText);
                 
                 let show = true;
@@ -931,69 +870,61 @@ $profit_stats = $stmt->fetch();
                 if (minProfit !== null && profit < minProfit) show = false;
                 if (maxProfit !== null && profit > maxProfit) show = false;
                 
-                if (show) {
-                    $(this).show();
-                } else {
-                    $(this).hide();
-                }
+                $row.toggle(show);
             });
         }
 
-        // Search products
+        // Hàm đặt lại bộ lọc cho tab 2
+        function resetImportFilters() {
+            $('#product-filter-import').val('');
+            $('#import-date-from').val('');
+            $('#import-date-to').val('');
+            $('#min-profit').val('');
+            $('#max-profit').val('');
+            // Hiển thị lại toàn bộ
+            $('#import-tbody tr').show();
+        }
+
+        // Gắn sự kiện cho Tab 1 (Tìm kiếm và Đặt lại)
         $('#global-search-form').submit(function(e) {
             e.preventDefault();
             filterProducts();
         });
-
+        
         $('#reset-search').click(function() {
             $('#global-search-input').val('');
             $('#category-filter').val('');
             $('#product-tbody tr').show();
         });
-
-        // Import lots search
-        $('#search-import-lots').click(function() {
-            filterImportLots();
-        });
-
-        $('#apply-profit-filter').click(function() {
-            filterImportLots();
-        });
-
+        
+        // Gắn sự kiện cho Tab 2: Nút Tìm kiếm và Đặt lại
+        $('#search-import-lots').click(filterImportLots);
+        $('#reset-import-filter').click(resetImportFilters);
+        
+        // Gắn sự kiện cho nút áp dụng và xóa % lợi nhuận (cũng chỉ áp dụng khi bấm)
+        $('#apply-profit-filter').click(filterImportLots);
         $('#clear-profit-filter').click(function() {
             $('#min-profit').val('');
             $('#max-profit').val('');
-            filterImportLots();
-        });
-
-        $('#product-filter-import').change(function() {
-            filterImportLots();
-        });
-
-        // Event handlers
-        $(document).on('click', '.edit-profit-btn', function() { 
-            const productId = $(this).data('id'); 
-            const currentProfit = $(this).data('profit'); 
-            editProfit(productId, currentProfit); 
+            filterImportLots(); // Gọi lại filter để cập nhật sau khi xóa
         });
         
-        $(document).on('click', '.view-lots', function() { 
-            const productId = $(this).data('id'); 
+        // Xem lô nhập của sản phẩm
+        $(document).on('click', '.view-lots', function() {
+            const productId = $(this).data('id');
             const productName = $(this).data('name');
-            $('#import-tab').tab('show'); 
+            $('#import-tab').tab('show');
             $('#product-filter-import').val(productId);
+            // Gọi filter ngay sau khi chuyển tab để hiển thị kết quả
             filterImportLots();
             showNotification(`Đang hiển thị lô nhập của sản phẩm: ${productName}`, 'success');
         });
 
-        // Set data attributes for filtering
-        $('#product-tbody tr').each(function() {
-            const categoryName = $(this).find('td:eq(2)').text();
-            const categories = <?php echo json_encode($categories); ?>;
-            const category = categories.find(c => c.name === categoryName);
-            if (category) {
-                $(this).attr('data-category-id', category.id);
-            }
+        // Gắn sự kiện cho nút sửa tỷ lệ lợi nhuận
+        $(document).on('click', '.edit-profit-btn', function() { 
+            const productId = $(this).data('id'); 
+            const currentProfit = $(this).data('profit'); 
+            editProfit(productId, currentProfit); 
         });
     </script>
 </body>
