@@ -40,6 +40,18 @@ if (isset($_REQUEST['action'])) {
 
     try {
         switch ($action) {
+            case 'search_suggestions':
+                $search = $_GET['search'] ?? '';
+                if (strlen($search) < 1) {
+                    echo json_encode([]);
+                    break;
+                }
+                $stmt = $pdo->prepare("SELECT id, code, name FROM products WHERE status = 'active' AND (name LIKE :search OR code LIKE :search) LIMIT 10");
+                $stmt->execute([':search' => "%$search%"]);
+                $suggestions = $stmt->fetchAll();
+                echo json_encode($suggestions);
+                break;
+
             case 'list':
                 $search = $_GET['search'] ?? '';
                 $max_stock = isset($_GET['max_stock']) && $_GET['max_stock'] !== '' ? (int)$_GET['max_stock'] : null;
@@ -407,6 +419,46 @@ if (isset($_REQUEST['action'])) {
         .pagination-wrapper {
             margin-top: 20px;
         }
+        
+        /* Autocomplete styles */
+        .autocomplete-container {
+            position: relative;
+        }
+        .autocomplete-suggestions {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #ddd;
+            border-top: none;
+            border-radius: 0 0 5px 5px;
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            display: none;
+        }
+        .autocomplete-suggestions.show {
+            display: block;
+        }
+        .autocomplete-item {
+            padding: 10px 15px;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+            transition: all 0.2s;
+        }
+        .autocomplete-item:hover {
+            background-color: #fff3e0;
+        }
+        .autocomplete-item strong {
+            color: var(--primary-color);
+        }
+        .autocomplete-item .product-code {
+            font-size: 0.85rem;
+            color: #6c757d;
+            margin-left: 10px;
+        }
     </style>
 </head>
 <body>
@@ -456,10 +508,10 @@ if (isset($_REQUEST['action'])) {
                     <a class="nav-link" href="inventory_detail.php">Tra cứu tồn kho</a>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <a class="nav-link" href="inventory_import.php">Tra cứu nhập kho</a>
+                    <a class="nav-link" href="import_export.php">Tra cứu nhập - xuất kho</a>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <a class="nav-link" href="inventory_export.php">Tra cứu xuất kho</a>
+                    <a class="nav-link" href="out_of_stock.php">Sản phẩm sắp hết hàng</a>
                 </li>
             </ul>
 
@@ -470,7 +522,10 @@ if (isset($_REQUEST['action'])) {
                     <div class="row">
                         <div class="col-md-4 mb-3">
                             <label for="search-name" class="form-label">Tìm sản phẩm</label>
-                            <input type="text" class="form-control" id="search-name" name="search" placeholder="Nhập tên sản phẩm...">
+                            <div class="autocomplete-container">
+                                <input type="text" class="form-control" id="search-name" name="search" placeholder="Nhập tên hoặc mã sản phẩm..." autocomplete="off">
+                                <div class="autocomplete-suggestions" id="autocomplete-suggestions"></div>
+                            </div>
                         </div>
                         <div class="col-md-4 mb-3">
                             <label for="max-stock" class="form-label">Lọc tồn kho ≤</label>
@@ -495,16 +550,16 @@ if (isset($_REQUEST['action'])) {
                     <div class="table-responsive">
                         <table class="table table-hover">
                             <thead>
-                                
+                                <tr>
                                     <th>Mã SP</th>
                                     <th>Tên sản phẩm</th>
                                     <th>Loại</th>
                                     <th class="text-center">Số lượng tồn</th>
                                     <th>Trạng thái</th>
-                                
+                                </tr>
                             </thead>
                             <tbody id="stock-table-body">
-                                <td colspan="5" class="text-center">Đang tải...</td>
+                                <tr><td colspan="5" class="text-center">Đang tải...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -564,6 +619,7 @@ if (isset($_REQUEST['action'])) {
     <script>
         let currentPage = 1;
         let currentFilters = { search: '', max_stock: '' };
+        let searchTimeout = null;
 
         $('#toggle-sidebar').click(function() {
             const sidebar = $('.sidebar');
@@ -593,6 +649,88 @@ if (isset($_REQUEST['action'])) {
 
         adjustSidebar();
         $(window).resize(adjustSidebar);
+
+        // Autocomplete functionality
+        $('#search-name').on('input', function() {
+            const searchText = $(this).val().trim();
+            
+            // Clear previous timeout
+            if (searchTimeout) {
+                clearTimeout(searchTimeout);
+            }
+            
+            if (searchText.length < 1) {
+                $('#autocomplete-suggestions').removeClass('show').empty();
+                return;
+            }
+            
+            // Debounce search
+            searchTimeout = setTimeout(function() {
+                $.ajax({
+                    url: 'inventory.php',
+                    method: 'GET',
+                    data: {
+                        action: 'search_suggestions',
+                        search: searchText
+                    },
+                    dataType: 'json',
+                    success: function(suggestions) {
+                        renderSuggestions(suggestions, searchText);
+                    },
+                    error: function() {
+                        console.error('Failed to load suggestions');
+                    }
+                });
+            }, 300);
+        });
+        
+        function renderSuggestions(suggestions, searchText) {
+            const container = $('#autocomplete-suggestions');
+            
+            if (!suggestions.length) {
+                container.removeClass('show').empty();
+                return;
+            }
+            
+            let html = '';
+            suggestions.forEach(item => {
+                // Highlight matching text
+                const nameHighlighted = item.name.replace(new RegExp(`(${escapeRegExp(searchText)})`, 'gi'), '<strong>$1</strong>');
+                const codeHighlighted = item.code.replace(new RegExp(`(${escapeRegExp(searchText)})`, 'gi'), '<strong>$1</strong>');
+                
+                html += `
+                    <div class="autocomplete-item" data-id="${item.id}" data-name="${escapeHtml(item.name)}" data-code="${item.code}">
+                        <i class="fas fa-box me-2 text-muted"></i>
+                        ${nameHighlighted}
+                        <span class="product-code">(${codeHighlighted})</span>
+                    </div>
+                `;
+            });
+            
+            container.html(html).addClass('show');
+            
+            // Add click event to suggestions
+            $('.autocomplete-item').off('click').on('click', function() {
+                const productName = $(this).data('name');
+                $('#search-name').val(productName);
+                container.removeClass('show');
+                // Auto search when selecting suggestion
+                currentFilters.search = productName;
+                currentPage = 1;
+                loadStock();
+            });
+        }
+        
+        function escapeRegExp(string) {
+            return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
+        
+        // Close suggestions when clicking outside
+        $(document).on('click', function(e) {
+            if (!$(e.target).closest('.autocomplete-container').length) {
+                $('#autocomplete-suggestions').removeClass('show').empty();
+            }
+        });
 
         function loadStock() {
             const params = {
@@ -714,6 +852,8 @@ if (isset($_REQUEST['action'])) {
             currentFilters.max_stock = $('#max-stock').val();
             currentPage = 1;
             loadStock();
+            // Close suggestions after search
+            $('#autocomplete-suggestions').removeClass('show');
         });
         
         $('#stock-filter-form button[type="reset"]').click(function() {
@@ -722,6 +862,7 @@ if (isset($_REQUEST['action'])) {
             currentFilters = { search: '', max_stock: '' };
             currentPage = 1;
             loadStock();
+            $('#autocomplete-suggestions').removeClass('show').empty();
         });
 
         function showProductDetail(productId) {
