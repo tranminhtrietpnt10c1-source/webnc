@@ -49,6 +49,15 @@ try {
     // Bỏ qua
 }
 
+// ========== LẤY ĐỊA CHỈ ĐÃ CHỌN TỪ SESSION ==========
+$usedAddress = isset($_SESSION['used_shipping_address']) ? $_SESSION['used_shipping_address'] : null;
+
+// Xóa khỏi session sau khi đã lấy (chỉ hiển thị 1 lần)
+if ($usedAddress) {
+    unset($_SESSION['used_shipping_address']);
+}
+// ========== KẾT THÚC ==========
+
 // Lấy số lượng giỏ hàng
 $cart_count = 0;
 if (isset($_SESSION['cart'])) {
@@ -102,6 +111,34 @@ function getStatusInfo($status) {
         .status.processing { background: #fff3cd; color: #856404; }
         .status.cancelled { background: #f8d7da; color: #721c24; }
         
+        /* Address highlight */
+        .temp-address-badge {
+            background: #ffbe33;
+            color: #222;
+            padding: 2px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: bold;
+            margin-left: 8px;
+            display: inline-block;
+        }
+        .address-highlight {
+            background: #fff9f0;
+            border-left: 4px solid #ffbe33;
+            margin: 10px 0;
+        }
+        .address-info-card {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+        .address-label {
+            font-weight: 600;
+            color: #ffbe33;
+            margin-bottom: 5px;
+        }
+        
         /* User dropdown */
         .user-dropdown { position: relative; display: inline-block; }
         .user-dropdown-btn { background: none; border: none; cursor: pointer; display: flex; align-items: center; gap: 8px; padding: 5px 10px; border-radius: 30px; }
@@ -125,7 +162,11 @@ function getStatusInfo($status) {
         .fa-spinner { animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         
-        @media (max-width: 768px) { .success-container { margin: 20px; padding: 25px; } .btn-custom { padding: 10px 20px; margin: 5px; font-size: 14px; } }
+        @media (max-width: 768px) { 
+            .success-container { margin: 20px; padding: 25px; } 
+            .btn-custom { padding: 10px 20px; margin: 5px; font-size: 14px; }
+            .order-info-row { flex-direction: column; gap: 5px; }
+        }
     </style>
 </head>
 <body class="sub_page">
@@ -205,10 +246,46 @@ function getStatusInfo($status) {
                 <div class="order-info-row"><span class="order-info-label"><i class="fa fa-calendar"></i> Ngày đặt:</span><span class="order-info-value"><?= date('d/m/Y H:i', strtotime($order_info['order_date'] ?? $order_info['created_at'])) ?></span></div>
                 <div class="order-info-row"><span class="order-info-label"><i class="fa fa-user"></i> Người nhận:</span><span class="order-info-value"><?= htmlspecialchars($order_info['customer_name'] ?? $user_info['full_name']) ?></span></div>
                 <div class="order-info-row"><span class="order-info-label"><i class="fa fa-phone"></i> Số điện thoại:</span><span class="order-info-value"><?= htmlspecialchars($order_info['customer_phone'] ?? '') ?></span></div>
-                <div class="order-info-row"><span class="order-info-label"><i class="fa fa-map-marker"></i> Địa chỉ:</span><span class="order-info-value"><?= htmlspecialchars($order_info['customer_address'] ?? '') ?></span></div>
+                
+                <!-- ========== HIỂN THỊ ĐỊA CHỈ ĐÃ CHỌN ========== -->
+                <div class="order-info-row address-highlight" style="display: flex; flex-wrap: nowrap;">
+                    <span class="order-info-label" style="min-width: 130px; white-space: nowrap;">
+                        <i class="fa fa-map-marker"></i> Địa chỉ giao hàng:
+                    </span>
+                    <span class="order-info-value">
+                        <strong><?= htmlspecialchars($order_info['customer_address'] ?? '') ?></strong>
+                        <?php if ($usedAddress && $usedAddress['type'] === 'temp'): ?>
+                            <span class="temp-address-badge"><i class="fa fa-truck"></i> Địa chỉ tạm thời</span>
+                        <?php endif; ?>
+                    </span>
+                </div>
+                <!-- ========== KẾT THÚC ========== -->
+                
                 <div class="order-info-row"><span class="order-info-label"><strong>Thành tiền:</strong></span><span class="order-info-value"><strong><?= formatCurrency($order_info['final_amount'] ?? ($order_info['total_amount'] + ($order_info['shipping_fee'] ?? 0))) ?></strong></span></div>
                 <div class="order-info-row"><span class="order-info-label"><i class="fa fa-info-circle"></i> Trạng thái:</span><span class="order-info-value"><span class="status <?= getStatusInfo($order_info['status'])['class'] ?>"><?= getStatusInfo($order_info['status'])['text'] ?></span></span></div>
             </div>
+            
+            <!-- ========== THÔNG BÁO ĐÃ SỬ DỤNG ĐỊA CHỈ ========== -->
+            <?php if ($usedAddress): ?>
+            <div class="address-info-card" style="background: <?= $usedAddress['type'] === 'temp' ? '#fff9f0' : '#e8f5e9'; ?>; border-left: 4px solid <?= $usedAddress['type'] === 'temp' ? '#ffbe33' : '#28a745'; ?>;">
+                <div class="address-label">
+                    <i class="fa <?= $usedAddress['type'] === 'temp' ? 'fa-truck' : 'fa-user-circle'; ?>"></i>
+                    <?= $usedAddress['type'] === 'temp' ? 'Địa chỉ tạm thời đã được áp dụng' : 'Địa chỉ tài khoản đã được sử dụng'; ?>
+                </div>
+                <div class="mt-2">
+                    <div><strong><?= htmlspecialchars($usedAddress['full_name']) ?></strong> | <?= htmlspecialchars($usedAddress['phone']) ?></div>
+                    <div style="color: #666; margin-top: 5px;"><?= htmlspecialchars($usedAddress['address']) ?></div>
+                    <?php if (!empty($usedAddress['notes'])): ?>
+                        <div style="color: #999; font-size: 0.85rem; margin-top: 5px;"><i class="fa fa-info-circle"></i> Ghi chú: <?= htmlspecialchars($usedAddress['notes']) ?></div>
+                    <?php endif; ?>
+                </div>
+                <div class="mt-2 small text-muted">
+                    <i class="fa fa-check-circle" style="color: <?= $usedAddress['type'] === 'temp' ? '#ffbe33' : '#28a745'; ?>"></i>
+                    Địa chỉ này đã được ghi nhận và sẽ được giao hàng đến
+                </div>
+            </div>
+            <?php endif; ?>
+            <!-- ========== KẾT THÚC ========== -->
             
             <div>
                 <a href="order_detail.php?id=<?= $order_info['id'] ?>" class="btn-custom"><i class="fa fa-eye"></i> Xem chi tiết</a>
@@ -296,12 +373,10 @@ function getStatusInfo($status) {
             const reason = document.getElementById('cancelReason').value;
             const btn = this;
             
-            // Disable button và hiển thị loading
             btn.disabled = true;
             btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Đang xử lý...';
             btn.classList.add('btn-loading');
             
-            // Gửi request đến cancel_order.php
             $.ajax({
                 url: 'cancel_order.php',
                 type: 'GET',
@@ -310,12 +385,10 @@ function getStatusInfo($status) {
                     reason: reason
                 },
                 success: function(response) {
-                    // Chuyển hướng đến trang chi tiết đơn hàng đã hủy
                     window.location.href = 'cancelled_order_detail.php?id=' + currentOrderId;
                 },
                 error: function(xhr, status, error) {
                     console.log('Lỗi: ' + error);
-                    // Vẫn chuyển hướng đến cancelled_order_detail.php
                     window.location.href = 'cancelled_order_detail.php?id=' + currentOrderId;
                 }
             });

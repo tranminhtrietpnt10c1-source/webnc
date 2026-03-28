@@ -43,8 +43,82 @@ if (!isset($_SESSION['cart'])) {
     $_SESSION['cart'] = [];
 }
 
-// Handle adding product to cart
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+// ========== XỬ LÝ AJAX ==========
+if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
+    $action = $_POST['action'] ?? $_GET['action'] ?? '';
+    
+    // XỬ LÝ LƯU ĐỊA CHỈ TẠM (TỪ GIỎ HÀNG)
+    if ($action === 'save_address') {
+        header('Content-Type: application/json');
+        
+        if (!isset($_SESSION['user_id'])) {
+            echo json_encode(['success' => false, 'message' => 'Vui lòng đăng nhập']);
+            exit;
+        }
+        
+        $full_name = trim($_POST['full_name'] ?? '');
+        $phone = trim($_POST['phone'] ?? '');
+        $address = trim($_POST['address'] ?? '');
+        $city = trim($_POST['city'] ?? '');
+        $district = trim($_POST['district'] ?? '');
+        $ward = trim($_POST['ward'] ?? '');
+        $notes = trim($_POST['notes'] ?? '');
+        
+        if (empty($full_name) || empty($phone) || empty($address) || empty($city) || empty($district) || empty($ward)) {
+            echo json_encode(['success' => false, 'message' => 'Vui lòng điền đầy đủ thông tin']);
+            exit;
+        }
+        
+        if (!preg_match('/^[0-9]{10,11}$/', $phone)) {
+            echo json_encode(['success' => false, 'message' => 'Số điện thoại không hợp lệ']);
+            exit;
+        }
+        
+        $_SESSION['temp_shipping_address'] = [
+            'full_name' => $full_name,
+            'phone' => $phone,
+            'address' => $address,
+            'city' => $city,
+            'district' => $district,
+            'ward' => $ward,
+            'notes' => $notes,
+            'updated_at' => date('Y-m-d H:i:s')
+        ];
+        
+        echo json_encode(['success' => true, 'message' => 'Đã cập nhật địa chỉ giao hàng']);
+        exit;
+    }
+    
+    // XỬ LÝ CẬP NHẬT SỐ LƯỢNG GIỎ HÀNG
+    if ($action === 'update_quantity') {
+        header('Content-Type: application/json');
+        $product_id = $_POST['product_id'] ?? '';
+        $quantity = intval($_POST['quantity'] ?? 1);
+        
+        if ($product_id && isset($_SESSION['cart'][$product_id])) {
+            $_SESSION['cart'][$product_id]['quantity'] = max(1, $quantity);
+            echo json_encode(['success' => true]);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Sản phẩm không tồn tại']);
+        }
+        exit;
+    }
+    
+    // XỬ LÝ XÓA SẢN PHẨM KHỎI GIỎ HÀNG
+    if ($action === 'remove_item') {
+        header('Content-Type: application/json');
+        $product_id = $_POST['product_id'] ?? '';
+        
+        if ($product_id && isset($_SESSION['cart'][$product_id])) {
+            unset($_SESSION['cart'][$product_id]);
+            echo json_encode(['success' => true]);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Sản phẩm không tồn tại']);
+        }
+        exit;
+    }
+    
+    // XỬ LÝ THÊM SẢN PHẨM (AJAX)
     if (isset($_POST['add_to_cart'])) {
         $product_id = $_POST['product_id'] ?? '';
         $name = $_POST['name'] ?? '';
@@ -66,39 +140,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'options' => $options
                 ];
             }
-            
-            $_SESSION['cart_success'] = "Đã thêm " . $name . " vào giỏ hàng!";
-            
-            if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
-                echo json_encode(['success' => true, 'cart_count' => array_sum(array_column($_SESSION['cart'], 'quantity'))]);
-                exit;
-            }
-            
-            $referer = $_SERVER['HTTP_REFERER'] ?? 'index.php';
-            header('Location: ' . $referer);
+            $cart_count = array_sum(array_column($_SESSION['cart'], 'quantity'));
+            echo json_encode(['success' => true, 'cart_count' => $cart_count]);
             exit;
         }
+        echo json_encode(['success' => false, 'message' => 'Thông tin sản phẩm không hợp lệ']);
+        exit;
     }
+}
+// ========== KẾT THÚC XỬ LÝ AJAX ==========
+
+// Handle adding product to cart (NON-AJAX)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_to_cart']) && !isset($_SERVER['HTTP_X_REQUESTED_WITH'])) {
+    $product_id = $_POST['product_id'] ?? '';
+    $name = $_POST['name'] ?? '';
+    $price = $_POST['price'] ?? 0;
+    $image = $_POST['image'] ?? '';
+    $options = $_POST['options'] ?? '';
+    $quantity = max(1, intval($_POST['quantity'] ?? 1));
     
-    if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
-        $action = $_POST['action'] ?? '';
-        $product_id = $_POST['product_id'] ?? '';
-        $quantity = $_POST['quantity'] ?? 1;
-        
-        $response = ['success' => false];
-        
-        if ($action === 'update_quantity' && $product_id && isset($_SESSION['cart'][$product_id])) {
-            $_SESSION['cart'][$product_id]['quantity'] = max(1, intval($quantity));
-            $response['success'] = true;
-            $response['cart'] = $_SESSION['cart'];
-        } elseif ($action === 'remove_item' && $product_id) {
-            unset($_SESSION['cart'][$product_id]);
-            $response['success'] = true;
-            $response['cart'] = $_SESSION['cart'];
+    if ($product_id && $name && $price) {
+        if (isset($_SESSION['cart'][$product_id])) {
+            $_SESSION['cart'][$product_id]['quantity'] += $quantity;
+        } else {
+            $_SESSION['cart'][$product_id] = [
+                'id' => $product_id,
+                'name' => $name,
+                'price' => $price,
+                'quantity' => $quantity,
+                'image' => $image,
+                'options' => $options
+            ];
         }
         
-        header('Content-Type: application/json');
-        echo json_encode($response);
+        $_SESSION['cart_success'] = "Đã thêm " . $name . " vào giỏ hàng!";
+        $referer = $_SERVER['HTTP_REFERER'] ?? 'index.php';
+        header('Location: ' . $referer);
         exit;
     }
 }
@@ -161,7 +238,7 @@ if (isset($_GET['checkout'])) {
         
         $order_id = $pdo->lastInsertId();
         
-        // Insert order details with correct column names
+        // Insert order details
         $stmt = $pdo->prepare("INSERT INTO order_details (order_id, product_id, quantity, unit_price, subtotal) VALUES (?, ?, ?, ?, ?)");
         foreach ($_SESSION['cart'] as $item) {
             $subtotal_item = $item['price'] * $item['quantity'];
@@ -210,6 +287,9 @@ unset($_SESSION['error']);
 $cart_count = array_sum(array_column($cart_items, 'quantity'));
 
 $is_logged_in = isset($_SESSION['user_id']);
+
+// Lấy địa chỉ tạm từ session (đã lưu từ giỏ hàng)
+$tempAddress = isset($_SESSION['temp_shipping_address']) ? $_SESSION['temp_shipping_address'] : null;
 ?>
 
 <!DOCTYPE html>
@@ -383,22 +463,12 @@ $is_logged_in = isset($_SESSION['user_id']);
     .cart_link {
       position: relative;
     }
-    .address-info {
-      background: #f8f9fa;
-      padding: 15px;
-      border-radius: 5px;
-      margin-top: 10px;
-    }
-    .address-info p {
-      margin-bottom: 5px;
-    }
     
-    /* User dropdown styles - giống about.php */
+    /* User dropdown styles */
     .user-dropdown {
       position: relative;
       display: inline-block;
     }
-    
     .user-dropdown-btn {
       background: none;
       border: none;
@@ -410,11 +480,9 @@ $is_logged_in = isset($_SESSION['user_id']);
       border-radius: 30px;
       transition: all 0.3s;
     }
-    
     .user-dropdown-btn:hover {
       background-color: rgba(255,255,255,0.1);
     }
-    
     .user-icon {
       width: 32px;
       height: 32px;
@@ -427,13 +495,11 @@ $is_logged_in = isset($_SESSION['user_id']);
       font-weight: bold;
       font-size: 14px;
     }
-    
     .user-name {
       color: white;
       font-size: 14px;
       font-weight: 500;
     }
-    
     .dropdown-menu-custom {
       position: absolute;
       top: 45px;
@@ -446,16 +512,13 @@ $is_logged_in = isset($_SESSION['user_id']);
       display: none;
       animation: fadeIn 0.2s ease;
     }
-    
     .dropdown-menu-custom.show {
       display: block;
     }
-    
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(-10px); }
       to { opacity: 1; transform: translateY(0); }
     }
-    
     .dropdown-header {
       padding: 15px;
       border-bottom: 1px solid #eee;
@@ -463,7 +526,6 @@ $is_logged_in = isset($_SESSION['user_id']);
       align-items: center;
       gap: 12px;
     }
-    
     .dropdown-header-icon {
       width: 45px;
       height: 45px;
@@ -476,19 +538,16 @@ $is_logged_in = isset($_SESSION['user_id']);
       font-weight: bold;
       color: #222;
     }
-    
     .dropdown-header-info h6 {
       margin: 0;
       font-weight: 600;
       color: #333;
     }
-    
     .dropdown-header-info p {
       margin: 0;
       font-size: 12px;
       color: #666;
     }
-    
     .dropdown-item-custom {
       padding: 12px 15px;
       display: flex;
@@ -498,28 +557,23 @@ $is_logged_in = isset($_SESSION['user_id']);
       text-decoration: none;
       transition: background 0.2s;
     }
-    
     .dropdown-item-custom:hover {
       background-color: #f5f5f5;
       color: #333;
       text-decoration: none;
     }
-    
     .dropdown-item-custom i {
       width: 20px;
       color: #ffbe33;
     }
-    
     .dropdown-divider {
       height: 1px;
       background-color: #eee;
       margin: 5px 0;
     }
-    
     .text-danger {
       color: #dc3545 !important;
     }
-    
     .text-danger:hover {
       background-color: #fff5f5 !important;
     }
@@ -540,6 +594,109 @@ $is_logged_in = isset($_SESSION['user_id']);
       .dropdown-menu-custom {
         right: -50px;
       }
+    }
+    
+    /* Address update card styles */
+    .address-update-card {
+      background: #fff;
+      border-radius: 10px;
+      border: 1px solid #ddd;
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+    .address-update-header {
+      background: #f8f9fa;
+      border-bottom: 1px solid #ddd;
+      padding: 12px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .address-update-header strong {
+      color: #ffbe33;
+      font-size: 16px;
+    }
+    .address-update-header button {
+      background: none;
+      border: none;
+      color: #ffbe33;
+      cursor: pointer;
+    }
+    .address-update-body {
+      padding: 20px;
+    }
+    .address-display {
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 8px;
+    }
+    .address-form-container {
+      display: none;
+      margin-top: 15px;
+    }
+    .form-group-custom {
+      margin-bottom: 15px;
+    }
+    .form-group-custom label {
+      display: block;
+      margin-bottom: 5px;
+      font-size: 14px;
+      font-weight: 500;
+      color: #333;
+    }
+    .form-group-custom input, 
+    .form-group-custom select, 
+    .form-group-custom textarea {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      font-size: 14px;
+    }
+    .form-row-custom {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+    .form-row-custom .form-group-custom {
+      flex: 1;
+      min-width: 150px;
+    }
+    .btn-save {
+      background: #ffbe33;
+      color: white;
+      border: none;
+      padding: 8px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-right: 10px;
+    }
+    .btn-save:hover {
+      background: #e69c00;
+    }
+    .btn-cancel {
+      background: #6c757d;
+      color: white;
+      border: none;
+      padding: 8px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .btn-update-address {
+      background: #28a745;
+      color: white;
+      border: none;
+      padding: 8px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-left: 10px;
+    }
+    .btn-update-address:hover {
+      background: #218838;
+    }
+    .user-address-info {
+      background: #e8f5e9;
+      border-left: 4px solid #28a745;
     }
   </style>
 </head>
@@ -673,6 +830,114 @@ $is_logged_in = isset($_SESSION['user_id']);
           <a href="menu.php" class="btn-continue">Tiếp tục mua hàng</a>
         </div>
       <?php else: ?>
+
+        <!-- PHẦN HIỂN THỊ ĐỊA CHỈ - ƯU TIÊN ĐỊA CHỈ USER -->
+        <div class="address-update-card">
+          <div class="address-update-header">
+            <strong><i class="fa fa-map-marker"></i> Địa chỉ giao hàng</strong>
+            <div>
+              <button type="button" class="btn-update-address" onclick="useUserAddress()" style="background:#28a745; color:white; border:none; padding:6px 15px; border-radius:5px; margin-right:10px;">
+                <i class="fa fa-user"></i> Dùng địa chỉ tài khoản
+              </button>
+              <button type="button" onclick="toggleAddressForm()" style="background:#ffbe33; color:white; border:none; padding:6px 15px; border-radius:5px;">
+                <i class="fa fa-edit"></i> Cập nhật địa chỉ mới
+              </button>
+            </div>
+          </div>
+          <div class="address-update-body">
+            <!-- HIỂN THỊ ĐỊA CHỈ USER (MẶC ĐỊNH) -->
+            <div id="userAddressDisplay" class="address-display user-address-info" style="background: #e8f5e9; border-left: 4px solid #28a745;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                  <strong><i class="fa fa-check-circle" style="color: #28a745;"></i> Địa chỉ tài khoản (mặc định)</strong>
+                </div>
+                <small class="text-muted">Đang sử dụng</small>
+              </div>
+              <div class="mt-2">
+                <div><strong><?= htmlspecialchars($user['full_name']) ?></strong> | <?= htmlspecialchars($user['phone']) ?></div>
+                <div style="color: #666; margin-top: 5px;"><?= htmlspecialchars($user['address']) ?></div>
+              </div>
+            </div>
+            
+            <!-- HIỂN THỊ ĐỊA CHỈ TẠM (NẾU CÓ) -->
+            <div id="tempAddressDisplay" style="display: <?= ($tempAddress && !empty($tempAddress['address'])) ? 'block' : 'none' ?>; margin-top: 15px;">
+              <div class="address-display" style="background: #fff3e0; border-left: 4px solid #ffbe33;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <div>
+                    <strong><i class="fa fa-truck" style="color: #ffbe33;"></i> Địa chỉ tạm thời</strong>
+                  </div>
+                  <button type="button" onclick="useTempAddress()" class="btn btn-sm btn-warning" style="background:#ffbe33; border:none; padding:3px 10px; border-radius:3px;">
+                    <i class="fa fa-check"></i> Sử dụng
+                  </button>
+                </div>
+                <div class="mt-2">
+                  <div><strong><?= htmlspecialchars($tempAddress['full_name'] ?? '') ?></strong> | <?= htmlspecialchars($tempAddress['phone'] ?? '') ?></div>
+                  <div style="color: #666; margin-top: 5px;"><?= htmlspecialchars($tempAddress['address'] ?? '') ?>, <?= htmlspecialchars($tempAddress['ward'] ?? '') ?>, <?= htmlspecialchars($tempAddress['district'] ?? '') ?>, <?= htmlspecialchars($tempAddress['city'] ?? '') ?></div>
+                  <?php if (!empty($tempAddress['notes'])): ?>
+                    <div style="color: #999; font-size: 0.85rem; margin-top: 5px;"><i class="fa fa-info-circle"></i> <?= htmlspecialchars($tempAddress['notes']) ?></div>
+                  <?php endif; ?>
+                </div>
+              </div>
+            </div>
+            
+            <!-- FORM NHẬP ĐỊA CHỈ MỚI -->
+            <div id="addressFormContainer" class="address-form-container">
+              <h5 style="margin-bottom: 15px;"><i class="fa fa-pencil-square-o"></i> Nhập địa chỉ giao hàng mới</h5>
+              <div id="shippingAddressForm">
+                <div class="form-row-custom">
+                  <div class="form-group-custom">
+                    <label>Họ tên người nhận *</label>
+                    <input type="text" id="recv_name" value="<?= htmlspecialchars($tempAddress['full_name'] ?? $user['full_name']) ?>">
+                  </div>
+                  <div class="form-group-custom">
+                    <label>Số điện thoại *</label>
+                    <input type="tel" id="recv_phone" value="<?= htmlspecialchars($tempAddress['phone'] ?? $user['phone']) ?>">
+                  </div>
+                </div>
+                
+                <div class="form-group-custom">
+                  <label>Địa chỉ chi tiết *</label>
+                  <input type="text" id="recv_street" value="<?= htmlspecialchars($tempAddress['address'] ?? '') ?>" placeholder="Số nhà, tên đường">
+                </div>
+                
+                <div class="form-row-custom">
+                  <div class="form-group-custom">
+                    <label>Tỉnh/Thành phố *</label>
+                    <select id="recv_city">
+                      <option value="">Chọn tỉnh/thành phố</option>
+                      <option value="TP.HCM" <?= ($tempAddress['city'] ?? '') == 'TP.HCM' ? 'selected' : '' ?>>TP. Hồ Chí Minh</option>
+                      <option value="Hà Nội" <?= ($tempAddress['city'] ?? '') == 'Hà Nội' ? 'selected' : '' ?>>Hà Nội</option>
+                      <option value="Đà Nẵng" <?= ($tempAddress['city'] ?? '') == 'Đà Nẵng' ? 'selected' : '' ?>>Đà Nẵng</option>
+                      <option value="Cần Thơ" <?= ($tempAddress['city'] ?? '') == 'Cần Thơ' ? 'selected' : '' ?>>Cần Thơ</option>
+                      <option value="Hải Phòng" <?= ($tempAddress['city'] ?? '') == 'Hải Phòng' ? 'selected' : '' ?>>Hải Phòng</option>
+                    </select>
+                  </div>
+                  <div class="form-group-custom">
+                    <label>Quận/Huyện *</label>
+                    <select id="recv_district">
+                      <option value="">Chọn quận/huyện</option>
+                    </select>
+                  </div>
+                  <div class="form-group-custom">
+                    <label>Phường/Xã *</label>
+                    <input type="text" id="recv_ward" value="<?= htmlspecialchars($tempAddress['ward'] ?? '') ?>" placeholder="Phường/Xã">
+                  </div>
+                </div>
+                
+                <div class="form-group-custom">
+                  <label>Ghi chú (tùy chọn)</label>
+                  <textarea id="recv_notes" rows="2" placeholder="Ghi chú cho người giao hàng..."><?= htmlspecialchars($tempAddress['notes'] ?? '') ?></textarea>
+                </div>
+                
+                <div>
+                  <button type="button" class="btn-save" onclick="saveShippingAddress()">💾 Lưu địa chỉ</button>
+                  <button type="button" class="btn-cancel" onclick="cancelAddressForm()">❌ Hủy</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="cart-items">
           <?php foreach ($cart_items as $id => $item): ?>
           <div class="cart-item" data-id="<?php echo $id; ?>">
@@ -737,20 +1002,6 @@ $is_logged_in = isset($_SESSION['user_id']);
           </div>
         </div>
 
-        <!-- Thông tin giao hàng -->
-        <div class="address-section mt-4" style="background: #fff; padding: 20px; border-radius: 5px; border: 1px solid #ddd;">
-          <h4><i class="fa fa-truck"></i> Thông tin giao hàng</h4>
-          <div class="address-info">
-            <p><strong><i class="fa fa-user"></i> Người nhận:</strong> <?php echo htmlspecialchars($user['full_name']); ?></p>
-            <p><strong><i class="fa fa-phone"></i> Số điện thoại:</strong> <?php echo htmlspecialchars($user['phone']); ?></p>
-            <p><strong><i class="fa fa-envelope"></i> Email:</strong> <?php echo htmlspecialchars($user['email'] ?? 'Chưa cập nhật'); ?></p>
-            <p><strong><i class="fa fa-map-marker"></i> Địa chỉ giao hàng:</strong> <?php echo htmlspecialchars($user['address']); ?></p>
-            <p class="text-muted mt-2">
-              <i class="fa fa-info-circle"></i> Địa chỉ này sẽ được sử dụng để giao hàng. 
-              <a href="user/profile.php" class="text-warning">Cập nhật địa chỉ</a>
-            </p>
-          </div>
-        </div>
       <?php endif; ?>
     </div>
   </section>
@@ -764,17 +1015,16 @@ $is_logged_in = isset($_SESSION['user_id']);
           <div class="footer_contact">
             <h4>Contact Us</h4>
             <div class="contact_link_box">
-    <div><i class="fa fa-map-marker"></i><span>Location</span></div>
-    <div><i class="fa fa-phone"></i><span>Call +01 1234567890</span></div>
-    <div><i class="fa fa-envelope"></i><span>demo@gmail.com</span></div>
-</div>
+              <div><i class="fa fa-map-marker"></i><span>Location</span></div>
+              <div><i class="fa fa-phone"></i><span>Call +01 1234567890</span></div>
+              <div><i class="fa fa-envelope"></i><span>demo@gmail.com</span></div>
+            </div>
           </div>
         </div>
         <div class="col-md-4 footer-col">
           <div class="footer_detail">
             <a href="" class="footer-logo">Feane</a>
             <p>Necessary, making this the first true generator on the Internet. It uses a dictionary of over 200 Latin words, combined with</p>
-           
           </div>
         </div>
         <div class="col-md-4 footer-col">
@@ -784,8 +1034,7 @@ $is_logged_in = isset($_SESSION['user_id']);
         </div>
       </div>
       <div class="footer-info">
-        <p>&copy; <span id="displayYear"></span> All Rights Reserved By <a href="https://html.design/">Free Html Templates</a><br><br>
-        &copy; <span id="displayYear"></span> Distributed By <a href="https://themewagon.com/" target="_blank">ThemeWagon</a></p>
+        <p>&copy; <span id="displayYear"></span> All Rights Reserved By <a href="https://html.design/">Free Html Templates</a></p>
       </div>
     </div>
   </footer>
@@ -866,7 +1115,7 @@ $is_logged_in = isset($_SESSION['user_id']);
       }
     }
 
-    // AJAX functions
+    // AJAX functions for cart
     function updateQuantity(productId, quantity) {
       $.ajax({
         url: 'cart.php',
@@ -908,7 +1157,7 @@ $is_logged_in = isset($_SESSION['user_id']);
       }
     }
 
-    // Event listeners
+    // Event listeners for cart
     if (document.querySelectorAll('.quantity-btn').length > 0) {
       document.querySelectorAll('.quantity-btn').forEach(button => {
         button.addEventListener('click', function() {
@@ -948,6 +1197,137 @@ $is_logged_in = isset($_SESSION['user_id']);
 
     // Display current year
     document.getElementById('displayYear').innerHTML = new Date().getFullYear();
+
+    // ========== HÀM XỬ LÝ ĐỊA CHỈ ==========
+    
+    // Sử dụng địa chỉ từ tài khoản
+    function useUserAddress() {
+      // Xóa địa chỉ tạm khỏi session
+      $.ajax({
+        url: 'cart.php',
+        type: 'POST',
+        data: {
+          action: 'use_user_address'
+        },
+        success: function() {
+          location.reload();
+        }
+      });
+    }
+    
+    // Sử dụng địa chỉ tạm
+    function useTempAddress() {
+      // Đã có sẵn trong session, chỉ cần reload để checkout sử dụng
+      alert('Đã chọn địa chỉ tạm thời. Khi thanh toán bạn có thể chọn địa chỉ này.');
+    }
+    
+    function toggleAddressForm() {
+      const formContainer = document.getElementById('addressFormContainer');
+      
+      if (formContainer.style.display === 'none' || formContainer.style.display === '') {
+        formContainer.style.display = 'block';
+        loadDistrictsForCart();
+      } else {
+        formContainer.style.display = 'none';
+      }
+    }
+
+    function cancelAddressForm() {
+      document.getElementById('addressFormContainer').style.display = 'none';
+    }
+
+    function loadDistrictsForCart() {
+      const city = document.getElementById('recv_city').value;
+      const districtSelect = document.getElementById('recv_district');
+      
+      const districts = {
+        'TP.HCM': ['Quận 1', 'Quận 2', 'Quận 3', 'Quận 4', 'Quận 5', 'Quận 6', 'Quận 7', 'Quận 8', 'Quận 9', 'Quận 10', 'Quận 11', 'Quận 12', 'Bình Thạnh', 'Gò Vấp', 'Tân Bình', 'Tân Phú', 'Phú Nhuận'],
+        'Hà Nội': ['Quận Ba Đình', 'Quận Hoàn Kiếm', 'Quận Hai Bà Trưng', 'Quận Đống Đa', 'Quận Tây Hồ', 'Quận Cầu Giấy', 'Quận Thanh Xuân', 'Quận Hoàng Mai', 'Quận Long Biên'],
+        'Đà Nẵng': ['Quận Hải Châu', 'Quận Thanh Khê', 'Quận Sơn Trà', 'Quận Ngũ Hành Sơn', 'Quận Liên Chiểu', 'Quận Cẩm Lệ'],
+        'Cần Thơ': ['Quận Ninh Kiều', 'Quận Bình Thủy', 'Quận Cái Răng', 'Quận Ô Môn', 'Quận Thốt Nốt'],
+        'Hải Phòng': ['Quận Hồng Bàng', 'Quận Ngô Quyền', 'Quận Lê Chân', 'Quận Hải An', 'Quận Kiến An']
+      };
+      
+      districtSelect.innerHTML = '<option value="">Chọn quận/huyện</option>';
+      
+      if (districts[city]) {
+        districts[city].forEach(district => {
+          const option = document.createElement('option');
+          option.value = district;
+          option.textContent = district;
+          districtSelect.appendChild(option);
+        });
+      }
+    }
+
+    function saveShippingAddress() {
+      const recvName = document.getElementById('recv_name').value.trim();
+      const recvPhone = document.getElementById('recv_phone').value.trim();
+      const recvStreet = document.getElementById('recv_street').value.trim();
+      const recvCity = document.getElementById('recv_city').value;
+      const recvDistrict = document.getElementById('recv_district').value;
+      const recvWard = document.getElementById('recv_ward').value.trim();
+      
+      if (!recvName) {
+        alert('Vui lòng nhập họ tên người nhận');
+        return;
+      }
+      if (!recvPhone || !/^[0-9]{10,11}$/.test(recvPhone)) {
+        alert('Vui lòng nhập số điện thoại hợp lệ (10-11 số)');
+        return;
+      }
+      if (!recvStreet) {
+        alert('Vui lòng nhập địa chỉ chi tiết');
+        return;
+      }
+      if (!recvCity) {
+        alert('Vui lòng chọn tỉnh/thành phố');
+        return;
+      }
+      if (!recvDistrict) {
+        alert('Vui lòng chọn quận/huyện');
+        return;
+      }
+      if (!recvWard) {
+        alert('Vui lòng nhập phường/xã');
+        return;
+      }
+      
+      $.ajax({
+        url: 'cart.php',
+        type: 'POST',
+        data: {
+          action: 'save_address',
+          full_name: recvName,
+          phone: recvPhone,
+          address: recvStreet,
+          city: recvCity,
+          district: recvDistrict,
+          ward: recvWard,
+          notes: document.getElementById('recv_notes').value
+        },
+        dataType: 'json',
+        success: function(data) {
+          if (data.success) {
+            location.reload();
+          } else {
+            alert('Lỗi: ' + data.message);
+          }
+        },
+        error: function() {
+          alert('Có lỗi xảy ra, vui lòng thử lại');
+        }
+      });
+    }
+
+    document.getElementById('recv_city').addEventListener('change', loadDistrictsForCart);
+    
+    document.addEventListener('DOMContentLoaded', function() {
+      const selectedCity = document.getElementById('recv_city').value;
+      if (selectedCity) {
+        loadDistrictsForCart();
+      }
+    });
   </script>
 
 </body>
