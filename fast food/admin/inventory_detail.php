@@ -411,6 +411,60 @@ if (isset($_REQUEST['action'])) {
             font-weight: 600;
             color: var(--secondary-color);
         }
+        
+        /* Styles cho select có tìm kiếm */
+        .searchable-select {
+            position: relative;
+            width: 100%;
+        }
+        .searchable-select .form-select {
+            cursor: pointer;
+        }
+        .searchable-select .search-box {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #ddd;
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+            z-index: 1000;
+            display: none;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .searchable-select .search-box input {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-bottom: 1px solid #ddd;
+            outline: none;
+        }
+        .searchable-select .options-list {
+            max-height: 250px;
+            overflow-y: auto;
+        }
+        .searchable-select .option-item {
+            padding: 10px 15px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .searchable-select .option-item:hover {
+            background-color: #fff3e0;
+        }
+        .searchable-select .option-item.selected {
+            background-color: #ffbe33;
+            color: #fff;
+        }
+        .searchable-select .option-item.highlight {
+            background-color: #ffbe33;
+            color: #fff;
+        }
+        .searchable-select .no-results {
+            padding: 10px 15px;
+            color: #999;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
@@ -473,9 +527,15 @@ if (isset($_REQUEST['action'])) {
                 <div class="row g-3 align-items-end">
                     <div class="col-md-5">
                         <label class="form-label">Chọn sản phẩm <small class="text-muted">(Để trống để xem tất cả)</small></label>
-                        <select id="stock-date-product" class="form-select">
-                            <option value="">-- Tất cả sản phẩm --</option>
-                        </select>
+                        <div class="searchable-select" id="product-select-container">
+                            <select id="stock-date-product" class="form-select">
+                                <option value="">-- Tất cả sản phẩm --</option>
+                            </select>
+                            <div class="search-box">
+                                <input type="text" id="product-search-input" placeholder="Nhập tên sản phẩm để tìm kiếm...">
+                                <div class="options-list" id="product-options-list"></div>
+                            </div>
+                        </div>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">Chỉ có thể tra cứu đến ngày <?php echo date('d/m/Y'); ?></label>
@@ -485,6 +545,14 @@ if (isset($_REQUEST['action'])) {
                     </div>
                     <div class="col-md-3">
                         <button id="check-stock-date" class="btn btn-dark w-100">Tra cứu</button>
+                    </div>
+                </div>
+                <div class="row mt-2">
+                    <div class="col-12">
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Nhập tên sản phẩm vào ô tìm kiếm để lọc nhanh danh sách
+                        </small>
                     </div>
                 </div>
                 <div id="stock-date-result" class="alert alert-info mt-3" style="display: none;"></div>
@@ -521,11 +589,11 @@ if (isset($_REQUEST['action'])) {
                                 
                             </thead>
                             <tbody id="all-products-table-body">
-                                <tr>
+                                
                                     <td colspan="4" class="text-center">Đang tải...</td>
-                                </tr>
+                                
                             </tbody>
-                        </table>
+                        
                     </div>
                 </div>
             </div>
@@ -560,6 +628,10 @@ if (isset($_REQUEST['action'])) {
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        let productsList = [];
+        let selectedProductId = '';
+        let selectedProductName = '';
+
         $('#toggle-sidebar').click(function() {
             const sidebar = $('.sidebar');
             const mainContent = $('.main-content');
@@ -589,21 +661,120 @@ if (isset($_REQUEST['action'])) {
         adjustSidebar();
         $(window).resize(adjustSidebar);
 
-        function loadProductSelect() {
+        // Load danh sách sản phẩm
+        function loadProducts() {
             $.getJSON('inventory_detail.php', { action: 'get_products' }, function(products) {
-                let options = '<option value="">-- Tất cả sản phẩm --</option>';
-                products.forEach(p => {
-                    options += `<option value="${p.id}">${escapeHtml(p.name)}</option>`;
-                });
-                $('#stock-date-product').html(options);
+                productsList = products;
+                renderSelectOptions(products);
             });
         }
+
+        // Render select options
+        function renderSelectOptions(products) {
+            let html = '<option value="">-- Tất cả sản phẩm --</option>';
+            products.forEach(p => {
+                html += `<option value="${p.id}">${escapeHtml(p.name)}</option>`;
+            });
+            $('#stock-date-product').html(html);
+            
+            // Cập nhật lại options list cho tìm kiếm
+            renderOptionsList(products, '');
+        }
+
+        // Render danh sách options cho ô tìm kiếm
+        function renderOptionsList(products, searchText) {
+            const container = $('#product-options-list');
+            let filteredProducts = products;
+            
+            if (searchText.trim() !== '') {
+                filteredProducts = products.filter(p => 
+                    p.name.toLowerCase().includes(searchText.toLowerCase())
+                );
+            }
+            
+            if (filteredProducts.length === 0) {
+                container.html('<div class="no-results">Không tìm thấy sản phẩm</div>');
+                return;
+            }
+            
+            let html = '';
+            filteredProducts.forEach(p => {
+                let displayName = p.name;
+                if (searchText.trim() !== '') {
+                    const regex = new RegExp(`(${escapeRegExp(searchText)})`, 'gi');
+                    displayName = p.name.replace(regex, '<strong>$1</strong>');
+                }
+                const isSelected = (selectedProductId == p.id);
+                html += `
+                    <div class="option-item ${isSelected ? 'selected' : ''}" data-id="${p.id}" data-name="${escapeHtml(p.name)}">
+                        <i class="fas fa-box me-2 text-muted"></i>
+                        ${displayName}
+                    </div>
+                `;
+            });
+            container.html(html);
+            
+            // Thêm sự kiện click cho từng option
+            $('.option-item').off('click').on('click', function() {
+                const id = $(this).data('id');
+                const name = $(this).data('name');
+                selectProduct(id, name);
+                $('.searchable-select .search-box').hide();
+            });
+        }
+
+        function selectProduct(id, name) {
+            selectedProductId = id;
+            selectedProductName = name;
+            $('#stock-date-product').val(id);
+            // Cập nhật lại highlight trong options list
+            renderOptionsList(productsList, $('#product-search-input').val());
+        }
+
+        function escapeRegExp(string) {
+            return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
+
+        // Xử lý click vào select để hiển thị/ẩn ô tìm kiếm
+        $('#stock-date-product').click(function(e) {
+            e.stopPropagation();
+            const searchBox = $('.searchable-select .search-box');
+            if (searchBox.is(':visible')) {
+                searchBox.hide();
+            } else {
+                // Cập nhật lại danh sách trước khi hiển thị
+                renderOptionsList(productsList, $('#product-search-input').val());
+                searchBox.show();
+                $('#product-search-input').focus();
+            }
+        });
+
+        // Xử lý tìm kiếm khi gõ vào ô input
+        $('#product-search-input').on('input', function() {
+            const searchText = $(this).val();
+            renderOptionsList(productsList, searchText);
+        });
+
+        // Đóng search box khi click ra ngoài
+        $(document).on('click', function(e) {
+            if (!$(e.target).closest('.searchable-select').length) {
+                $('.searchable-select .search-box').hide();
+            }
+        });
+
+        // Ngăn click vào search box không đóng
+        $('.searchable-select .search-box').click(function(e) {
+            e.stopPropagation();
+        });
 
         $('#check-stock-date').click(function() {
             const productId = $('#stock-date-product').val();
             const date = $('#stock-date').val();
             
-            if (!date) { alert('Vui lòng chọn ngày'); return; }
+            if (!date) { 
+                alert('Vui lòng chọn ngày'); 
+                return; 
+            }
             
             // Ẩn các kết quả cũ
             $('#detail-result').hide();
@@ -630,7 +801,6 @@ if (isset($_REQUEST['action'])) {
                             stockColor = '#28a745';
                         }
                         
-                        // Hiển thị số lượng với màu sắc tương ứng
                         $('#result-stock').html(`<span style="color: ${stockColor};">${res.stock}</span>`);
                         
                         $('#detail-result').show();
@@ -646,7 +816,6 @@ if (isset($_REQUEST['action'])) {
                             let rowClass = '';
                             let stockClass = '';
                             
-                            // Xác định class cho hàng và số lượng
                             if (stockValue <= 0) {
                                 rowClass = 'out-stock-row';
                                 stockClass = 'status-danger';
@@ -665,7 +834,7 @@ if (isset($_REQUEST['action'])) {
                                     <td class="text-center align-middle">
                                         <strong class="${stockClass}">${stockValue}</strong>
                                     </td>
-                                </tr>
+                                 </tr>
                             `;
                         });
                         
@@ -700,7 +869,8 @@ if (isset($_REQUEST['action'])) {
             });
         }
 
-        loadProductSelect();
+        // Khởi tạo
+        loadProducts();
     </script>
 </body>
 </html>
