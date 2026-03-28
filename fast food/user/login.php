@@ -46,15 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $_SESSION['user_birthday'] = $user['birthday'];
 
                     // Remember me (30 days)
-                    if ($remember) {
-                        $token = bin2hex(random_bytes(32));
-                        $expires = date('Y-m-d H:i:s', strtotime('+30 days'));
-                        
-                        $stmt = $pdo->prepare("UPDATE users SET remember_token = ?, token_expires = ? WHERE id = ?");
-                        $stmt->execute([$token, $expires, $user['id']]);
-                        
-                        setcookie('remember_token', $token, time() + (86400 * 30), "/");
-                    }
+                    
 
                     // Check if user has complete information
                     if (empty($user['address']) || empty($user['birthday'])) {
@@ -481,6 +473,7 @@ unset($_SESSION['warning']);
       <?php if (!empty($error)): ?>
         <div class="alert alert-error">
           <i class="fas fa-exclamation-circle"></i> <?php echo $error; ?>
+
         </div>
       <?php endif; ?>
 
@@ -497,10 +490,10 @@ unset($_SESSION['warning']);
         <div class="form-group">
           <label for="password">Mật khẩu</label>
           <div class="input-icon" id="password-wrapper">
-            <i class="fas fa-lock"></i>
+          
             <input type="password" class="form-control" id="password" name="password" placeholder="Nhập mật khẩu" required>
             <button type="button" class="password-toggle" id="togglePassword">
-              <i class="fas fa-eye-slash"></i>
+            
             </button>
           </div>
         </div>
