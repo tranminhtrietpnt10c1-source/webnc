@@ -456,10 +456,10 @@ if (isset($_REQUEST['action'])) {
                     <a class="nav-link" href="inventory_detail.php">Tra cứu tồn kho</a>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <a class="nav-link" href="inventory_import.php">Tra cứu nhập kho</a>
+                    <a class="nav-link" href="import_export.php">Tra cứu nhập - xuất kho</a>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <a class="nav-link" href="inventory_export.php">Tra cứu xuất kho</a>
+                    <a class="nav-link" href="out_of_stock.php">Sản phẩm sắp hết hàng</a>
                 </li>
             </ul>
 
