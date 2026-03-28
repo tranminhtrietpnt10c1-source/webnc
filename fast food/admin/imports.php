@@ -812,7 +812,7 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
                     </div>
                     <div class="col-md-3">
                         <label class="form-label small text-muted">Giá nhập (VNĐ)</label>
-                        <input type="number" name="prices[]" class="form-control" placeholder="Giá" step="any" min="0" value="${price}" required>
+                        <input type="number" name="prices[]" class="form-control price-input" placeholder="Nhập nghìn đồng (vd: 1000 = 1 triệu)" step="any" min="0" value="${price}" required>
                     </div>
                     <div class="col-md-1 text-center">
                         <button type="button" class="btn btn-sm btn-outline-danger remove-row mt-2">
@@ -849,7 +849,9 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
                         $('#supplier').val(res.import.supplier || '');
                         $('#product-rows-container').empty();
                         res.details.forEach(detail => {
-                            addProductRow(detail.product_id, detail.quantity, detail.unit_cost);
+                            // Chia giá cho 1000 để hiển thị
+                            const displayPrice = detail.unit_cost / 1000;
+                            addProductRow(detail.product_id, detail.quantity, displayPrice);
                         });
                         $('#importFormModal').modal('show');
                     } else {
@@ -863,6 +865,13 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
 
         $('#import-form').submit(function(e) {
             e.preventDefault();
+            // Nhân giá trị price với 1000 trước khi gửi
+            $('input[name="prices[]"]').each(function() {
+                let val = parseFloat($(this).val());
+                if (!isNaN(val)) {
+                    $(this).val(val * 1000);
+                }
+            });
             const formData = new FormData(this);
             const importId = $('#import_id').val();
             const action = importId ? 'edit' : 'add';
