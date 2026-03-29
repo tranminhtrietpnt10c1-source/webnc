@@ -797,6 +797,29 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
             });
         }
 
+        // Hàm định dạng số có dấu chấm ngàn
+        function formatNumberWithDots(number) {
+            if (number === null || number === undefined || number === '') return '';
+            let num = parseFloat(number);
+            if (isNaN(num)) return '';
+            return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+        }
+
+        // Xử lý sự kiện input để tự động định dạng giá nhập
+        function formatPriceInputHandler(e) {
+            const input = e.target;
+            let value = input.value;
+            // Loại bỏ tất cả ký tự không phải số
+            let digits = value.replace(/\D/g, '');
+            if (digits === '') {
+                input.value = '';
+                return;
+            }
+            let number = parseInt(digits, 10);
+            input.value = formatNumberWithDots(number);
+        }
+
+        // Thêm một dòng sản phẩm mới
         function addProductRow(selectedProductId = '', quantity = '', price = '') {
             const rowHtml = `
                 <div class="product-row row g-2 align-items-end mb-3 p-2 border rounded">
@@ -812,7 +835,7 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
                     </div>
                     <div class="col-md-3">
                         <label class="form-label small text-muted">Giá nhập (VNĐ)</label>
-                        <input type="number" name="prices[]" class="form-control price-input" placeholder="Nhập nghìn đồng (vd: 1000 = 1 triệu)" step="any" min="0" value="${price}" required>
+                        <input type="text" name="prices[]" class="form-control price-input" placeholder="Nhập nghìn đồng (vd: 1000 = 1 triệu)" value="${price ? formatNumberWithDots(price) : ''}" required>
                     </div>
                     <div class="col-md-1 text-center">
                         <button type="button" class="btn btn-sm btn-outline-danger remove-row mt-2">
@@ -822,7 +845,8 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
                 </div>
             `;
             $('#product-rows-container').append(rowHtml);
-            const $select = $('#product-rows-container .product-select').last();
+            const $row = $('#product-rows-container .product-row').last();
+            const $select = $row.find('.product-select');
             $select.select2({
                 width: '100%',
                 placeholder: '-- Chọn sản phẩm --',
@@ -832,6 +856,13 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
             productsList.forEach(p => {
                 $select.append(`<option value="${p.id}" ${p.id == selectedProductId ? 'selected' : ''}>${escapeHtml(p.name)}</option>`);
             });
+            // Gắn sự kiện định dạng cho input giá
+            const $priceInput = $row.find('.price-input');
+            $priceInput.on('input', formatPriceInputHandler);
+            // Nếu đã có giá trị, kích hoạt định dạng
+            if (price) {
+                $priceInput.trigger('input');
+            }
         }
 
         function openFormModal(importId = null) {
@@ -849,7 +880,7 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
                         $('#supplier').val(res.import.supplier || '');
                         $('#product-rows-container').empty();
                         res.details.forEach(detail => {
-                            // Chia giá cho 1000 để hiển thị
+                            // Giá hiển thị là giá thực tế / 1000 (đơn vị nghìn)
                             const displayPrice = detail.unit_cost / 1000;
                             addProductRow(detail.product_id, detail.quantity, displayPrice);
                         });
@@ -865,11 +896,15 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
 
         $('#import-form').submit(function(e) {
             e.preventDefault();
-            // Nhân giá trị price với 1000 trước khi gửi
+            // Xử lý input giá: bỏ dấu chấm và nhân với 1000 để có giá trị thực
             $('input[name="prices[]"]').each(function() {
-                let val = parseFloat($(this).val());
-                if (!isNaN(val)) {
-                    $(this).val(val * 1000);
+                let val = $(this).val();
+                if (val) {
+                    let numeric = val.replace(/\./g, '');
+                    let number = parseFloat(numeric);
+                    if (!isNaN(number)) {
+                        $(this).val(number * 1000);
+                    }
                 }
             });
             const formData = new FormData(this);
