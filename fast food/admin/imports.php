@@ -603,7 +603,7 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
                                 <tr><th>Mã phiếu</th><th>Ngày nhập</th><th>Nhà cung cấp</th><th>Số sản phẩm</th><th>Tổng số lượng</th><th>Tổng giá trị</th><th>Trạng thái</th><th>Thao tác</th></tr>
                             </thead>
                             <tbody id="imports-tbody">
-                                <tr><td colspan="8" class="text-center">Đang tải...</td></tr>
+                                <tr><td colspan="8" class="text-center">Đang tải......</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -742,7 +742,7 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
                         <td>${escapeHtml(item.supplier || '')}</td>
                         <td>${item.product_count || 0}</td>
                         <td>${item.total_quantity || 0}</td>
-                        <td>${totalValue} ₫</td>
+                        <td>${totalValue} ₫</span></td>
                         <td><span class="badge ${statusClass}">${statusText}</span></td>
                         <td>
                             <div class="action-buttons">
@@ -797,64 +797,65 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
             });
         }
 
-        // Định dạng số có dấu chấm ngàn (kiểu Việt Nam)
-        function formatNumber(num) {
-            if (num === null || num === undefined || num === '') return '';
-            let n = parseFloat(num);
-            if (isNaN(n)) return '';
-            return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-        }
-
-        // Hàm xử lý ô nhập giá: focus hiển thị số nghìn (không dấu), blur format thành tiền VNĐ
-        function setupPriceInput(displayInput, hiddenInput) {
-            let currentThousands = 0;
-
-            function updateFromThousands(thousands) {
-                currentThousands = thousands;
-                let vnd = thousands * 1000;
-                hiddenInput.value = vnd;
-                if (document.activeElement !== displayInput) {
-                    // Khi không focus, hiển thị có dấu chấm
-                    displayInput.value = formatNumber(vnd);
-                } else {
-                    // Khi đang focus, hiển thị số nghìn không dấu
-                    displayInput.value = thousands === 0 ? '' : thousands.toString();
+        // ========== SỬA LẠI HÀM FORMAT SỐ ==========
+        // Format số: thêm dấu chấm sau mỗi 3 số (từ phải sang trái)
+        function formatNumberWithDots(numStr) {
+            let digits = numStr.replace(/\D/g, '');
+            if (digits === '') return '';
+            
+            // Thêm dấu chấm từ phải sang trái
+            let result = '';
+            let count = 0;
+            for (let i = digits.length - 1; i >= 0; i--) {
+                result = digits[i] + result;
+                count++;
+                if (count % 3 === 0 && i !== 0) {
+                    result = '.' + result;
                 }
             }
+            return result;
+        }
 
-            displayInput.addEventListener('focus', function() {
-                let vnd = parseFloat(hiddenInput.value);
-                if (isNaN(vnd)) vnd = 0;
-                let thousands = vnd / 1000;
-                displayInput.value = thousands === 0 ? '' : thousands.toString();
-                currentThousands = thousands;
+        // Lấy số nguyên từ chuỗi đã format (bỏ dấu chấm)
+        function getRawNumber(formattedStr) {
+            return formattedStr.replace(/\./g, '');
+        }
+
+        // ========== SỬA LẠI HÀM SETUP PRICE INPUT ==========
+        function setupPriceInput(displayInput, hiddenInput) {
+            // Xử lý khi người dùng gõ
+            displayInput.addEventListener('input', function(e) {
+                let cursorPos = this.selectionStart;
+                let rawValue = this.value;
+                
+                // Lấy phần số (bỏ hết dấu chấm)
+                let digits = rawValue.replace(/\./g, '');
+                
+                // Format lại với dấu chấm
+                let formatted = formatNumberWithDots(digits);
+                
+                if (formatted !== rawValue) {
+                    this.value = formatted;
+                    hiddenInput.value = digits;
+                    
+                    // Điều chỉnh vị trí con trỏ
+                    let diff = formatted.length - rawValue.length;
+                    let newPos = cursorPos + diff;
+                    if (newPos >= 0 && newPos <= formatted.length) {
+                        this.setSelectionRange(newPos, newPos);
+                    }
+                } else {
+                    hiddenInput.value = digits;
+                }
             });
-
-            displayInput.addEventListener('blur', function() {
-                let raw = displayInput.value;
-                let digits = raw.replace(/\D/g, '');
-                let thousands = digits === '' ? 0 : parseInt(digits, 10);
-                if (isNaN(thousands)) thousands = 0;
-                updateFromThousands(thousands);
-            });
-
-            displayInput.addEventListener('input', function() {
-                let raw = displayInput.value;
-                let digits = raw.replace(/\D/g, '');
-                let thousands = digits === '' ? 0 : parseInt(digits, 10);
-                if (isNaN(thousands)) thousands = 0;
-                updateFromThousands(thousands);
-                // Đặt con trỏ ở cuối
-                displayInput.setSelectionRange(displayInput.value.length, displayInput.value.length);
-            });
-
-            // Khởi tạo
-            let initVnd = parseFloat(hiddenInput.value);
-            if (!isNaN(initVnd) && initVnd > 0) {
-                let initThousands = initVnd / 1000;
-                updateFromThousands(initThousands);
+            
+            // Khởi tạo giá trị ban đầu
+            let initValue = hiddenInput.value;
+            if (initValue && initValue !== '0' && initValue !== '') {
+                displayInput.value = formatNumberWithDots(initValue);
             } else {
-                updateFromThousands(0);
+                displayInput.value = '';
+                hiddenInput.value = '';
             }
         }
 
@@ -874,8 +875,8 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
                     </div>
                     <div class="col-md-3">
                         <label class="form-label small text-muted">Giá nhập (VNĐ)</label>
-                        <input type="text" name="prices_display[]" class="form-control price-input" placeholder="1 = 1,000" required>
-                        <input type="hidden" name="prices[]" class="price-hidden" value="${unitCostVnd}">
+                        <input type="text" name="prices_display[]" class="form-control price-input" placeholder="Nhập số tiền" required>
+                        <input type="hidden" name="prices[]" class="price-hidden" value="">
                     </div>
                     <div class="col-md-1 text-center">
                         <button type="button" class="btn btn-sm btn-outline-danger remove-row mt-2">
@@ -900,16 +901,14 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
             const $display = $row.find('.price-input');
             const $hidden = $row.find('.price-hidden');
 
-            setupPriceInput($display[0], $hidden[0]);
-
-            // Nếu có giá trị unit cost ban đầu (VNĐ), set vào hidden và hiển thị
+            // Nếu có giá trị unit cost ban đầu
             if (unitCostVnd && unitCostVnd != '0') {
                 $hidden.val(unitCostVnd);
-                let vnd = parseFloat(unitCostVnd);
-                let thousands = vnd / 1000;
-                $display.val(thousands.toString());
-                $display.trigger('blur'); // để format hiển thị
+                $display.val(formatNumberWithDots(unitCostVnd));
             }
+            
+            // Setup sự kiện format số
+            setupPriceInput($display[0], $hidden[0]);
         }
 
         function openFormModal(importId = null) {
@@ -926,9 +925,13 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
                         $('#import_date').val(res.import.import_date);
                         $('#supplier').val(res.import.supplier || '');
                         $('#product-rows-container').empty();
-                        res.details.forEach(detail => {
-                            addProductRow(detail.product_id, detail.quantity, detail.unit_cost);
-                        });
+                        if (res.details.length > 0) {
+                            res.details.forEach(detail => {
+                                addProductRow(detail.product_id, detail.quantity, detail.unit_cost);
+                            });
+                        } else {
+                            addProductRow();
+                        }
                         $('#importFormModal').modal('show');
                     } else {
                         alert('Lỗi tải dữ liệu: ' + res.error);
@@ -1007,7 +1010,7 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
                                     <tr>
                                         <th>Sản phẩm</th>
                                         <th class="text-center">SL</th>
-                                        <th class="text-end">Giá nhập (thực tế)</th>
+                                        <th class="text-end">Giá nhập (VNĐ)</th>
                                         <th class="text-end">Thành tiền</th>
                                     </tr>
                                 </thead>
@@ -1020,7 +1023,6 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
                         const subtotal = parseFloat(d.subtotal) || (quantity * unitCost);
                         totalQty += quantity;
                         totalValue += subtotal;
-
                         detailHtml += `
                             <tr>
                                 <td>${escapeHtml(d.product_name)}</td>
