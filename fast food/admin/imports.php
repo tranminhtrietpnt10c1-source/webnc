@@ -174,14 +174,14 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
                 $stmt = $pdo->prepare("INSERT INTO import_details (import_id, product_id, quantity, unit_cost, subtotal) VALUES (?, ?, ?, ?, ?)");
                 foreach ($products as $idx => $prod_id) {
                     if ($prod_id && $quantities[$idx] > 0) {
-                        $subtotal = $quantities[$idx] * $prices[$idx];
+                        $subtotal = (float)$quantities[$idx] * (float)$prices[$idx];
                         $stmt->execute([$import_id, $prod_id, $quantities[$idx], $prices[$idx], $subtotal]);
                     }
                 }
 
                 $stmt = $pdo->prepare("UPDATE imports SET total_amount = (SELECT SUM(subtotal) FROM import_details WHERE import_id = ?) WHERE id = ?");
                 $stmt->execute([$import_id, $import_id]);
-
+                
                 $pdo->commit();
                 echo json_encode(['success' => true, 'import_id' => $import_id]);
                 exit;
@@ -211,7 +211,8 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
                 $stmt = $pdo->prepare("INSERT INTO import_details (import_id, product_id, quantity, unit_cost, subtotal) VALUES (?, ?, ?, ?, ?)");
                 foreach ($products as $idx => $prod_id) {
                     if ($prod_id && $quantities[$idx] > 0) {
-                        $subtotal = $quantities[$idx] * $prices[$idx];
+                        $subtotal = (float)$quantities[$idx] * (float)$prices[$idx];
+
                         $stmt->execute([$import_id, $prod_id, $quantities[$idx], $prices[$idx], $subtotal]);
                     }
                 }
@@ -799,22 +800,20 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
 
         // ========== SỬA LẠI HÀM FORMAT SỐ ==========
         // Format số: thêm dấu chấm sau mỗi 3 số (từ phải sang trái)
-        function formatNumberWithDots(numStr) {
-            let digits = numStr.replace(/\D/g, '');
-            if (digits === '') return '';
-            
-            // Thêm dấu chấm từ phải sang trái
-            let result = '';
-            let count = 0;
-            for (let i = digits.length - 1; i >= 0; i--) {
-                result = digits[i] + result;
-                count++;
-                if (count % 3 === 0 && i !== 0) {
-                    result = '.' + result;
-                }
-            }
-            return result;
+    function formatNumberWithDots(numStr) {
+    // Tách phần nguyên trước dấu chấm thập phân (. hoặc ,)
+        let str = String(numStr).split(/[.,]/)[0];
+        let digits = str.replace(/\D/g, '');
+        if (digits === '') return '';
+        let result = '';
+        let count = 0;
+        for (let i = digits.length - 1; i >= 0; i--) {
+            result = digits[i] + result;
+            count++;
+            if (count % 3 === 0 && i !== 0) result = '.' + result;
         }
+        return result;
+}
 
         // Lấy số nguyên từ chuỗi đã format (bỏ dấu chấm)
         function getRawNumber(formattedStr) {
@@ -849,10 +848,11 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
                 }
             });
             
-            // Khởi tạo giá trị ban đầu
-            let initValue = hiddenInput.value;
+         let initValue = hiddenInput.value;
             if (initValue && initValue !== '0' && initValue !== '') {
-                displayInput.value = formatNumberWithDots(initValue);
+                let intValue = String(Math.round(parseFloat(initValue)));
+                hiddenInput.value = intValue;
+                displayInput.value = formatNumberWithDots(intValue);
             } else {
                 displayInput.value = '';
                 hiddenInput.value = '';
@@ -901,15 +901,15 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
             const $display = $row.find('.price-input');
             const $hidden = $row.find('.price-hidden');
 
-            // Nếu có giá trị unit cost ban đầu
+            // Set giá trị vào hidden TRƯỚC khi gọi setupPriceInput
             if (unitCostVnd && unitCostVnd != '0') {
-                $hidden.val(unitCostVnd);
-                $display.val(formatNumberWithDots(unitCostVnd));
+                let intCost = String(Math.round(parseFloat(unitCostVnd)));
+                $hidden[0].value = intCost;  // set trực tiếp vào DOM, không dùng jQuery .val()
             }
-            
-            // Setup sự kiện format số
+
+            // Setup sự kiện format số (sẽ đọc hiddenInput.value từ DOM)
             setupPriceInput($display[0], $hidden[0]);
-        }
+}
 
         function openFormModal(importId = null) {
             const isEdit = !!importId;
@@ -945,6 +945,7 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
         $('#import-form').submit(function(e) {
             e.preventDefault();
             const formData = new FormData(this);
+        
             const importId = $('#import_id').val();
             const action = importId ? 'edit' : 'add';
             formData.append('action', action);
