@@ -2,10 +2,10 @@
 -- version 5.2.1
 -- https://www.phpmyadmin.net/
 --
--- Máy chủ: 127.0.0.1
--- Thời gian đã tạo: Th3 28, 2026 lúc 03:32 PM
--- Phiên bản máy phục vụ: 10.4.32-MariaDB
--- Phiên bản PHP: 8.0.30
+-- Host: 127.0.0.1
+-- Generation Time: Apr 05, 2026 at 10:56 AM
+-- Server version: 10.4.32-MariaDB
+-- PHP Version: 8.2.12
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -18,13 +18,13 @@ SET time_zone = "+00:00";
 /*!40101 SET NAMES utf8mb4 */;
 
 --
--- Cơ sở dữ liệu: `fast_food`
+-- Database: `fast_food`
 --
 
 -- --------------------------------------------------------
 
 --
--- Cấu trúc bảng cho bảng `cart`
+-- Table structure for table `cart`
 --
 
 CREATE TABLE `cart` (
@@ -39,7 +39,7 @@ CREATE TABLE `cart` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
--- Đang đổ dữ liệu cho bảng `cart`
+-- Dumping data for table `cart`
 --
 
 INSERT INTO `cart` (`id`, `user_id`, `session_id`, `product_id`, `quantity`, `unit_price`, `created_at`, `updated_at`) VALUES
@@ -52,7 +52,7 @@ INSERT INTO `cart` (`id`, `user_id`, `session_id`, `product_id`, `quantity`, `un
 -- --------------------------------------------------------
 
 --
--- Cấu trúc bảng cho bảng `categories`
+-- Table structure for table `categories`
 --
 
 CREATE TABLE `categories` (
@@ -66,7 +66,7 @@ CREATE TABLE `categories` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
--- Đang đổ dữ liệu cho bảng `categories`
+-- Dumping data for table `categories`
 --
 
 INSERT INTO `categories` (`id`, `name`, `description`, `image`, `status`, `created_at`, `updated_at`) VALUES
@@ -78,7 +78,7 @@ INSERT INTO `categories` (`id`, `name`, `description`, `image`, `status`, `creat
 -- --------------------------------------------------------
 
 --
--- Cấu trúc bảng cho bảng `imports`
+-- Table structure for table `imports`
 --
 
 CREATE TABLE `imports` (
@@ -86,7 +86,7 @@ CREATE TABLE `imports` (
   `import_code` varchar(20) NOT NULL,
   `import_date` date NOT NULL,
   `supplier` varchar(255) DEFAULT NULL,
-  `total_amount` decimal(10,2) NOT NULL,
+  `total_amount` decimal(20,2) NOT NULL DEFAULT 0.00,
   `status` enum('pending','completed') DEFAULT 'pending',
   `notes` text DEFAULT NULL,
   `created_by` int(11) DEFAULT NULL,
@@ -95,7 +95,7 @@ CREATE TABLE `imports` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
--- Đang đổ dữ liệu cho bảng `imports`
+-- Dumping data for table `imports`
 --
 
 INSERT INTO `imports` (`id`, `import_code`, `import_date`, `supplier`, `total_amount`, `status`, `notes`, `created_by`, `created_at`, `updated_at`) VALUES
@@ -109,7 +109,7 @@ INSERT INTO `imports` (`id`, `import_code`, `import_date`, `supplier`, `total_am
 (8, 'PN-20260327-69C6933D', '2026-03-27', 'Công ty TNHH Huỳnh Ngọc Quí', 160000.00, 'completed', 'Đợt nhập 27/03/2026 15:25:01', 7, '2026-03-27 14:25:01', '2026-03-27 14:25:04');
 
 --
--- Bẫy `imports`
+-- Triggers `imports`
 --
 DELIMITER $$
 CREATE TRIGGER `update_stock_on_import` AFTER UPDATE ON `imports` FOR EACH ROW BEGIN
@@ -126,7 +126,7 @@ DELIMITER ;
 -- --------------------------------------------------------
 
 --
--- Cấu trúc bảng cho bảng `import_details`
+-- Table structure for table `import_details`
 --
 
 CREATE TABLE `import_details` (
@@ -134,12 +134,12 @@ CREATE TABLE `import_details` (
   `import_id` int(11) NOT NULL,
   `product_id` int(11) NOT NULL,
   `quantity` int(11) NOT NULL CHECK (`quantity` > 0),
-  `unit_cost` decimal(10,2) NOT NULL,
-  `subtotal` decimal(10,2) NOT NULL
+  `unit_cost` decimal(20,2) NOT NULL DEFAULT 0.00,
+  `subtotal` decimal(20,2) NOT NULL DEFAULT 0.00
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
--- Đang đổ dữ liệu cho bảng `import_details`
+-- Dumping data for table `import_details`
 --
 
 INSERT INTO `import_details` (`id`, `import_id`, `product_id`, `quantity`, `unit_cost`, `subtotal`) VALUES
@@ -170,7 +170,7 @@ INSERT INTO `import_details` (`id`, `import_id`, `product_id`, `quantity`, `unit
 -- --------------------------------------------------------
 
 --
--- Cấu trúc bảng cho bảng `orders`
+-- Table structure for table `orders`
 --
 
 CREATE TABLE `orders` (
@@ -194,7 +194,7 @@ CREATE TABLE `orders` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
--- Đang đổ dữ liệu cho bảng `orders`
+-- Dumping data for table `orders`
 --
 
 INSERT INTO `orders` (`id`, `order_code`, `user_id`, `customer_name`, `customer_phone`, `customer_email`, `customer_address`, `order_date`, `total_amount`, `shipping_fee`, `discount`, `final_amount`, `status`, `payment_method`, `notes`, `created_at`, `updated_at`) VALUES
@@ -218,7 +218,7 @@ INSERT INTO `orders` (`id`, `order_code`, `user_id`, `customer_name`, `customer_
 (24, 'ORD202603270577', 5, 'Trần Minh Triết', '0339111480', 'triet@gmail.com', '123 Đường ABC, Phường XYZ, Quận 1, TP.HCM', '2026-03-27', 6011055.67, 30000.00, 0.00, 6041055.67, 'cancelled', 'cash', '\n========== HỦY ĐƠN HÀNG ==========\nThời gian hủy: 2026-03-27 02:52:53\nLý do hủy: bữa nay ăn chay\n==================================\n', '2026-03-27 01:52:12', '2026-03-27 01:52:53');
 
 --
--- Bẫy `orders`
+-- Triggers `orders`
 --
 DELIMITER $$
 CREATE TRIGGER `update_stock_on_order` AFTER UPDATE ON `orders` FOR EACH ROW BEGIN
@@ -235,7 +235,7 @@ DELIMITER ;
 -- --------------------------------------------------------
 
 --
--- Cấu trúc bảng cho bảng `order_details`
+-- Table structure for table `order_details`
 --
 
 CREATE TABLE `order_details` (
@@ -248,7 +248,7 @@ CREATE TABLE `order_details` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
--- Đang đổ dữ liệu cho bảng `order_details`
+-- Dumping data for table `order_details`
 --
 
 INSERT INTO `order_details` (`id`, `order_id`, `product_id`, `quantity`, `unit_price`, `subtotal`) VALUES
@@ -296,7 +296,7 @@ INSERT INTO `order_details` (`id`, `order_id`, `product_id`, `quantity`, `unit_p
 -- --------------------------------------------------------
 
 --
--- Cấu trúc bảng cho bảng `pricing_log`
+-- Table structure for table `pricing_log`
 --
 
 CREATE TABLE `pricing_log` (
@@ -312,7 +312,7 @@ CREATE TABLE `pricing_log` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
--- Đang đổ dữ liệu cho bảng `pricing_log`
+-- Dumping data for table `pricing_log`
 --
 
 INSERT INTO `pricing_log` (`id`, `product_id`, `old_cost_price`, `new_cost_price`, `old_selling_price`, `new_selling_price`, `changed_by`, `change_reason`, `changed_at`) VALUES
@@ -345,7 +345,7 @@ INSERT INTO `pricing_log` (`id`, `product_id`, `old_cost_price`, `new_cost_price
 -- --------------------------------------------------------
 
 --
--- Cấu trúc bảng cho bảng `products`
+-- Table structure for table `products`
 --
 
 CREATE TABLE `products` (
@@ -365,7 +365,7 @@ CREATE TABLE `products` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
--- Đang đổ dữ liệu cho bảng `products`
+-- Dumping data for table `products`
 --
 
 INSERT INTO `products` (`id`, `code`, `name`, `category_id`, `description`, `image`, `cost_price`, `selling_price`, `stock_quantity`, `status`, `created_at`, `updated_at`, `profit_percentage`) VALUES
@@ -384,7 +384,7 @@ INSERT INTO `products` (`id`, `code`, `name`, `category_id`, `description`, `ima
 -- --------------------------------------------------------
 
 --
--- Cấu trúc bảng cho bảng `system_settings`
+-- Table structure for table `system_settings`
 --
 
 CREATE TABLE `system_settings` (
@@ -396,7 +396,7 @@ CREATE TABLE `system_settings` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Đang đổ dữ liệu cho bảng `system_settings`
+-- Dumping data for table `system_settings`
 --
 
 INSERT INTO `system_settings` (`id`, `setting_key`, `setting_value`, `created_at`, `updated_at`) VALUES
@@ -405,7 +405,7 @@ INSERT INTO `system_settings` (`id`, `setting_key`, `setting_value`, `created_at
 -- --------------------------------------------------------
 
 --
--- Cấu trúc bảng cho bảng `users`
+-- Table structure for table `users`
 --
 
 CREATE TABLE `users` (
@@ -428,7 +428,7 @@ CREATE TABLE `users` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
--- Đang đổ dữ liệu cho bảng `users`
+-- Dumping data for table `users`
 --
 
 INSERT INTO `users` (`id`, `full_name`, `username`, `email`, `phone`, `password`, `address`, `birthday`, `register_date`, `role`, `status`, `notes`, `avatar`, `last_login`, `created_at`, `updated_at`) VALUES
@@ -445,11 +445,11 @@ INSERT INTO `users` (`id`, `full_name`, `username`, `email`, `phone`, `password`
 (11, 'Trung Hiếu', 'hiue@gmail.com', 'mtriet@gmail.com', '0334291210', '$2y$10$5k8qq1XX7.VsIo7b8H8RWuDGyIQkcqhOhz3PHSrFgavVeGbk3jt7i', 'Bến xe buýt Hiệp Thành', '2006-06-13', '2026-03-26', 'user', 'active', NULL, '../images/about-img.png', NULL, '2026-03-26 07:19:31', '2026-03-26 07:38:07');
 
 --
--- Chỉ mục cho các bảng đã đổ
+-- Indexes for dumped tables
 --
 
 --
--- Chỉ mục cho bảng `cart`
+-- Indexes for table `cart`
 --
 ALTER TABLE `cart`
   ADD PRIMARY KEY (`id`),
@@ -457,14 +457,14 @@ ALTER TABLE `cart`
   ADD KEY `product_id` (`product_id`);
 
 --
--- Chỉ mục cho bảng `categories`
+-- Indexes for table `categories`
 --
 ALTER TABLE `categories`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `name` (`name`);
 
 --
--- Chỉ mục cho bảng `imports`
+-- Indexes for table `imports`
 --
 ALTER TABLE `imports`
   ADD PRIMARY KEY (`id`),
@@ -472,7 +472,7 @@ ALTER TABLE `imports`
   ADD KEY `created_by` (`created_by`);
 
 --
--- Chỉ mục cho bảng `import_details`
+-- Indexes for table `import_details`
 --
 ALTER TABLE `import_details`
   ADD PRIMARY KEY (`id`),
@@ -480,7 +480,7 @@ ALTER TABLE `import_details`
   ADD KEY `product_id` (`product_id`);
 
 --
--- Chỉ mục cho bảng `orders`
+-- Indexes for table `orders`
 --
 ALTER TABLE `orders`
   ADD PRIMARY KEY (`id`),
@@ -488,7 +488,7 @@ ALTER TABLE `orders`
   ADD KEY `user_id` (`user_id`);
 
 --
--- Chỉ mục cho bảng `order_details`
+-- Indexes for table `order_details`
 --
 ALTER TABLE `order_details`
   ADD PRIMARY KEY (`id`),
@@ -496,7 +496,7 @@ ALTER TABLE `order_details`
   ADD KEY `product_id` (`product_id`);
 
 --
--- Chỉ mục cho bảng `pricing_log`
+-- Indexes for table `pricing_log`
 --
 ALTER TABLE `pricing_log`
   ADD PRIMARY KEY (`id`),
@@ -504,7 +504,7 @@ ALTER TABLE `pricing_log`
   ADD KEY `changed_by` (`changed_by`);
 
 --
--- Chỉ mục cho bảng `products`
+-- Indexes for table `products`
 --
 ALTER TABLE `products`
   ADD PRIMARY KEY (`id`),
@@ -512,14 +512,14 @@ ALTER TABLE `products`
   ADD KEY `category_id` (`category_id`);
 
 --
--- Chỉ mục cho bảng `system_settings`
+-- Indexes for table `system_settings`
 --
 ALTER TABLE `system_settings`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `setting_key` (`setting_key`);
 
 --
--- Chỉ mục cho bảng `users`
+-- Indexes for table `users`
 --
 ALTER TABLE `users`
   ADD PRIMARY KEY (`id`),
@@ -527,115 +527,115 @@ ALTER TABLE `users`
   ADD UNIQUE KEY `email` (`email`);
 
 --
--- AUTO_INCREMENT cho các bảng đã đổ
+-- AUTO_INCREMENT for dumped tables
 --
 
 --
--- AUTO_INCREMENT cho bảng `cart`
+-- AUTO_INCREMENT for table `cart`
 --
 ALTER TABLE `cart`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
--- AUTO_INCREMENT cho bảng `categories`
+-- AUTO_INCREMENT for table `categories`
 --
 ALTER TABLE `categories`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
--- AUTO_INCREMENT cho bảng `imports`
+-- AUTO_INCREMENT for table `imports`
 --
 ALTER TABLE `imports`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
 
 --
--- AUTO_INCREMENT cho bảng `import_details`
+-- AUTO_INCREMENT for table `import_details`
 --
 ALTER TABLE `import_details`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=34;
 
 --
--- AUTO_INCREMENT cho bảng `orders`
+-- AUTO_INCREMENT for table `orders`
 --
 ALTER TABLE `orders`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=25;
 
 --
--- AUTO_INCREMENT cho bảng `order_details`
+-- AUTO_INCREMENT for table `order_details`
 --
 ALTER TABLE `order_details`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=54;
 
 --
--- AUTO_INCREMENT cho bảng `pricing_log`
+-- AUTO_INCREMENT for table `pricing_log`
 --
 ALTER TABLE `pricing_log`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=26;
 
 --
--- AUTO_INCREMENT cho bảng `products`
+-- AUTO_INCREMENT for table `products`
 --
 ALTER TABLE `products`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
 
 --
--- AUTO_INCREMENT cho bảng `system_settings`
+-- AUTO_INCREMENT for table `system_settings`
 --
 ALTER TABLE `system_settings`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
--- AUTO_INCREMENT cho bảng `users`
+-- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
 
 --
--- Các ràng buộc cho các bảng đã đổ
+-- Constraints for dumped tables
 --
 
 --
--- Các ràng buộc cho bảng `cart`
+-- Constraints for table `cart`
 --
 ALTER TABLE `cart`
   ADD CONSTRAINT `cart_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `cart_ibfk_2` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`);
 
 --
--- Các ràng buộc cho bảng `imports`
+-- Constraints for table `imports`
 --
 ALTER TABLE `imports`
   ADD CONSTRAINT `imports_ibfk_1` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON DELETE SET NULL;
 
 --
--- Các ràng buộc cho bảng `import_details`
+-- Constraints for table `import_details`
 --
 ALTER TABLE `import_details`
   ADD CONSTRAINT `import_details_ibfk_1` FOREIGN KEY (`import_id`) REFERENCES `imports` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `import_details_ibfk_2` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`);
 
 --
--- Các ràng buộc cho bảng `orders`
+-- Constraints for table `orders`
 --
 ALTER TABLE `orders`
   ADD CONSTRAINT `orders_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL;
 
 --
--- Các ràng buộc cho bảng `order_details`
+-- Constraints for table `order_details`
 --
 ALTER TABLE `order_details`
   ADD CONSTRAINT `order_details_ibfk_1` FOREIGN KEY (`order_id`) REFERENCES `orders` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `order_details_ibfk_2` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`);
 
 --
--- Các ràng buộc cho bảng `pricing_log`
+-- Constraints for table `pricing_log`
 --
 ALTER TABLE `pricing_log`
   ADD CONSTRAINT `pricing_log_ibfk_1` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `pricing_log_ibfk_2` FOREIGN KEY (`changed_by`) REFERENCES `users` (`id`) ON DELETE SET NULL;
 
 --
--- Các ràng buộc cho bảng `products`
+-- Constraints for table `products`
 --
 ALTER TABLE `products`
   ADD CONSTRAINT `products_ibfk_1` FOREIGN KEY (`category_id`) REFERENCES `categories` (`id`);
