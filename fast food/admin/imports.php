@@ -398,6 +398,14 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
             background-color: #e6a500;
             transform: translateY(-2px);
         }
+        .btn-reset {
+            background-color: #6c757d;
+            color: white;
+        }
+        .btn-reset:hover {
+            background-color: #5a6268;
+            color: white;
+        }
         .table th {
             background-color: var(--secondary-color);
             color: var(--light-color);
@@ -526,6 +534,10 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
         .modal-header.bg-dark {
             background-color: var(--secondary-color) !important;
         }
+        .search-actions {
+            display: flex;
+            gap: 10px;
+        }
     </style>
 </head>
 <body>
@@ -580,11 +592,18 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Ngày nhập</label>
-                            <input type="date" id="date-input" class="form-control">
+                            <input type="date" id="date-input" class="form-control" max="<?php echo date('Y-m-d'); ?>">
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">&nbsp;</label>
-                            <button id="btn-search" class="btn btn-custom w-100"><i class="fas fa-search"></i> Tìm kiếm</button>
+                            <div class="search-actions">
+                                <button id="btn-search" class="btn btn-custom flex-grow-1">
+                                    <i class="fas fa-search"></i> Tìm kiếm
+                                </button>
+                                <button id="btn-reset" class="btn btn-reset">
+                                    <i class="fas fa-undo-alt"></i> Đặt lại
+                                </button>
+                            </div>
                         </div>
                     </div>
                     <div class="status-filter mt-3">
@@ -627,7 +646,7 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
                         <input type="hidden" id="import_id" name="import_id">
                         <div class="mb-3">
                             <label class="form-label fw-bold">Ngày nhập</label>
-                            <input type="date" name="import_date" id="import_date" class="form-control" required>
+                            <input type="date" name="import_date" id="import_date" class="form-control" required max="<?php echo date('Y-m-d'); ?>">
                         </div>
                         <div class="mb-3">
                             <label class="form-label fw-bold">Nhà cung cấp</label>
@@ -798,46 +817,39 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
             });
         }
 
-        // ========== SỬA LẠI HÀM FORMAT SỐ ==========
         // Format số: thêm dấu chấm sau mỗi 3 số (từ phải sang trái)
-    function formatNumberWithDots(numStr) {
-    // Tách phần nguyên trước dấu chấm thập phân (. hoặc ,)
-        let str = String(numStr).split(/[.,]/)[0];
-        let digits = str.replace(/\D/g, '');
-        if (digits === '') return '';
-        let result = '';
-        let count = 0;
-        for (let i = digits.length - 1; i >= 0; i--) {
-            result = digits[i] + result;
-            count++;
-            if (count % 3 === 0 && i !== 0) result = '.' + result;
+        function formatNumberWithDots(numStr) {
+            let str = String(numStr).split(/[.,]/)[0];
+            let digits = str.replace(/\D/g, '');
+            if (digits === '') return '';
+            let result = '';
+            let count = 0;
+            for (let i = digits.length - 1; i >= 0; i--) {
+                result = digits[i] + result;
+                count++;
+                if (count % 3 === 0 && i !== 0) result = '.' + result;
+            }
+            return result;
         }
-        return result;
-}
 
         // Lấy số nguyên từ chuỗi đã format (bỏ dấu chấm)
         function getRawNumber(formattedStr) {
             return formattedStr.replace(/\./g, '');
         }
 
-        // ========== SỬA LẠI HÀM SETUP PRICE INPUT ==========
         function setupPriceInput(displayInput, hiddenInput) {
-            // Xử lý khi người dùng gõ
             displayInput.addEventListener('input', function(e) {
                 let cursorPos = this.selectionStart;
                 let rawValue = this.value;
                 
-                // Lấy phần số (bỏ hết dấu chấm)
                 let digits = rawValue.replace(/\./g, '');
                 
-                // Format lại với dấu chấm
                 let formatted = formatNumberWithDots(digits);
                 
                 if (formatted !== rawValue) {
                     this.value = formatted;
                     hiddenInput.value = digits;
                     
-                    // Điều chỉnh vị trí con trỏ
                     let diff = formatted.length - rawValue.length;
                     let newPos = cursorPos + diff;
                     if (newPos >= 0 && newPos <= formatted.length) {
@@ -848,7 +860,7 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
                 }
             });
             
-         let initValue = hiddenInput.value;
+            let initValue = hiddenInput.value;
             if (initValue && initValue !== '0' && initValue !== '') {
                 let intValue = String(Math.round(parseFloat(initValue)));
                 hiddenInput.value = intValue;
@@ -859,7 +871,6 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
             }
         }
 
-        // Thêm một dòng sản phẩm mới
         function addProductRow(selectedProductId = '', quantity = '', unitCostVnd = '') {
             const rowHtml = `
                 <div class="product-row row g-2 align-items-end mb-3 p-2 border rounded">
@@ -901,15 +912,13 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
             const $display = $row.find('.price-input');
             const $hidden = $row.find('.price-hidden');
 
-            // Set giá trị vào hidden TRƯỚC khi gọi setupPriceInput
             if (unitCostVnd && unitCostVnd != '0') {
                 let intCost = String(Math.round(parseFloat(unitCostVnd)));
-                $hidden[0].value = intCost;  // set trực tiếp vào DOM, không dùng jQuery .val()
+                $hidden[0].value = intCost;
             }
 
-            // Setup sự kiện format số (sẽ đọc hiddenInput.value từ DOM)
             setupPriceInput($display[0], $hidden[0]);
-}
+        }
 
         function openFormModal(importId = null) {
             const isEdit = !!importId;
@@ -1058,6 +1067,15 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
         $('#btn-search').click(function() {
             currentFilters.search = $('#search-input').val();
             currentFilters.date = $('#date-input').val();
+            currentPage = 1;
+            loadImports();
+        });
+        
+        $('#btn-reset').click(function() {
+            $('#search-input').val('');
+            $('#date-input').val('');
+            currentFilters.search = '';
+            currentFilters.date = '';
             currentPage = 1;
             loadImports();
         });

@@ -39,7 +39,82 @@ function formatVND($amount) {
     return number_format($amount, 0, ',', '.') . ' ₫';
 }
 
-// Lấy dữ liệu thống kê từ database
+// Xử lý AJAX request để lấy số lượng đơn hàng mới
+if (isset($_GET['ajax']) && $_GET['ajax'] == 'get_new_orders_count') {
+    header('Content-Type: application/json');
+    
+    // Lấy số lượng đơn hàng mới
+    $stmt = $pdo->query("SELECT COUNT(*) as count FROM orders WHERE status = 'new'");
+    $new_orders_count = $stmt->fetch()['count'];
+    
+    // Lấy danh sách đơn hàng mới để hiển thị (tùy chọn)
+    $stmt = $pdo->query("SELECT id, order_code, customer_name, order_date, total_amount, final_amount, status 
+                         FROM orders 
+                         WHERE status = 'new'
+                         ORDER BY order_date DESC 
+                         LIMIT 5");
+    $new_orders = $stmt->fetchAll();
+    
+    echo json_encode([
+        'success' => true,
+        'new_orders_count' => $new_orders_count,
+        'new_orders' => $new_orders
+    ]);
+    exit;
+}
+
+// Xử lý AJAX request để lấy tất cả thống kê
+if (isset($_GET['ajax']) && $_GET['ajax'] == 'get_stats') {
+    header('Content-Type: application/json');
+    
+    // 1. Tổng số đơn hàng mới
+    $stmt = $pdo->query("SELECT COUNT(*) as count FROM orders WHERE status = 'new'");
+    $total_new_orders = $stmt->fetch()['count'];
+    
+    // 2. Tổng số khách hàng
+    $stmt = $pdo->query("SELECT COUNT(*) as count FROM users WHERE role = 'user'");
+    $total_customers = $stmt->fetch()['count'];
+    
+    // 3. Tổng doanh thu tháng này
+    $current_month = date('Y-m');
+    $stmt = $pdo->prepare("SELECT SUM(final_amount) as total FROM orders WHERE status = 'shipped' AND DATE_FORMAT(order_date, '%Y-%m') = ?");
+    $stmt->execute([$current_month]);
+    $total_revenue_month = $stmt->fetch()['total'] ?? 0;
+    
+    // 4. Số sản phẩm sắp hết
+    $stmt = $pdo->query("SELECT COUNT(*) as count FROM products WHERE stock_quantity <= 10 AND status = 'active'");
+    $low_stock_products = $stmt->fetch()['count'];
+    
+    // 5. Đơn hàng gần đây (5 đơn)
+    $stmt = $pdo->query("SELECT id, order_code, customer_name, order_date, total_amount, final_amount, status 
+                         FROM orders 
+                         ORDER BY order_date DESC, id DESC 
+                         LIMIT 5");
+    $recent_orders = $stmt->fetchAll();
+    
+    // 6. Top 3 sản phẩm bán chạy
+    $stmt = $pdo->query("SELECT p.id, p.name, COALESCE(SUM(od.quantity), 0) as total_sold
+                         FROM products p
+                         LEFT JOIN order_details od ON p.id = od.product_id
+                         LEFT JOIN orders o ON od.order_id = o.id AND o.status != 'cancelled'
+                         GROUP BY p.id, p.name
+                         ORDER BY total_sold DESC
+                         LIMIT 3");
+    $top_products = $stmt->fetchAll();
+    
+    echo json_encode([
+        'success' => true,
+        'total_new_orders' => $total_new_orders,
+        'total_customers' => $total_customers,
+        'total_revenue_month' => $total_revenue_month,
+        'low_stock_products' => $low_stock_products,
+        'recent_orders' => $recent_orders,
+        'top_products' => $top_products
+    ]);
+    exit;
+}
+
+// Lấy dữ liệu thống kê từ database cho lần tải đầu
 // 1. Tổng số đơn hàng mới (status = 'new')
 $stmt = $pdo->query("SELECT COUNT(*) as count FROM orders WHERE status = 'new'");
 $total_new_orders = $stmt->fetch()['count'];
@@ -65,25 +140,19 @@ $stmt = $pdo->query("SELECT id, order_code, customer_name, order_date, total_amo
                      LIMIT 5");
 $recent_orders = $stmt->fetchAll();
 
-// Lấy 5 sản phẩm bán chạy nhất (dựa vào order_details)
-$stmt = $pdo->query("SELECT p.id, p.name, SUM(od.quantity) as total_sold
+// Lấy 3 sản phẩm bán chạy nhất
+$stmt = $pdo->query("SELECT p.id, p.name, COALESCE(SUM(od.quantity), 0) as total_sold
                      FROM products p
-                     JOIN order_details od ON p.id = od.product_id
-                     JOIN orders o ON od.order_id = o.id
-                     WHERE o.status != 'cancelled'
+                     LEFT JOIN order_details od ON p.id = od.product_id
+                     LEFT JOIN orders o ON od.order_id = o.id AND o.status != 'cancelled'
                      GROUP BY p.id, p.name
                      ORDER BY total_sold DESC
-                     LIMIT 5");
+                     LIMIT 3");
 $top_products = $stmt->fetchAll();
 
-// Nếu không có dữ liệu bán chạy, dùng dữ liệu mẫu
-if (empty($top_products)) {
-    $top_products = [
-        ['name' => 'Pizza Hải Sản', 'total_sold' => 156],
-        ['name' => 'Burger Bò Phô Mai', 'total_sold' => 142],
-        ['name' => 'Mỳ Ý Sốt Bò Bằm', 'total_sold' => 128],
-        ['name' => 'Khoai Tây Chiên', 'total_sold' => 115],
-    ];
+// Nếu không có dữ liệu bán chạy
+if (empty($top_products) || (isset($top_products[0]['total_sold']) && $top_products[0]['total_sold'] == 0)) {
+    $top_products = [];
 }
 ?>
 <!DOCTYPE html>
@@ -166,11 +235,19 @@ if (empty($top_products)) {
             text-align: center;
             padding: 20px;
             cursor: default;
+            position: relative;
+            overflow: hidden;
         }
         
         .stat-card i {
             font-size: 2.5rem;
             margin-bottom: 15px;
+        }
+        
+        .stat-card .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 5px;
         }
         
         .bg-primary-custom {
@@ -402,6 +479,89 @@ if (empty($top_products)) {
             background-color: #f2f2f2;
             border-top: none;
         }
+        
+        /* Top product item styles */
+        .top-product-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .top-product-item:last-child {
+            border-bottom: none;
+        }
+        
+        .top-product-rank {
+            width: 30px;
+            height: 30px;
+            background-color: var(--primary-color);
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: var(--dark-color);
+            margin-right: 12px;
+        }
+        
+        .top-product-name {
+            flex: 1;
+            font-weight: 500;
+        }
+        
+        .top-product-sold {
+            background-color: #f8f9fa;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+        
+        .empty-top-products {
+            text-align: center;
+            padding: 30px 20px;
+            color: #6c757d;
+        }
+        
+        .empty-top-products i {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            opacity: 0.5;
+        }
+        
+        /* Animation cho số mới */
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        
+        .stat-number-updated {
+            animation: pulse 0.5s ease-in-out;
+        }
+        
+        /* Badge thông báo */
+        .new-order-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: #dc3545;
+            color: white;
+            border-radius: 20px;
+            padding: 2px 8px;
+            font-size: 0.7rem;
+            font-weight: bold;
+        }
+        
+        /* Auto-refresh indicator */
+        .auto-refresh-indicator {
+            font-size: 0.7rem;
+            color: #6c757d;
+            margin-top: 5px;
+        }
     </style>
 </head>
 <body>
@@ -482,48 +642,28 @@ if (empty($top_products)) {
 
             <!-- Dashboard Content -->
             <div id="dashboard-page" class="page-content">
-                <h2 class="mb-4">Dashboard</h2>
+                <h2 class="mb-4">Dashboard 
+                   
+                </h2>
                 
-                <!-- Statistics Cards -->
-                <div class="row dashboard-stats">
+                <!-- Thống kê nhanh -->
+                <div class="row dashboard-stats mb-4">
+                    
                     <div class="col-md-3">
-                        <div class="card card-custom bg-primary-custom stat-display-card">
-                            <div class="card-body stat-card">
-                                <i class="fas fa-shopping-cart"></i>
-                                <h3><?php echo number_format($total_new_orders); ?></h3>
-                                <p>Đơn hàng mới</p>
-                            </div>
-                        </div>            
+                        <div class="card stat-card bg-secondary-custom" id="stat-customers-card">
+                            <i class="fas fa-users"></i>
+                            <div class="stat-number" id="stat-customers"><?php echo $total_customers; ?></div>
+                            <p>Người dùng</p>
+                        </div>
                     </div>
                     <div class="col-md-3">
-                        <div class="card card-custom bg-primary-custom stat-display-card"> 
-                            <div class="card-body stat-card">
-                                <i class="fas fa-users"></i>
-                                <h3><?php echo number_format($total_customers); ?></h3>
-                                <p>Người dùng</p>
-                            </div>
+                        <div class="card stat-card bg-primary-custom" id="stat-revenue-card">
+                            <i class="fas fa-chart-line"></i>
+                            <div class="stat-number" id="stat-revenue"><?php echo formatVND($total_revenue_month); ?></div>
+                            <p>Doanh thu tháng</p>
                         </div>
                     </div>
                     
-                    <div class="col-md-3">
-                        <div class="card card-custom bg-primary-custom stat-display-card">
-                            <div class="card-body stat-card">
-                                <i class="fas fa-exclamation-triangle"></i>
-                                <h3><?php echo number_format($low_stock_products); ?></h3>
-                                <p>Sản phẩm sắp hết</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-md-3">
-                        <div class="card card-custom stat-display-card" style="background-color: #28a745; color: white;">
-                            <div class="card-body stat-card">
-                                <i class="fas fa-dollar-sign"></i>
-                                <h3><?php echo formatVND($total_revenue_month); ?></h3>
-                                <p>Doanh thu tháng</p>
-                            </div>
-                        </div>
-                    </div>
                 </div>
                 
                 <!-- Recent Orders - Lấy từ database -->
@@ -537,21 +677,21 @@ if (empty($top_products)) {
                                 <div class="table-responsive">
                                     <table class="table table-hover">
                                         <thead>
-                                            
+                                            <tr>
                                                 <th>Mã đơn</th>
                                                 <th>Khách hàng</th>
                                                 <th>Ngày đặt</th>
                                                 <th>Tổng tiền</th>
                                                 <th>Trạng thái</th>
                                             </thead>
-                                        <tbody>
+                                        <tbody id="recent-orders-tbody">
                                             <?php if (empty($recent_orders)): ?>
                                                 <tr>
                                                     <td colspan="5" class="text-center">Chưa có đơn hàng nào</td>
                                                 </tr>
                                             <?php else: ?>
                                                 <?php foreach ($recent_orders as $order): ?>
-                                                <tr>
+                                                <tr class="order-row" data-order-id="<?php echo $order['id']; ?>">
                                                     <td>
                                                         <a href="#" class="order-link" data-order-id="<?php echo $order['id']; ?>">
                                                             <?php echo htmlspecialchars($order['order_code'] ?? '#' . $order['id']); ?>
@@ -601,17 +741,32 @@ if (empty($top_products)) {
                     <div class="col-md-4">
                         <div class="card card-custom">
                             <div class="card-header">
-                                <h5 class="card-title mb-0">Sản phẩm bán chạy</h5>
+                                <h5 class="card-title mb-0"><i class="fas fa-fire me-2" style="color: var(--primary-color);"></i>Top 3 sản phẩm bán chạy</h5>
                             </div>
-                            <div class="card-body">
-                                <ul class="list-group list-group-flush">
-                                    <?php foreach ($top_products as $product): ?>
-                                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                                        <span><?php echo htmlspecialchars($product['name']); ?></span>
-                                        <span class="badge bg-primary rounded-pill"><?php echo number_format($product['total_sold']); ?></span>
-                                    </li>
-                                    <?php endforeach; ?>
-                                </ul>
+                            <div class="card-body" id="top-products-container">
+                                <?php if (empty($top_products)): ?>
+                                    <div class="empty-top-products">
+                                        <i class="fas fa-chart-simple"></i>
+                                        <p class="mb-0">Chưa có dữ liệu bán hàng</p>
+                                        <small class="text-muted">Sẽ hiển thị khi có đơn hàng hoàn thành</small>
+                                    </div>
+                                <?php else: ?>
+                                    <div class="top-products-list">
+                                        <?php $rank = 1; ?>
+                                        <?php foreach ($top_products as $product): ?>
+                                            <div class="top-product-item">
+                                                <div style="display: flex; align-items: center;">
+                                                    <span class="top-product-rank"><?php echo $rank; ?></span>
+                                                    <span class="top-product-name"><?php echo htmlspecialchars($product['name']); ?></span>
+                                                </div>
+                                                <span class="top-product-sold">
+                                                    <i class="fas fa-chart-line me-1"></i><?php echo number_format($product['total_sold']); ?> đã bán
+                                                </span>
+                                            </div>
+                                            <?php $rank++; ?>
+                                        <?php endforeach; ?>
+                                    </div>
+                                <?php endif; ?>
                             </div>
                         </div>
                     </div>
@@ -757,6 +912,183 @@ if (empty($top_products)) {
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <!-- Custom JS -->
     <script>
+        // Hàm định dạng tiền VNĐ
+        function formatVND(amount) {
+            return new Intl.NumberFormat('vi-VN').format(amount) + ' ₫';
+        }
+        
+        // Biến lưu giá trị cũ để so sánh
+        let oldStats = {
+            total_new_orders: <?php echo $total_new_orders; ?>,
+            total_customers: <?php echo $total_customers; ?>,
+            total_revenue_month: <?php echo $total_revenue_month; ?>,
+            low_stock_products: <?php echo $low_stock_products; ?>
+        };
+        
+        // Hàm cập nhật thống kê
+        function refreshStats() {
+            // Hiệu ứng xoay icon refresh
+            $('#refresh-icon').addClass('fa-spin');
+            
+            $.ajax({
+                url: 'admin.php',
+                type: 'GET',
+                data: { ajax: 'get_stats' },
+                dataType: 'json',
+                success: function(response) {
+                    if (response.success) {
+                        // Cập nhật số đơn hàng mới
+                        if (response.total_new_orders !== oldStats.total_new_orders) {
+                            $('#stat-new-orders').html(response.total_new_orders);
+                            $('#stat-new-orders').addClass('stat-number-updated');
+                            setTimeout(() => $('#stat-new-orders').removeClass('stat-number-updated'), 500);
+                            
+                            // Nếu có đơn hàng mới, hiệu ứng nhấp nháy cho card
+                            if (response.total_new_orders > oldStats.total_new_orders) {
+                                $('#stat-new-orders-card').css('animation', 'pulse 0.5s ease-in-out');
+                                setTimeout(() => $('#stat-new-orders-card').css('animation', ''), 500);
+                                
+                                // Phát âm thanh thông báo (tùy chọn)
+                                // new Audio('notification.mp3').play();
+                            }
+                            oldStats.total_new_orders = response.total_new_orders;
+                        }
+                        
+                        // Cập nhật số khách hàng
+                        if (response.total_customers !== oldStats.total_customers) {
+                            $('#stat-customers').html(response.total_customers);
+                            $('#stat-customers').addClass('stat-number-updated');
+                            setTimeout(() => $('#stat-customers').removeClass('stat-number-updated'), 500);
+                            oldStats.total_customers = response.total_customers;
+                        }
+                        
+                        // Cập nhật doanh thu
+                        if (response.total_revenue_month !== oldStats.total_revenue_month) {
+                            $('#stat-revenue').html(formatVND(response.total_revenue_month));
+                            $('#stat-revenue').addClass('stat-number-updated');
+                            setTimeout(() => $('#stat-revenue').removeClass('stat-number-updated'), 500);
+                            oldStats.total_revenue_month = response.total_revenue_month;
+                        }
+                        
+                        // Cập nhật sản phẩm sắp hết
+                        if (response.low_stock_products !== oldStats.low_stock_products) {
+                            $('#stat-lowstock').html(response.low_stock_products);
+                            $('#stat-lowstock').addClass('stat-number-updated');
+                            setTimeout(() => $('#stat-lowstock').removeClass('stat-number-updated'), 500);
+                            oldStats.low_stock_products = response.low_stock_products;
+                        }
+                        
+                        // Cập nhật bảng đơn hàng gần đây
+                        updateRecentOrdersTable(response.recent_orders);
+                        
+                        // Cập nhật top sản phẩm bán chạy
+                        updateTopProducts(response.top_products);
+                    }
+                },
+                error: function() {
+                    console.log('Không thể cập nhật dữ liệu');
+                },
+                complete: function() {
+                    setTimeout(() => {
+                        $('#refresh-icon').removeClass('fa-spin');
+                    }, 300);
+                }
+            });
+        }
+        
+        // Hàm cập nhật bảng đơn hàng gần đây
+        function updateRecentOrdersTable(orders) {
+            const tbody = $('#recent-orders-tbody');
+            if (!orders || orders.length === 0) {
+                tbody.html('<tr><td colspan="5" class="text-center">Chưa có đơn hàng nào</td></tr>');
+                return;
+            }
+            
+            let html = '';
+            orders.forEach(order => {
+                let statusClass = '';
+                let statusText = '';
+                switch (order.status) {
+                    case 'new': statusClass = 'badge-status-new'; statusText = 'Mới'; break;
+                    case 'processing': statusClass = 'badge-status-processing'; statusText = 'Đang xử lý'; break;
+                    case 'shipped': statusClass = 'badge-status-shipped'; statusText = 'Đã giao'; break;
+                    case 'cancelled': statusClass = 'badge-status-cancelled'; statusText = 'Đã hủy'; break;
+                    default: statusClass = 'badge-status-new'; statusText = 'Mới';
+                }
+                
+                html += `
+                    <tr class="order-row" data-order-id="${order.id}">
+                        <td>
+                            <a href="#" class="order-link" data-order-id="${order.id}">
+                                ${escapeHtml(order.order_code || '#' + order.id)}
+                            </a>
+                        </td>
+                        <td>${escapeHtml(order.customer_name)}</td>
+                        <td>${new Date(order.order_date).toLocaleDateString('vi-VN')}</td>
+                        <td>${formatVND(order.final_amount || order.total_amount)}</td>
+                        <td><span class="badge ${statusClass}">${statusText}</span></td>
+                    </tr>
+                `;
+            });
+            
+            tbody.html(html);
+        }
+        
+        // Hàm cập nhật top sản phẩm bán chạy
+        function updateTopProducts(products) {
+            const container = $('#top-products-container');
+            if (!products || products.length === 0 || products[0].total_sold === 0) {
+                container.html(`
+                    <div class="empty-top-products">
+                        <i class="fas fa-chart-simple"></i>
+                        <p class="mb-0">Chưa có dữ liệu bán hàng</p>
+                        <small class="text-muted">Sẽ hiển thị khi có đơn hàng hoàn thành</small>
+                    </div>
+                `);
+                return;
+            }
+            
+            let html = '<div class="top-products-list">';
+            let rank = 1;
+            products.forEach(product => {
+                html += `
+                    <div class="top-product-item">
+                        <div style="display: flex; align-items: center;">
+                            <span class="top-product-rank">${rank}</span>
+                            <span class="top-product-name">${escapeHtml(product.name)}</span>
+                        </div>
+                        <span class="top-product-sold">
+                            <i class="fas fa-chart-line me-1"></i>${Number(product.total_sold).toLocaleString()} đã bán
+                        </span>
+                    </div>
+                `;
+                rank++;
+            });
+            html += '</div>';
+            container.html(html);
+        }
+        
+        // Hàm escape HTML
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str).replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+        
+        // Khởi tạo auto refresh mỗi 10 giây
+        let refreshInterval = setInterval(refreshStats, 10000);
+        
+        // Dừng refresh khi rời khỏi trang (tối ưu performance)
+        window.addEventListener('beforeunload', function() {
+            if (refreshInterval) {
+                clearInterval(refreshInterval);
+            }
+        });
+        
         document.addEventListener('DOMContentLoaded', function() {
             // Xử lý toggle sidebar trên mobile
             const toggleSidebarBtn = document.getElementById('toggle-sidebar');
@@ -812,11 +1144,6 @@ if (empty($top_products)) {
 
         // Xử lý xem chi tiết đơn hàng bằng AJAX
         $(document).ready(function() {
-            // Hàm định dạng tiền VNĐ
-            function formatVND(amount) {
-                return new Intl.NumberFormat('vi-VN').format(amount) + ' ₫';
-            }
-
             // Hàm lấy trạng thái đơn hàng
             function getStatusText(status) {
                 switch(status) {
@@ -1017,17 +1344,6 @@ if (empty($top_products)) {
                     }
                 });
             });
-            
-            // Hàm escape HTML
-            function escapeHtml(str) {
-                if (!str) return '';
-                return str.replace(/[&<>]/g, function(m) {
-                    if (m === '&') return '&amp;';
-                    if (m === '<') return '&lt;';
-                    if (m === '>') return '&gt;';
-                    return m;
-                });
-            }
         });
     </script>
 </body>
