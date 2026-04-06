@@ -223,6 +223,9 @@ if (isset($_REQUEST['action'])) {
     <title>Tra cứu nhập - xuất kho - Feane Restaurant</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Select2 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
     <style>
         :root {
             --primary-color: #ffbe33;
@@ -484,6 +487,17 @@ if (isset($_REQUEST['action'])) {
                 white-space: normal;
             }
         }
+        /* Select2 custom styling */
+        .select2-container--bootstrap-5 .select2-selection {
+            min-height: 38px;
+            border-radius: 0.375rem;
+        }
+        .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
+            line-height: 36px;
+        }
+        .select2-container--bootstrap-5 .select2-dropdown {
+            border-color: #ced4da;
+        }
     </style>
 </head>
 <body>
@@ -545,7 +559,7 @@ if (isset($_REQUEST['action'])) {
                     <div class="row">
                         <div class="col-md-4 mb-3">
                             <label for="inout-product" class="form-label">Chọn sản phẩm <span class="text-danger">*</span></label>
-                            <select class="form-select" id="inout-product" name="inout-product" required>
+                            <select class="form-select" id="inout-product" name="inout-product" style="width: 100%;" required>
                                 <option value="">-- Chọn sản phẩm --</option>
                             </select>
                         </div>
@@ -604,7 +618,7 @@ if (isset($_REQUEST['action'])) {
                     <div class="table-responsive">
                         <table class="table table-bordered transaction-table">
                             <thead class="table-light">
-                                
+                                <tr>
                                     <th style="width: 100px">Ngày giao dịch</th>
                                     <th style="width: 100px">Loại</th>
                                     <th style="width: 140px">Mã đơn</th>
@@ -691,6 +705,8 @@ if (isset($_REQUEST['action'])) {
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Select2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
         // Loading functions
         function showLoading() {
@@ -735,14 +751,43 @@ if (isset($_REQUEST['action'])) {
             return new Intl.NumberFormat('vi-VN').format(amount) + ' ₫';
         }
 
+        // Khởi tạo Select2
+        let productSelect = null;
+        
+        function initSelect2() {
+            if (productSelect) {
+                productSelect.destroy();
+            }
+            
+            productSelect = $('#inout-product').select2({
+                theme: 'bootstrap-5',
+                width: '100%',
+                placeholder: '-- Chọn sản phẩm --',
+                allowClear: true,
+                language: {
+                    noResults: function() {
+                        return 'Không tìm thấy sản phẩm';
+                    },
+                    searching: function() {
+                        return 'Đang tìm kiếm...';
+                    }
+                }
+            });
+        }
+
         // Load products for select
         function loadProductSelect() {
             $.getJSON(window.location.pathname, { action: 'get_products' }, function(products) {
                 let options = '<option value="">-- Chọn sản phẩm --</option>';
                 products.forEach(p => options += `<option value="${p.id}">${p.name}</option>`);
                 $('#inout-product').html(options);
+                
+                // Khởi tạo Select2 sau khi có dữ liệu
+                initSelect2();
             }).fail(function() {
                 console.error('Failed to load products');
+                // Vẫn khởi tạo Select2 nếu lỗi
+                initSelect2();
             });
         }
 
@@ -810,7 +855,12 @@ if (isset($_REQUEST['action'])) {
         // Clear result
         $('#clear-result').click(function() {
             $('#inout-search-result').hide();
-            $('#inout-product').val('');
+            // Reset Select2
+            if (productSelect) {
+                productSelect.val(null).trigger('change');
+            } else {
+                $('#inout-product').val('');
+            }
             $('#inout-date-from').val(formatDate(thirtyDaysAgo));
             $('#inout-date-to').val(maxDateTo);
         });
@@ -818,6 +868,7 @@ if (isset($_REQUEST['action'])) {
         // Search form submit
         $('#inout-search-form').submit(function(e) {
             e.preventDefault();
+            // Lấy giá trị từ Select2
             const productId = $('#inout-product').val();
             const dateFrom = $('#inout-date-from').val();
             const dateTo = $('#inout-date-to').val();
