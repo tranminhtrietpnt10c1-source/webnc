@@ -543,9 +543,7 @@ if (isset($_REQUEST['action'])) {
                 <li class="nav-item" role="presentation">
                     <a class="nav-link" href="inventory.php">Danh sách tồn kho</a>
                 </li>
-                <li class="nav-item" role="presentation">
-                    <a class="nav-link" href="inventory_detail.php">Tra cứu tồn kho</a>
-                </li>
+                
                 <li class="nav-item" role="presentation">
                     <a class="nav-link active" href="import_export.php">Tra cứu nhập - xuất kho</a>
                 </li>
