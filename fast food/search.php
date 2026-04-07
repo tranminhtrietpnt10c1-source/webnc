@@ -88,8 +88,17 @@ $has_filters = ($category_filter !== 'all') || ($min_price !== null) || ($max_pr
 $is_advanced_search = !empty($search_query) || $has_filters;
 
 // Lấy giá trị hiển thị cho input (theo nghìn đồng)
-$display_min_price = isset($_GET['min_price']) && $_GET['min_price'] !== '' ? (float)$_GET['min_price'] : '';
-$display_max_price = isset($_GET['max_price']) && $_GET['max_price'] !== '' ? (float)$_GET['max_price'] : '';
+$display_min_price_raw = isset($_GET['min_price']) && $_GET['min_price'] !== '' ? (float)$_GET['min_price'] : '';
+$display_max_price_raw = isset($_GET['max_price']) && $_GET['max_price'] !== '' ? (float)$_GET['max_price'] : '';
+
+// Format số có dấu chấm để hiển thị ban đầu
+function formatNumberWithDots($number) {
+    if ($number === '' || $number === null) return '';
+    return number_format($number, 0, ',', '.');
+}
+
+$display_min_price = formatNumberWithDots($display_min_price_raw);
+$display_max_price = formatNumberWithDots($display_max_price_raw);
 ?>
 
 <!DOCTYPE html>
@@ -121,7 +130,6 @@ $display_max_price = isset($_GET['max_price']) && $_GET['max_price'] !== '' ? (f
   <link href="css/responsive.css" rel="stylesheet" />
 
   <style>
-    /* Căn giữa form group phân loại */
     .form-group-center {
         display: flex;
         flex-direction: column;
@@ -139,7 +147,7 @@ $display_max_price = isset($_GET['max_price']) && $_GET['max_price'] !== '' ? (f
 
     .form-group-center select {
         width: 100%;
-        max-width: 400px; /* Tùy chỉnh độ rộng tối đa */
+        max-width: 400px;
         text-align: center;
         text-align-last: center;
         cursor: pointer;
@@ -159,12 +167,11 @@ $display_max_price = isset($_GET['max_price']) && $_GET['max_price'] !== '' ? (f
         box-shadow: 0 0 0 2px rgba(255, 190, 51, 0.2);
     }
 
-    /* Tùy chỉnh cho các option bên trong select */
     .form-group-center select option {
         text-align: center;
         padding: 8px;
     }
-    /* Đồng bộ hoàn toàn CSS từ menu.php */
+
     .hero_area {
       min-height: auto !important;
     }
@@ -257,7 +264,6 @@ $display_max_price = isset($_GET['max_price']) && $_GET['max_price'] !== '' ? (f
       }
     }
     
-    /* Add to Cart Button Styles */
     .add-to-cart-btn {
       background: #ffbe33;
       border: none;
@@ -287,7 +293,6 @@ $display_max_price = isset($_GET['max_price']) && $_GET['max_price'] !== '' ? (f
       transform: translateY(0);
     }
     
-    /* Cart link button for non-logged in users */
     .cart-link-btn {
       background: #ffbe33;
       border: none;
@@ -369,7 +374,6 @@ $display_max_price = isset($_GET['max_price']) && $_GET['max_price'] !== '' ? (f
       100% { transform: rotate(360deg); }
     }
     
-    /* Product card styles */
     .box {
       margin-bottom: 30px;
       transition: all 0.3s;
@@ -426,7 +430,6 @@ $display_max_price = isset($_GET['max_price']) && $_GET['max_price'] !== '' ? (f
       font-size: 13px;
     }
     
-    /* User dropdown styles */
     .user-dropdown {
       position: relative;
       display: inline-block;
@@ -557,7 +560,6 @@ $display_max_price = isset($_GET['max_price']) && $_GET['max_price'] !== '' ? (f
       background-color: #fff5f5 !important;
     }
     
-    /* Quick Search Bar Styles */
     .quick-search-bar {
       max-width: 600px;
       margin: 20px auto 30px;
@@ -615,7 +617,6 @@ $display_max_price = isset($_GET['max_price']) && $_GET['max_price'] !== '' ? (f
       font-size: 18px;
     }
     
-    /* Filter Sidebar Styles - NỀN ĐEN, INPUT CHỮ ĐEN */
     .filter_sidebar { 
         background: #000000; 
         color: #ffffff; 
@@ -638,12 +639,10 @@ $display_max_price = isset($_GET['max_price']) && $_GET['max_price'] !== '' ? (f
         padding-bottom: 10px;
     }
     
-    /* TĂNG KHOẢNG CÁCH GIỮA CÁC FORM GROUP */
     .filter_sidebar .form-group {
         margin-bottom: 35px;
     }
     
-    /* ĐẶC BIỆT CHO FORM GROUP CUỐI CÙNG (KHOẢNG GIÁ) */
     .filter_sidebar .form-group:last-of-type {
         margin-bottom: 25px;
     }
@@ -656,7 +655,6 @@ $display_max_price = isset($_GET['max_price']) && $_GET['max_price'] !== '' ? (f
         font-size: 14px;
     }
     
-    /* INPUT VÀ SELECT - CHỮ MÀU ĐEN, NỀN TRẮNG - CĂN CHỈNH ĐỀU */
     .filter_sidebar .form-control-lg { 
         background: #ffffff !important;
         border: 1px solid #ddd !important;
@@ -667,11 +665,13 @@ $display_max_price = isset($_GET['max_price']) && $_GET['max_price'] !== '' ? (f
         border-radius: 8px;
         padding: 12px 15px;
         box-sizing: border-box;
+        text-decoration: none !important;
     }
     
     .filter_sidebar .form-control-lg:focus {
         border-color: #ffbe33 !important;
         box-shadow: 0 0 0 0.2rem rgba(255, 190, 51, 0.25);
+        outline: none;
     }
     
     .filter_sidebar .form-control-lg::placeholder {
@@ -698,7 +698,6 @@ $display_max_price = isset($_GET['max_price']) && $_GET['max_price'] !== '' ? (f
         color: #000000;
     }
     
-    /* Price Range Styles - Hiển thị theo cột dọc với khoảng cách đẹp */
     .price-range-wrapper {
         display: flex;
         flex-direction: column;
@@ -807,6 +806,11 @@ $display_max_price = isset($_GET['max_price']) && $_GET['max_price'] !== '' ? (f
       font-size: 14px;
     }
     
+    input, input:focus, input:hover {
+        text-decoration: none !important;
+        outline: none;
+    }
+    
     @media (max-width: 768px) {
       .user-name {
         display: none;
@@ -846,7 +850,6 @@ $display_max_price = isset($_GET['max_price']) && $_GET['max_price'] !== '' ? (f
   <div class="bg-box">
     <img src="images/hero-bg.jpg" alt="">
   </div>
-  <!-- header section strats - GIỐNG MENU.PHP -->
   <header class="header_section">
     <div class="container">
       <nav class="navbar navbar-expand-lg custom_nav-container">
@@ -938,10 +941,8 @@ $display_max_price = isset($_GET['max_price']) && $_GET['max_price'] !== '' ? (f
       </nav>
     </div>
   </header>
-  <!-- end header section -->
 </div>
 
-<!-- food section -->
 <section class="food_section layout_padding">
   <div class="container">
     <div class="heading_container heading_center">
@@ -950,7 +951,6 @@ $display_max_price = isset($_GET['max_price']) && $_GET['max_price'] !== '' ? (f
       </h2>
     </div>
 
-    <!-- THANH TÌM KIẾM NHANH -->
     <div class="quick-search-bar">
       <form action="search.php" method="GET" id="quickSearchForm">
         <div class="input-group">
@@ -964,7 +964,6 @@ $display_max_price = isset($_GET['max_price']) && $_GET['max_price'] !== '' ? (f
       </form>
     </div>
 
-    <!-- Hiển thị thông tin tìm kiếm đang áp dụng -->
     <?php if ($is_advanced_search): ?>
     <div class="search-info">
       <p>
@@ -1002,7 +1001,6 @@ $display_max_price = isset($_GET['max_price']) && $_GET['max_price'] !== '' ? (f
     </div>
     <?php endif; ?>
 
-    <!-- Result count -->
     <div class="result-count">
       <i class="fa fa-cutlery"></i> Tìm thấy <?php echo $total_products; ?> sản phẩm 
       <?php if ($total_products > 0): ?>
@@ -1011,14 +1009,12 @@ $display_max_price = isset($_GET['max_price']) && $_GET['max_price'] !== '' ? (f
     </div>
 
     <div class="row">
-      <!-- Khung tìm kiếm nâng cao - NỀN ĐEN CHỮ TRẮNG, INPUT CHỮ ĐEN -->
       <div class="col-lg-4">
         <div class="filter_sidebar">
           <div style="text-align: center;">
             <h4>TÌM KIẾM NÂNG CAO</h4>
           </div>
           <form action="search.php" method="GET" id="advancedSearchForm">
-            <!-- Tiêu chí 1: Tên món ăn -->
             <div class="form-group">
               <label><i class="fa fa-cutlery"></i> Tên món ăn</label>
               <input type="text" name="query" class="form-control form-control-lg" 
@@ -1026,7 +1022,6 @@ $display_max_price = isset($_GET['max_price']) && $_GET['max_price'] !== '' ? (f
                      value="<?= htmlspecialchars($search_query) ?>">
             </div>
             
-            <!-- Tiêu chí 2: Phân loại danh mục -->
             <div class="form-group">
               <label><i class="fa fa-tags"></i> Phân loại</label>
               <select name="category" class="form-control form-control-lg">
@@ -1039,20 +1034,19 @@ $display_max_price = isset($_GET['max_price']) && $_GET['max_price'] !== '' ? (f
               </select>
             </div>
             
-            <!-- Tiêu chí 3: Khoảng giá -->
             <div class="form-group">
               <label><i class="fa fa-money"></i> Khoảng giá</label>
               <div class="price-range-wrapper">
                 <div class="price-input-group">
-                  <input type="number" name="min_price" class="form-control form-control-lg" 
-                         placeholder="Giá từ (nghìn đồng)" value="<?= htmlspecialchars($display_min_price) ?>" step="1" min="0">
+                  <input type="text" name="min_price" class="form-control form-control-lg price-input" 
+                         placeholder="Giá từ (nghìn đồng)" value="<?= htmlspecialchars($display_min_price) ?>" autocomplete="off">
                 </div>
                 <div class="price-separator">
                   <span>đến</span>
                 </div>
                 <div class="price-input-group">
-                  <input type="number" name="max_price" class="form-control form-control-lg" 
-                         placeholder="Giá đến (nghìn đồng)" value="<?= htmlspecialchars($display_max_price) ?>" step="1" min="0">
+                  <input type="text" name="max_price" class="form-control form-control-lg price-input" 
+                         placeholder="Giá đến (nghìn đồng)" value="<?= htmlspecialchars($display_max_price) ?>" autocomplete="off">
                 </div>
               </div>
               <small class="price-unit">
@@ -1060,19 +1054,16 @@ $display_max_price = isset($_GET['max_price']) && $_GET['max_price'] !== '' ? (f
               </small>
             </div>
             
-            <!-- Nút tìm kiếm -->
             <button type="submit" class="btn btn-filter w-100">
               <i class="fa fa-search"></i> TÌM KIẾM
             </button>
             
-            <!-- Nút đặt lại bộ lọc -->
             <a href="search.php" class="btn-reset">
               <i class="fa fa-refresh"></i> Đặt lại tất cả
             </a>
           </form>
         </div>
         
-        <!-- Gợi ý tìm kiếm -->
         <div style="background: rgba(255, 190, 51, 0.05); padding: 15px; border-radius: 10px; margin-top: 15px;">
           <p style="color: #ffbe33; margin-bottom: 10px; font-size: 13px;">
             <i class="fa fa-lightbulb-o"></i> <strong>Gợi ý:</strong>
@@ -1089,7 +1080,6 @@ $display_max_price = isset($_GET['max_price']) && $_GET['max_price'] !== '' ? (f
         </div>
       </div>
 
-      <!-- Kết quả tìm kiếm -->
       <div class="col-lg-8">
         <div class="filters-content">
           <div class="row grid" id="menu-items-container">
@@ -1141,13 +1131,12 @@ $display_max_price = isset($_GET['max_price']) && $_GET['max_price'] !== '' ? (f
           </div>
         </div>
         
-        <!-- Pagination controls -->
         <?php if ($total_pages > 1): ?>
         <div class="pagination-container">
           <ul class="pagination">
             <li>
               <?php if ($page > 1): ?>
-                <a href="search.php?query=<?php echo urlencode($search_query); ?>&category=<?php echo $category_filter; ?>&min_price=<?php echo $display_min_price; ?>&max_price=<?php echo $display_max_price; ?>&page=1" title="Trang đầu">
+                <a href="search.php?query=<?php echo urlencode($search_query); ?>&category=<?php echo $category_filter; ?>&min_price=<?php echo $display_min_price_raw; ?>&max_price=<?php echo $display_max_price_raw; ?>&page=1" title="Trang đầu">
                   <i class="fa fa-angle-double-left"></i>
                 </a>
               <?php else: ?>
@@ -1157,7 +1146,7 @@ $display_max_price = isset($_GET['max_price']) && $_GET['max_price'] !== '' ? (f
             
             <li>
               <?php if ($page > 1): ?>
-                <a href="search.php?query=<?php echo urlencode($search_query); ?>&category=<?php echo $category_filter; ?>&min_price=<?php echo $display_min_price; ?>&max_price=<?php echo $display_max_price; ?>&page=<?php echo $page - 1; ?>" title="Trang trước">
+                <a href="search.php?query=<?php echo urlencode($search_query); ?>&category=<?php echo $category_filter; ?>&min_price=<?php echo $display_min_price_raw; ?>&max_price=<?php echo $display_max_price_raw; ?>&page=<?php echo $page - 1; ?>" title="Trang trước">
                   <i class="fa fa-angle-left"></i> Trước
                 </a>
               <?php else: ?>
@@ -1170,7 +1159,7 @@ $display_max_price = isset($_GET['max_price']) && $_GET['max_price'] !== '' ? (f
             $end_page = min($total_pages, $page + 2);
             
             if ($start_page > 1) {
-                echo '<li><a href="search.php?query=' . urlencode($search_query) . '&category=' . $category_filter . '&min_price=' . $display_min_price . '&max_price=' . $display_max_price . '&page=1">1</a></li>';
+                echo '<li><a href="search.php?query=' . urlencode($search_query) . '&category=' . $category_filter . '&min_price=' . $display_min_price_raw . '&max_price=' . $display_max_price_raw . '&page=1">1</a></li>';
                 if ($start_page > 2) {
                     echo '<li><a href="#" class="disabled">...</a></li>';
                 }
@@ -1179,7 +1168,7 @@ $display_max_price = isset($_GET['max_price']) && $_GET['max_price'] !== '' ? (f
             for ($i = $start_page; $i <= $end_page; $i++):
             ?>
               <li>
-                <a href="search.php?query=<?php echo urlencode($search_query); ?>&category=<?php echo $category_filter; ?>&min_price=<?php echo $display_min_price; ?>&max_price=<?php echo $display_max_price; ?>&page=<?php echo $i; ?>" class="<?php echo $i == $page ? 'active' : ''; ?>">
+                <a href="search.php?query=<?php echo urlencode($search_query); ?>&category=<?php echo $category_filter; ?>&min_price=<?php echo $display_min_price_raw; ?>&max_price=<?php echo $display_max_price_raw; ?>&page=<?php echo $i; ?>" class="<?php echo $i == $page ? 'active' : ''; ?>">
                   <?php echo $i; ?>
                 </a>
               </li>
@@ -1189,13 +1178,13 @@ $display_max_price = isset($_GET['max_price']) && $_GET['max_price'] !== '' ? (f
                 if ($end_page < $total_pages - 1) {
                     echo '<li><a href="#" class="disabled">...</a></li>';
                 }
-                echo '<li><a href="search.php?query=' . urlencode($search_query) . '&category=' . $category_filter . '&min_price=' . $display_min_price . '&max_price=' . $display_max_price . '&page=' . $total_pages . '">' . $total_pages . '</a></li>';
+                echo '<li><a href="search.php?query=' . urlencode($search_query) . '&category=' . $category_filter . '&min_price=' . $display_min_price_raw . '&max_price=' . $display_max_price_raw . '&page=' . $total_pages . '">' . $total_pages . '</a></li>';
             }
             ?>
             
             <li>
               <?php if ($page < $total_pages): ?>
-                <a href="search.php?query=<?php echo urlencode($search_query); ?>&category=<?php echo $category_filter; ?>&min_price=<?php echo $display_min_price; ?>&max_price=<?php echo $display_max_price; ?>&page=<?php echo $page + 1; ?>" title="Trang sau">
+                <a href="search.php?query=<?php echo urlencode($search_query); ?>&category=<?php echo $category_filter; ?>&min_price=<?php echo $display_min_price_raw; ?>&max_price=<?php echo $display_max_price_raw; ?>&page=<?php echo $page + 1; ?>" title="Trang sau">
                   Sau <i class="fa fa-angle-right"></i>
                 </a>
               <?php else: ?>
@@ -1205,7 +1194,7 @@ $display_max_price = isset($_GET['max_price']) && $_GET['max_price'] !== '' ? (f
             
             <li>
               <?php if ($page < $total_pages): ?>
-                <a href="search.php?query=<?php echo urlencode($search_query); ?>&category=<?php echo $category_filter; ?>&min_price=<?php echo $display_min_price; ?>&max_price=<?php echo $display_max_price; ?>&page=<?php echo $total_pages; ?>" title="Trang cuối">
+                <a href="search.php?query=<?php echo urlencode($search_query); ?>&category=<?php echo $category_filter; ?>&min_price=<?php echo $display_min_price_raw; ?>&max_price=<?php echo $display_max_price_raw; ?>&page=<?php echo $total_pages; ?>" title="Trang cuối">
                   <i class="fa fa-angle-double-right"></i>
                 </a>
               <?php else: ?>
@@ -1224,9 +1213,7 @@ $display_max_price = isset($_GET['max_price']) && $_GET['max_price'] !== '' ? (f
     </div>
   </div>
 </section>
-<!-- end food section -->
 
-<!-- footer section -->
 <footer class="footer_section">
   <div class="container">
     <div class="row">
@@ -1236,10 +1223,10 @@ $display_max_price = isset($_GET['max_price']) && $_GET['max_price'] !== '' ? (f
             Contact Us
           </h4>
           <div class="contact_link_box">
-    <div><i class="fa fa-map-marker"></i><span>Location</span></div>
-    <div><i class="fa fa-phone"></i><span>Call +01 1234567890</span></div>
-    <div><i class="fa fa-envelope"></i><span>demo@gmail.com</span></div>
-</div>
+            <div><i class="fa fa-map-marker"></i><span>Location</span></div>
+            <div><i class="fa fa-phone"></i><span>Call +01 1234567890</span></div>
+            <div><i class="fa fa-envelope"></i><span>demo@gmail.com</span></div>
+          </div>
         </div>
       </div>
       <div class="col-md-4 footer-col">
@@ -1250,7 +1237,6 @@ $display_max_price = isset($_GET['max_price']) && $_GET['max_price'] !== '' ? (f
           <p>
             Necessary, making this the first true generator on the Internet. It uses a dictionary of over 200 Latin words, combined with
           </p>
-          
         </div>
       </div>
       <div class="col-md-4 footer-col">
@@ -1275,19 +1261,12 @@ $display_max_price = isset($_GET['max_price']) && $_GET['max_price'] !== '' ? (f
     </div>
   </div>
 </footer>
-<!-- footer section -->
 
-<!-- jQery -->
 <script src="js/jquery-3.4.1.min.js"></script>
-<!-- popper js -->
 <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"></script>
-<!-- bootstrap js -->
 <script src="js/bootstrap.js"></script>
-<!-- owl slider -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/OwlCarousel2/2.3.4/owl.carousel.min.js"></script>
-<!-- nice select -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-nice-select/1.1.0/js/jquery.nice-select.min.js"></script>
-<!-- custom js -->
 <script src="js/custom.js"></script>
 
 <script>
@@ -1398,12 +1377,130 @@ $display_max_price = isset($_GET['max_price']) && $_GET['max_price'] !== '' ? (f
     });
   }
 
-  // Initialize on page load
+  // ============================================
+  // ĐỊNH DẠNG SỐ KHI NHẬP GIÁ (CHỈ FORMAT KHI RỜI Ô)
+  // ============================================
+
+  // Hàm xóa tất cả ký tự không phải số
+  function cleanNumberFormat(value) {
+    return value.replace(/[^\d]/g, '');
+  }
+
+  // Hàm định dạng số có dấu chấm
+  function formatNumberWithDots(numberStr) {
+    var cleanNumber = cleanNumberFormat(numberStr);
+    if (cleanNumber === '') return '';
+    return cleanNumber.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  }
+
+  // Hàm xử lý định dạng cho input
+  function setupPriceInputFormatting() {
+    var minPriceInput = document.querySelector('input[name="min_price"]');
+    var maxPriceInput = document.querySelector('input[name="max_price"]');
+    
+    // Hàm xử lý khi gõ phím - CHỈ CHO PHÉP NHẬP SỐ, KHÔNG FORMAT
+    function onInputHandler(e) {
+      var input = e.target;
+      var cursorPosition = input.selectionStart;
+      var rawValue = input.value;
+      
+      // Chỉ giữ lại các ký tự số
+      var newValue = rawValue.replace(/[^\d]/g, '');
+      
+      // Nếu có thay đổi (đã xóa ký tự không phải số)
+      if (rawValue !== newValue) {
+        input.value = newValue;
+        // Đặt lại vị trí con trỏ
+        var newCursorPos = cursorPosition - (rawValue.length - newValue.length);
+        if (newCursorPos < 0) newCursorPos = 0;
+        if (newCursorPos > newValue.length) newCursorPos = newValue.length;
+        input.setSelectionRange(newCursorPos, newCursorPos);
+      }
+    }
+    
+    // Hàm xử lý khi rời khỏi ô - THÊM DẤU CHẤM
+    function onBlurHandler(e) {
+      var input = e.target;
+      var rawValue = cleanNumberFormat(input.value);
+      if (rawValue !== '') {
+        input.value = formatNumberWithDots(rawValue);
+      } else {
+        input.value = '';
+      }
+    }
+    
+    // Hàm xử lý khi click vào ô - BỎ DẤU CHẤM
+    function onFocusHandler(e) {
+      var input = e.target;
+      var rawValue = cleanNumberFormat(input.value);
+      if (rawValue !== '') {
+        input.value = rawValue;
+      }
+    }
+    
+    // Gán sự kiện
+    if (minPriceInput) {
+      minPriceInput.removeEventListener('input', onInputHandler);
+      minPriceInput.removeEventListener('blur', onBlurHandler);
+      minPriceInput.removeEventListener('focus', onFocusHandler);
+      minPriceInput.addEventListener('input', onInputHandler);
+      minPriceInput.addEventListener('blur', onBlurHandler);
+      minPriceInput.addEventListener('focus', onFocusHandler);
+    }
+    
+    if (maxPriceInput) {
+      maxPriceInput.removeEventListener('input', onInputHandler);
+      maxPriceInput.removeEventListener('blur', onBlurHandler);
+      maxPriceInput.removeEventListener('focus', onFocusHandler);
+      maxPriceInput.addEventListener('input', onInputHandler);
+      maxPriceInput.addEventListener('blur', onBlurHandler);
+      maxPriceInput.addEventListener('focus', onFocusHandler);
+    }
+  }
+
+  // Xử lý form trước khi submit
+  function fixFormBeforeSubmit() {
+    var advancedForm = document.getElementById('advancedSearchForm');
+    if (!advancedForm) return;
+    
+    advancedForm.addEventListener('submit', function(e) {
+      var minPriceInput = document.querySelector('input[name="min_price"]');
+      var maxPriceInput = document.querySelector('input[name="max_price"]');
+      
+      if (minPriceInput && minPriceInput.value) {
+        var rawValue = cleanNumberFormat(minPriceInput.value);
+        minPriceInput.value = rawValue;
+      }
+      
+      if (maxPriceInput && maxPriceInput.value) {
+        var rawValue = cleanNumberFormat(maxPriceInput.value);
+        maxPriceInput.value = rawValue;
+      }
+    });
+  }
+
+  // Xử lý nút Reset
+  function setupResetButton() {
+    var resetBtn = document.querySelector('.btn-reset');
+    if (resetBtn) {
+      resetBtn.addEventListener('click', function(e) {
+        var loader = document.getElementById('loader');
+        if (loader) {
+          loader.classList.add('show');
+        }
+      });
+    }
+  }
+
+  // Khởi tạo
   document.addEventListener('DOMContentLoaded', function() {
     attachCartEvents();
+    setupPriceInputFormatting();
+    fixFormBeforeSubmit();
+    setupResetButton();
   });
 
-  // Display current year
+  // Hiển thị năm
   document.getElementById('displayYear').innerHTML = new Date().getFullYear();
 </script>
 
