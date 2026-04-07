@@ -68,135 +68,191 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirm_order'])) {
     $notes = $_POST['order_notes'] ?? '';
     $addr_option = $_POST['addr_option'] ?? 'account';
     
-    // Xử lý chọn địa chỉ
-    if ($addr_option === 'temp' && $tempAddress && !empty($tempAddress['address'])) {
-        $customer_name = $tempAddress['full_name'];
-        $customer_phone = $tempAddress['phone'];
-        $customer_address = $tempAddress['address'] . ', ' . $tempAddress['ward'] . ', ' . $tempAddress['district'] . ', ' . $tempAddress['city'];
-        if (!empty($tempAddress['notes'])) {
-            $notes = $tempAddress['notes'] . "\n" . $notes;
+    // ========== KIỂM TRA SỐ LƯỢNG TỒN KHO ==========
+    $stock_errors = [];
+    $cart_items_check = $_SESSION['cart'];
+    
+    foreach ($cart_items_check as $item) {
+        try {
+            $stmt = $pdo->prepare("SELECT stock_quantity, name FROM products WHERE id = ?");
+            $stmt->execute([$item['id']]);
+            $product = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$product) {
+                $stock_errors[] = "Sản phẩm '{$item['name']}' không còn tồn tại trong hệ thống.";
+                continue;
+            }
+            
+            $current_stock = $product['stock_quantity'];
+            $requested_qty = $item['quantity'];
+            
+            if ($current_stock < $requested_qty) {
+                $stock_errors[] = "Sản phẩm '{$product['name']}' chỉ còn {$current_stock} sản phẩm, bạn đang yêu cầu {$requested_qty} sản phẩm.";
+            }
+        } catch (PDOException $e) {
+            $stock_errors[] = "Lỗi kiểm tra sản phẩm '{$item['name']}'";
         }
-        $selected_address_type = 'temp';
-        $selected_address_data = $tempAddress;
-    } else {
-        $customer_name = $user['full_name'];
-        $customer_phone = $user['phone'];
-        $customer_address = $user['address'];
-        $selected_address_type = 'account';
-        $selected_address_data = [
-            'full_name' => $user['full_name'],
-            'phone' => $user['phone'],
-            'address' => $user['address']
-        ];
     }
     
-    // Map payment method to database values
-    $payment_method_map = [
-        'cash' => 'cash',
-        'bank_transfer' => 'bank_transfer',
-        'online' => 'zalopay'
-    ];
-    $db_payment_method = $payment_method_map[$payment_method] ?? 'cash';
-    
-    try {
-        // Generate order code
-        $order_code = 'ORD' . date('Ymd') . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
-        
-        $pdo->beginTransaction();
-        
-        // Set order status to 'pending' (chờ xử lý)
-        $order_status = 'pending';
-        
-        // Insert order with status 'pending'
-        $stmt = $pdo->prepare("INSERT INTO orders (
-            order_code, 
-            user_id, 
-            customer_name, 
-            customer_phone, 
-            customer_email, 
-            customer_address, 
-            order_date, 
-            total_amount, 
-            shipping_fee, 
-            discount, 
-            final_amount, 
-            status, 
-            payment_method, 
-            notes,
-            created_at,
-            updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())");
-        
-        $stmt->execute([
-            $order_code,
-            $user_id,
-            $customer_name,
-            $customer_phone,
-            $user['email'] ?? '',
-            $customer_address,
-            $subtotal,
-            $shipping_fee,
-            0, // discount
-            $total,
-            $order_status,
-            $db_payment_method,
-            $notes
-        ]);
-        
-        $order_id = $pdo->lastInsertId();
-        
-        // Insert order details
-        $stmt = $pdo->prepare("INSERT INTO order_details (order_id, product_id, quantity, unit_price, subtotal) VALUES (?, ?, ?, ?, ?)");
-        foreach ($cart_items as $item) {
-            $subtotal_item = $item['price'] * $item['quantity'];
-            $stmt->execute([
-                $order_id, 
-                $item['id'], 
-                $item['quantity'], 
-                $item['price'],
-                $subtotal_item
-            ]);
-        }
-        
-        $pdo->commit();
-        
-        // Clear cart
-        $_SESSION['cart'] = [];
-        
-        // ========== LƯU ĐỊA CHỈ ĐÃ CHỌN VÀO SESSION ==========
-        if ($selected_address_type === 'temp') {
-            $_SESSION['used_shipping_address'] = [
-                'type' => 'temp',
-                'full_name' => $selected_address_data['full_name'],
-                'phone' => $selected_address_data['phone'],
-                'address' => $selected_address_data['address'] . ', ' . $selected_address_data['ward'] . ', ' . $selected_address_data['district'] . ', ' . $selected_address_data['city'],
-                'notes' => $selected_address_data['notes'] ?? ''
-            ];
+    if (!empty($stock_errors)) {
+        $error = '<div class="alert alert-danger"><strong><i class="fa fa-exclamation-triangle"></i> Không đủ số lượng tồn kho!</strong><br>' . implode('<br>', $stock_errors) . '</div>';
+    } else {
+        // Xử lý chọn địa chỉ
+        if ($addr_option === 'temp' && $tempAddress && !empty($tempAddress['address'])) {
+            $customer_name = $tempAddress['full_name'];
+            $customer_phone = $tempAddress['phone'];
+            $customer_address = $tempAddress['address'] . ', ' . $tempAddress['ward'] . ', ' . $tempAddress['district'] . ', ' . $tempAddress['city'];
+            if (!empty($tempAddress['notes'])) {
+                $notes = $tempAddress['notes'] . "\n" . $notes;
+            }
+            $selected_address_type = 'temp';
+            $selected_address_data = $tempAddress;
         } else {
-            $_SESSION['used_shipping_address'] = [
-                'type' => 'account',
-                'full_name' => $selected_address_data['full_name'],
-                'phone' => $selected_address_data['phone'],
-                'address' => $selected_address_data['address'],
-                'notes' => ''
+            $customer_name = $user['full_name'];
+            $customer_phone = $user['phone'];
+            $customer_address = $user['address'];
+            $selected_address_type = 'account';
+            $selected_address_data = [
+                'full_name' => $user['full_name'],
+                'phone' => $user['phone'],
+                'address' => $user['address']
             ];
         }
         
-        // Xóa địa chỉ tạm sau khi đã lưu
-        unset($_SESSION['temp_shipping_address']);
-        // ========== KẾT THÚC ==========
+        // Map payment method to database values
+        $payment_method_map = [
+            'cash' => 'cash',
+            'bank_transfer' => 'bank_transfer',
+            'online' => 'zalopay'
+        ];
+        $db_payment_method = $payment_method_map[$payment_method] ?? 'cash';
         
-        // Log successful order creation
-        error_log("Order created successfully - Order Code: $order_code, User ID: $user_id, Status: $order_status");
-        
-        // Redirect to order_success.php
-        header('Location: order_success.php?code=' . urlencode($order_code));
-        exit;
-        
-    } catch (PDOException $e) {
-        $pdo->rollBack();
-        $error = "Lỗi khi đặt hàng: " . $e->getMessage();
-        error_log("Order creation failed - User ID: $user_id, Error: " . $e->getMessage());
+        try {
+            // Generate order code
+            $order_code = 'ORD' . date('Ymd') . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
+            
+            $pdo->beginTransaction();
+            
+            // ========== KIỂM TRA LẠI TỒN KHO LẦN 2 (TRONG TRANSACTION) ==========
+            $final_stock_errors = [];
+            foreach ($cart_items as $item) {
+                $stmt = $pdo->prepare("SELECT stock_quantity, name FROM products WHERE id = ? FOR UPDATE");
+                $stmt->execute([$item['id']]);
+                $product = $stmt->fetch(PDO::FETCH_ASSOC);
+                
+                if (!$product) {
+                    $final_stock_errors[] = "Sản phẩm '{$item['name']}' không còn tồn tại.";
+                } elseif ($product['stock_quantity'] < $item['quantity']) {
+                    $final_stock_errors[] = "Sản phẩm '{$product['name']}' chỉ còn {$product['stock_quantity']} sản phẩm, bạn đang yêu cầu {$item['quantity']} sản phẩm.";
+                }
+            }
+            
+            if (!empty($final_stock_errors)) {
+                $pdo->rollBack();
+                $error = '<div class="alert alert-danger"><strong><i class="fa fa-exclamation-triangle"></i> Rất tiếc, một số sản phẩm đã hết hàng hoặc không đủ số lượng:</strong><br>' . implode('<br>', $final_stock_errors) . '</div>';
+            } else {
+                // Set order status to 'pending' (chờ xử lý)
+                $order_status = 'pending';
+                
+                // Insert order with status 'pending'
+                $stmt = $pdo->prepare("INSERT INTO orders (
+                    order_code, 
+                    user_id, 
+                    customer_name, 
+                    customer_phone, 
+                    customer_email, 
+                    customer_address, 
+                    order_date, 
+                    total_amount, 
+                    shipping_fee, 
+                    discount, 
+                    final_amount, 
+                    status, 
+                    payment_method, 
+                    notes,
+                    created_at,
+                    updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())");
+                
+                $stmt->execute([
+                    $order_code,
+                    $user_id,
+                    $customer_name,
+                    $customer_phone,
+                    $user['email'] ?? '',
+                    $customer_address,
+                    $subtotal,
+                    $shipping_fee,
+                    0, // discount
+                    $total,
+                    $order_status,
+                    $db_payment_method,
+                    $notes
+                ]);
+                
+                $order_id = $pdo->lastInsertId();
+                
+                // ========== TRỪ SỐ LƯỢNG TỒN KHO ==========
+                $update_stock_stmt = $pdo->prepare("UPDATE products SET stock_quantity = stock_quantity - ? WHERE id = ?");
+                foreach ($cart_items as $item) {
+                    $update_stock_stmt->execute([$item['quantity'], $item['id']]);
+                }
+                // ========== KẾT THÚC TRỪ TỒN KHO ==========
+                
+                // Insert order details
+                $stmt = $pdo->prepare("INSERT INTO order_details (order_id, product_id, quantity, unit_price, subtotal) VALUES (?, ?, ?, ?, ?)");
+                foreach ($cart_items as $item) {
+                    $subtotal_item = $item['price'] * $item['quantity'];
+                    $stmt->execute([
+                        $order_id, 
+                        $item['id'], 
+                        $item['quantity'], 
+                        $item['price'],
+                        $subtotal_item
+                    ]);
+                }
+                
+                $pdo->commit();
+                
+                // Clear cart
+                $_SESSION['cart'] = [];
+                
+                // Lưu địa chỉ đã chọn vào session
+                if ($selected_address_type === 'temp') {
+                    $_SESSION['used_shipping_address'] = [
+                        'type' => 'temp',
+                        'full_name' => $selected_address_data['full_name'],
+                        'phone' => $selected_address_data['phone'],
+                        'address' => $selected_address_data['address'] . ', ' . $selected_address_data['ward'] . ', ' . $selected_address_data['district'] . ', ' . $selected_address_data['city'],
+                        'notes' => $selected_address_data['notes'] ?? ''
+                    ];
+                } else {
+                    $_SESSION['used_shipping_address'] = [
+                        'type' => 'account',
+                        'full_name' => $selected_address_data['full_name'],
+                        'phone' => $selected_address_data['phone'],
+                        'address' => $selected_address_data['address'],
+                        'notes' => ''
+                    ];
+                }
+                
+                // Xóa địa chỉ tạm sau khi đã lưu
+                unset($_SESSION['temp_shipping_address']);
+                
+                // Log successful order creation
+                error_log("Order created successfully - Order Code: $order_code, User ID: $user_id, Status: $order_status");
+                
+                // Redirect to order_success.php
+                header('Location: order_success.php?code=' . urlencode($order_code));
+                exit;
+            }
+        } catch (PDOException $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            $error = '<div class="alert alert-danger">Lỗi khi đặt hàng: ' . htmlspecialchars($e->getMessage()) . '</div>';
+            error_log("Order creation failed - User ID: $user_id, Error: " . $e->getMessage());
+        }
     }
 }
 
@@ -337,6 +393,11 @@ $status_colors = [
             background-color: #d4edda;
             color: #155724;
             border: 1px solid #c3e6cb;
+        }
+        .alert-danger {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
         }
         .cart-count {
             position: absolute;
@@ -552,6 +613,18 @@ $status_colors = [
             cursor: pointer;
         }
         
+        .stock-warning {
+            color: #e67e22;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+        .stock-danger {
+            color: #e74c3c;
+            font-size: 12px;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+        
         @media (max-width: 768px) {
             .user-name {
                 display: none;
@@ -685,8 +758,8 @@ $status_colors = [
         </div>
 
         <?php if ($error): ?>
-            <div class="alert alert-error">
-                <i class="fa fa-exclamation-circle"></i> <?php echo htmlspecialchars($error); ?>
+            <div class="alert alert-danger">
+                <?php echo $error; ?>
             </div>
         <?php endif; ?>
 
@@ -865,11 +938,35 @@ $status_colors = [
                     <div class="order-summary">
                         <h4><i class="fa fa-shopping-cart"></i> Tóm tắt đơn hàng</h4>
                         <div id="order-items-container">
-                            <?php foreach ($cart_items as $item): ?>
+                            <?php 
+                            // Lấy thông tin tồn kho cho từng sản phẩm để hiển thị cảnh báo
+                            $stock_warnings = [];
+                            foreach ($cart_items as $index => $item):
+                                try {
+                                    $stmt = $pdo->prepare("SELECT stock_quantity FROM products WHERE id = ?");
+                                    $stmt->execute([$item['id']]);
+                                    $stock = $stmt->fetch(PDO::FETCH_ASSOC);
+                                    $current_stock = $stock ? $stock['stock_quantity'] : 0;
+                                    $stock_warnings[$item['id']] = $current_stock;
+                                } catch (PDOException $e) {
+                                    $stock_warnings[$item['id']] = 0;
+                                }
+                            ?>
                             <div class="order-item">
                                 <div>
                                     <p class="mb-1"><strong><?php echo htmlspecialchars($item['name']); ?></strong></p>
                                     <p class="mb-0 text-muted">Số lượng: <?php echo $item['quantity']; ?></p>
+                                    <?php if ($stock_warnings[$item['id']] < $item['quantity']): ?>
+                                        <p class="stock-danger">
+                                            <i class="fa fa-exclamation-circle"></i> 
+                                            Không đủ hàng! (Tồn: <?= $stock_warnings[$item['id']] ?>)
+                                        </p>
+                                    <?php elseif ($stock_warnings[$item['id']] <= 5): ?>
+                                        <p class="stock-warning">
+                                            <i class="fa fa-warning"></i> 
+                                            Chỉ còn <?= $stock_warnings[$item['id']] ?> sản phẩm
+                                        </p>
+                                    <?php endif; ?>
                                 </div>
                                 <span><?php echo number_format($item['price'] * $item['quantity'], 0, ',', '.'); ?>đ</span>
                             </div>
@@ -901,7 +998,7 @@ $status_colors = [
                             </p>
                         </div>
                         
-                        <button type="submit" name="confirm_order" class="btn btn-primary btn-block mt-3" onclick="return confirm('Xác nhận đặt hàng?')">
+                        <button type="submit" name="confirm_order" class="btn btn-primary btn-block mt-3" onclick="return validateStockBeforeSubmit()">
                             <i class="fa fa-check-circle"></i> Xác nhận thanh toán
                         </button>
                         <a href="cart.php" class="btn btn-outline-secondary btn-block mt-2">
@@ -1033,6 +1130,29 @@ $status_colors = [
             }
         });
     });
+    
+    // ========== KIỂM TRA TỒN KHO TRƯỚC KHI SUBMIT ==========
+    function validateStockBeforeSubmit() {
+        var hasStockError = false;
+        var errorMessages = [];
+        
+        // Kiểm tra các sản phẩm hiển thị trên trang
+        document.querySelectorAll('.order-item').forEach(function(item) {
+            var stockWarning = item.querySelector('.stock-danger');
+            if (stockWarning && stockWarning.innerText.includes('Không đủ hàng')) {
+                hasStockError = true;
+                var productName = item.querySelector('strong').innerText;
+                errorMessages.push('- ' + productName + ': ' + stockWarning.innerText.trim());
+            }
+        });
+        
+        if (hasStockError) {
+            alert('❌ Không thể đặt hàng vì một số sản phẩm không đủ số lượng tồn kho:\n\n' + errorMessages.join('\n') + '\n\nVui lòng cập nhật lại giỏ hàng.');
+            return false;
+        }
+        
+        return confirm('✅ Xác nhận đặt hàng?');
+    }
     
     // ========== HÀM XỬ LÝ ĐỊA CHỈ ==========
     function toggleAddressForm() {
