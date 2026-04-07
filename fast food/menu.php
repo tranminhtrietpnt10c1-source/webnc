@@ -46,8 +46,8 @@ if ($page > $total_pages && $total_pages > 0) {
     $offset = ($page - 1) * $limit;
 }
 
-// Get products for current page
-$sql = "SELECT p.id, p.name, p.description, p.image, p.category_id,
+// Get products for current page - Thêm stock_quantity
+$sql = "SELECT p.id, p.name, p.description, p.image, p.category_id, p.stock_quantity,
                (p.cost_price * (1 + p.profit_percentage/100)) AS selling_price
         FROM products p
         $where_clause
@@ -231,6 +231,21 @@ if ($is_logged_in) {
     
     .add-to-cart-btn:active {
       transform: translateY(0);
+    }
+    
+    /* Out of stock button styles */
+    .add-to-cart-btn.out-of-stock {
+      background: #ccc !important;
+      cursor: not-allowed !important;
+      opacity: 0.7;
+      transform: none !important;
+      box-shadow: none !important;
+    }
+    
+    .add-to-cart-btn.out-of-stock:hover {
+      background: #ccc !important;
+      transform: none !important;
+      box-shadow: none !important;
     }
     
     /* Cart link button for non-logged in users */
@@ -553,7 +568,6 @@ if ($is_logged_in) {
     }
 
     /* Description styling */
-    /* Description styling */
     .detail-box p {
       color: white !important;
       line-height: 1.5;
@@ -718,7 +732,9 @@ if ($is_logged_in) {
             </div>
           </div>
         <?php else: ?>
-          <?php foreach ($products as $product): ?>
+          <?php foreach ($products as $product): 
+              $is_out_of_stock = ($product['stock_quantity'] <= 0);
+          ?>
             <div class="col-sm-6 col-lg-4">
               <div class="box">
                 <a href="product_detail.php?id=<?php echo $product['id']; ?>">
@@ -731,7 +747,11 @@ if ($is_logged_in) {
                   <p><?php echo htmlspecialchars($product['description']); ?></p>
                   <div class="options">
                     <h6><?php echo number_format($product['selling_price'], 0, ',', '.'); ?>đ</h6>
-                    <?php if ($is_logged_in): ?>
+                    <?php if ($is_out_of_stock): ?>
+                      <button class="add-to-cart-btn out-of-stock" disabled style="background:#ccc; cursor:not-allowed; opacity:0.7;">
+                        <i class="fa fa-shopping-cart"></i> Hết hàng
+                      </button>
+                    <?php elseif ($is_logged_in): ?>
                       <button class="add-to-cart-btn" 
                               data-id="<?php echo $product['id']; ?>"
                               data-name="<?php echo htmlspecialchars($product['name']); ?>"
@@ -1012,17 +1032,20 @@ if ($is_logged_in) {
   function attachCartEvents() {
     var buttons = document.querySelectorAll('.add-to-cart-btn');
     buttons.forEach(function(button) {
-      var newButton = button.cloneNode(true);
-      button.parentNode.replaceChild(newButton, button);
-      
-      newButton.addEventListener('click', function(e) {
-        e.preventDefault();
-        var productId = this.getAttribute('data-id');
-        var name = this.getAttribute('data-name');
-        var price = this.getAttribute('data-price');
-        var image = this.getAttribute('data-image');
-        addToCart(productId, name, price, image);
-      });
+      // Chỉ xử lý nút không bị disabled (không phải nút hết hàng)
+      if (button.tagName === 'BUTTON' && !button.disabled) {
+        var newButton = button.cloneNode(true);
+        button.parentNode.replaceChild(newButton, button);
+        
+        newButton.addEventListener('click', function(e) {
+          e.preventDefault();
+          var productId = this.getAttribute('data-id');
+          var name = this.getAttribute('data-name');
+          var price = this.getAttribute('data-price');
+          var image = this.getAttribute('data-image');
+          addToCart(productId, name, price, image);
+        });
+      }
     });
   }
 

@@ -10,7 +10,8 @@ $totalProducts = $totalStmt->fetchColumn();
 $totalPages = ceil($totalProducts / $limit);
 
 // Tính selling_price trực tiếp trong SQL từ cost_price và profit_percentage
-$stmt = $pdo->prepare("SELECT p.id, p.name, p.description, p.image, p.cost_price, p.profit_percentage,
+// Thêm stock_quantity vào SELECT
+$stmt = $pdo->prepare("SELECT p.id, p.name, p.description, p.image, p.cost_price, p.profit_percentage, p.stock_quantity,
                               (p.cost_price * (1 + p.profit_percentage/100)) AS selling_price
                        FROM products p
                        WHERE p.status = 'active'
