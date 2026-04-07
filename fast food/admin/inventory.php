@@ -1023,14 +1023,7 @@ foreach ($all_products as $product) {
                                 </div>
                                 <button type="reset" class="btn btn-outline-secondary"><i class="fas fa-undo me-2"></i>Đặt lại</button>
                             </div>
-                            <div class="date-range-info" id="date-range-info">
-                                <i class="fas fa-info-circle"></i>
-                                <span>Khoảng ngày tra cứu: <strong id="min-date-display"><?php echo date('d/m/Y', strtotime($first_import_date)); ?></strong> → <strong id="max-date-display"><?php echo date('d/m/Y', strtotime($current_date)); ?></strong></span>
-                            </div>
-                            <div class="current-date-info" id="current-date-info">
-                                <i class="fas fa-calendar-day me-1"></i>
-                                <span>Ngày hiện tại trên máy chủ: <strong><?php echo date('d/m/Y', strtotime($current_date)); ?></strong></span>
-                            </div>
+                            
                             <small class="text-muted mt-2 d-block" id="date-hint">
                                 <i class="fas fa-info-circle me-1"></i>Để trống để xem tồn kho hiện tại. Chọn ngày trong khoảng cho phép để xem tồn kho tại thời điểm đó.
                             </small>

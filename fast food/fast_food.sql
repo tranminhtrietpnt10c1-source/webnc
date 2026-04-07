@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Máy chủ: 127.0.0.1
--- Thời gian đã tạo: Th4 07, 2026 lúc 05:49 AM
+-- Thời gian đã tạo: Th4 07, 2026 lúc 04:53 PM
 -- Phiên bản máy phục vụ: 10.4.32-MariaDB
 -- Phiên bản PHP: 8.0.30
 
@@ -110,7 +110,12 @@ INSERT INTO `imports` (`id`, `import_code`, `import_date`, `supplier`, `total_am
 (15, 'PN-20260406-69D3E8D0', '2026-04-06', 'Công ty TNHH Huỳnh Ngọc Quí', 1150000.00, 'completed', 'Đợt nhập 06/04/2026 19:09:36', 7, '2026-04-06 17:09:36', '2026-04-06 17:09:40'),
 (16, 'PN-20260407-69D47560', '2026-04-07', 'abc', 155000.00, 'completed', 'Đợt nhập 07/04/2026 05:09:20', 7, '2026-04-07 03:09:20', '2026-04-07 03:09:33'),
 (17, 'PN-20260407-69D47D0E', '2026-04-07', 'abc', 450000.00, 'completed', 'Đợt nhập 07/04/2026 05:42:06', 7, '2026-04-07 03:42:06', '2026-04-07 03:42:16'),
-(18, 'PN-20260407-69D47D93', '2026-04-07', '', 1000000.00, 'completed', 'Đợt nhập 07/04/2026 05:44:19', 7, '2026-04-07 03:44:19', '2026-04-07 03:44:22');
+(18, 'PN-20260407-69D47D93', '2026-04-07', '', 1000000.00, 'completed', 'Đợt nhập 07/04/2026 05:44:19', 7, '2026-04-07 03:44:19', '2026-04-07 03:44:22'),
+(19, 'PN-20260407-69D50FE6', '2026-04-07', 'abc', 152500.00, 'completed', 'Đợt nhập 07/04/2026 16:08:38', 7, '2026-04-07 14:08:38', '2026-04-07 14:08:41'),
+(20, 'PN-20260407-69D5102A', '2026-04-07', 'abc', 157500.00, 'completed', 'Đợt nhập 07/04/2026 16:09:46', 7, '2026-04-07 14:09:46', '2026-04-07 14:09:50'),
+(21, 'PN-20260407-69D51100', '2026-04-07', '', 160000.00, 'completed', 'Đợt nhập 07/04/2026 16:13:20', 7, '2026-04-07 14:13:20', '2026-04-07 14:13:23'),
+(22, 'PN-20260407-69D5190E', '2026-04-07', 'abc', 150000.00, 'completed', 'Đợt nhập 07/04/2026 16:47:42', 7, '2026-04-07 14:47:42', '2026-04-07 14:47:45'),
+(23, 'PN-20260407-69D51A05', '2026-04-07', 'Công ty TNHH Huỳnh Ngọc Quí', 562500.00, 'completed', 'Đợt nhập 07/04/2026 16:51:49', 7, '2026-04-07 14:51:49', '2026-04-07 14:51:51');
 
 -- --------------------------------------------------------
 
@@ -158,7 +163,12 @@ INSERT INTO `import_details` (`id`, `import_id`, `product_id`, `quantity`, `unit
 (34, 15, 10, 10, 115000.00, 1150000.00),
 (36, 16, 11, 5, 31000.00, 155000.00),
 (37, 17, 11, 15, 30000.00, 450000.00),
-(38, 18, 10, 10, 100000.00, 1000000.00);
+(38, 18, 10, 10, 100000.00, 1000000.00),
+(39, 19, 11, 5, 30500.00, 152500.00),
+(40, 20, 4, 5, 31500.00, 157500.00),
+(41, 21, 5, 5, 32000.00, 160000.00),
+(42, 22, 4, 5, 30000.00, 150000.00),
+(43, 23, 10, 5, 112500.00, 562500.00);
 
 -- --------------------------------------------------------
 
@@ -213,7 +223,9 @@ INSERT INTO `orders` (`id`, `order_code`, `user_id`, `customer_name`, `customer_
 (26, 'ORD202604074678', 12, 'jamesss', '0395489755', 'james@gmail.com', '123 Đường ABC, Quận 1, TP.HCM', '2026-04-07', 956967.74, 30000.00, 0.00, 986967.74, 'shipped', 'cash', '', '2026-04-07 03:12:00', '2026-04-07 03:15:25'),
 (27, 'ORD202604071721', 12, 'jamesss', '0395489755', 'james@gmail.com', '123 Đường ABC, Quận 1, TP.HCM', '2026-04-07', 223650.00, 30000.00, 0.00, 253650.00, 'shipped', 'cash', '', '2026-04-07 03:22:32', '2026-04-07 03:41:49'),
 (28, 'ORD202604077656', 12, 'jamesss', '0395489755', 'james@gmail.com', '123 Đường ABC, Quận 1, TP.HCM', '2026-04-07', 172500.00, 30000.00, 0.00, 202500.00, 'shipped', 'cash', '', '2026-04-07 03:41:33', '2026-04-07 03:41:48'),
-(29, 'ORD202604078472', 12, 'jamesss', '0395489755', 'james@gmail.com', '123 Đường ABC, Quận 1, TP.HCM', '2026-04-07', 213000.00, 30000.00, 0.00, 243000.00, 'cancelled', 'cash', '\n========== HỦY ĐƠN HÀNG ==========\nThời gian hủy: 2026-04-07 05:43:20\nLý do hủy: \n==================================\n', '2026-04-07 03:43:06', '2026-04-07 03:43:20');
+(29, 'ORD202604078472', 12, 'jamesss', '0395489755', 'james@gmail.com', '123 Đường ABC, Quận 1, TP.HCM', '2026-04-07', 213000.00, 30000.00, 0.00, 243000.00, 'cancelled', 'cash', '\n========== HỦY ĐƠN HÀNG ==========\nThời gian hủy: 2026-04-07 05:43:20\nLý do hủy: \n==================================\n', '2026-04-07 03:43:06', '2026-04-07 03:43:20'),
+(30, 'ORD202604073418', 12, 'jamesss', '0395489755', 'james@gmail.com', '123 Đường ABC, Quận 1, TP.HCM', '2026-04-07', 432062.52, 30000.00, 0.00, 462062.52, 'shipped', 'cash', '', '2026-04-07 14:49:41', '2026-04-07 14:49:52'),
+(31, 'ORD202604079908', 12, 'jamesss', '0395489755', 'james@gmail.com', '123 Đường ABC, Quận 1, TP.HCM', '2026-04-07', 1296187.55, 30000.00, 0.00, 1326187.55, 'shipped', 'cash', '', '2026-04-07 14:50:34', '2026-04-07 14:50:45');
 
 --
 -- Bẫy `orders`
@@ -295,7 +307,9 @@ INSERT INTO `order_details` (`id`, `order_id`, `product_id`, `quantity`, `unit_p
 (56, 26, 1, 7, 136709.68, 956967.74),
 (57, 27, 11, 5, 44730.00, 223650.00),
 (58, 28, 10, 3, 57500.00, 172500.00),
-(59, 29, 11, 5, 42600.00, 213000.00);
+(59, 29, 11, 5, 42600.00, 213000.00),
+(60, 30, 10, 3, 144020.84, 432062.52),
+(61, 31, 10, 9, 144020.84, 1296187.55);
 
 --
 -- Bẫy `order_details`
@@ -362,7 +376,12 @@ INSERT INTO `pricing_log` (`id`, `product_id`, `old_cost_price`, `new_cost_price
 (28, 11, 31500.00, 30000.00, NULL, NULL, 7, 'Cập nhật từ phiếu nhập PN-20260407-69D47D0E', '2026-04-07 03:42:15'),
 (29, 10, NULL, NULL, 0.00, 83000.00, 7, 'Cập nhật tỷ lệ lợi nhuận từ 0% lên 45%', '2026-04-07 03:43:42'),
 (30, 10, 57500.00, 92916.67, NULL, NULL, 7, 'Cập nhật từ phiếu nhập PN-20260407-69D47D93', '2026-04-07 03:44:22'),
-(31, 10, NULL, NULL, 83000.00, 144000.00, 7, 'Cập nhật tỷ lệ lợi nhuận từ 45% lên 55%', '2026-04-07 03:44:47');
+(31, 10, NULL, NULL, 83000.00, 144000.00, 7, 'Cập nhật tỷ lệ lợi nhuận từ 45% lên 55%', '2026-04-07 03:44:47'),
+(32, 11, 30000.00, 30125.00, NULL, NULL, 7, 'Cập nhật từ phiếu nhập PN-20260407-69D50FE6', '2026-04-07 14:08:41'),
+(33, 4, 35000.00, 34783.95, NULL, NULL, 7, 'Cập nhật từ phiếu nhập PN-20260407-69D5102A', '2026-04-07 14:09:50'),
+(34, 5, 33125.00, 33042.28, NULL, NULL, 7, 'Cập nhật từ phiếu nhập PN-20260407-69D51100', '2026-04-07 14:13:23'),
+(35, 4, 34783.95, 34505.81, 46958.33, 46582.85, 7, 'Cập nhật từ phiếu nhập PN-20260407-69D5190E', '2026-04-07 14:47:45'),
+(36, 10, 92916.67, 112500.00, 144020.84, 174375.00, 7, 'Cập nhật từ phiếu nhập PN-20260407-69D51A05', '2026-04-07 14:51:51');
 
 -- --------------------------------------------------------
 
@@ -384,24 +403,24 @@ CREATE TABLE `products` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   `profit_percentage` int(11) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Đang đổ dữ liệu cho bảng `products`
 --
 
 INSERT INTO `products` (`id`, `code`, `name`, `category_id`, `description`, `image`, `cost_price`, `selling_price`, `stock_quantity`, `status`, `created_at`, `updated_at`, `profit_percentage`) VALUES
-(1, 'PZ001', 'Pizza hải sản', 1, 'Đế bánh giòn tan, phủ hải sản tươi ngon (tôm, mực, nghêu), phô mai béo mịn, sốt cà chua đậm đà', 'images/f1.png', 105161.29, 132096.77, 67, 'active', '2026-03-21 05:51:52', '2026-04-07 03:46:51', 30),
-(2, 'PZ002', 'Pizza phô mai', 1, 'Đế giòn vàng, phô mai mozzarella béo ngậy tan chảy, sốt cà chua, hương vị thơm lừng', 'images/f3.png', 91785.71, 119321.43, 55, 'active', '2026-03-21 05:51:52', '2026-04-07 03:46:51', 30),
-(3, 'PZ003', 'Pizza 3 vị', 1, 'Đế pizza giòn thơm, kết hợp ba hương vị: hải sản, phô mai, pepperoni, hấp dẫn mọi thực khách', 'images/f6.png', 112777.78, 146611.11, 45, 'active', '2026-03-21 05:51:52', '2026-04-07 03:46:51', 30),
-(4, 'BG001', 'Burger bò', 2, 'Thịt bò Úc nướng than hoa, rau tươi, sốt đặc trưng, phô mai cheddar tan chảy', 'images/f2.png', 35000.00, 47828.57, 76, 'active', '2026-03-21 05:51:52', '2026-04-07 03:46:51', 35),
-(5, 'BG002', 'Burger gà chiên', 2, 'Ức gà chiên giòn, sốt bơ tỏi, rau tươi, phô mai, bánh mì mềm', 'images/f7.png', 33125.00, 44718.75, 63, 'active', '2026-03-21 05:51:52', '2026-04-07 03:46:51', 35),
-(6, 'BG003', 'Burger ức gà', 2, 'Burger ức gà mềm, sốt mật ong, rau tươi, phô mai, bánh mì đen', 'images/f8.png', 33136.36, 45675.00, 53, 'active', '2026-03-21 05:51:52', '2026-04-07 03:46:51', 35),
-(7, 'PA001', 'Pasta rau củ', 3, 'Sợi mì spaghetti mềm mịn hòa quyện sốt kem béo ngậy, rau củ tươi (bông cải, cà rốt, nấm)', 'images/f4.png', 56538.46, 79153.85, 63, 'active', '2026-03-21 05:51:52', '2026-04-07 03:46:51', 40),
-(8, 'PA002', 'Pasta phô mai', 3, 'Sợi mì fettuccine hòa quyện sốt kem phô mai Parmesan, thịt xông khói, hương vị Ý đậm đà', 'images/f9.png', 61090.91, 85527.27, 48, 'active', '2026-03-21 05:51:52', '2026-04-07 03:46:51', 40),
-(9, 'FR001', 'Khoai tây chiên', 4, 'Khoai tây chiên vàng giòn, muối vừa, thơm ngon, chấm sốt cà chua hoặc sốt mayonnaise', 'images/f5.png', 12166.67, 19000.00, 167, 'active', '2026-03-21 05:51:52', '2026-04-07 03:46:51', 55),
-(10, 'PZ004', 'Pizza thập cẩm', 1, 'Pizza thập cẩm, nhiều tâng hương vị', 'images/product_1774706669_69c7dfed5992f.png', 92916.67, 144000.00, 12, 'active', '2026-03-27 06:49:46', '2026-04-07 03:46:51', 55),
-(11, 'BG004', 'Burger tôm', 2, 'burger tôm với thịt tôm tươi, mềm mại mang đến hương vị thanh mát', 'images/product_1774706688_69c7e000bdf48.png', 30000.00, 45000.00, 15, 'active', '2026-03-27 14:24:37', '2026-04-07 03:46:51', 42);
+(1, 'PZ001', 'Pizza hải sản', 1, 'Đế bánh giòn tan, phủ hải sản tươi ngon (tôm, mực, nghêu), phô mai béo mịn, sốt cà chua đậm đà', 'images/f1.png', 105161.29, 136709.68, 67, 'active', '2026-03-21 05:51:52', '2026-04-07 14:52:17', 30),
+(2, 'PZ002', 'Pizza phô mai', 1, 'Đế giòn vàng, phô mai mozzarella béo ngậy tan chảy, sốt cà chua, hương vị thơm lừng', 'images/f3.png', 91785.71, 119321.42, 55, 'active', '2026-03-21 05:51:52', '2026-04-07 14:52:17', 30),
+(3, 'PZ003', 'Pizza 3 vị', 1, 'Đế pizza giòn thơm, kết hợp ba hương vị: hải sản, phô mai, pepperoni, hấp dẫn mọi thực khách', 'images/f6.png', 112777.78, 146611.11, 45, 'active', '2026-03-21 05:51:52', '2026-04-07 14:52:17', 30),
+(4, 'BG001', 'Burger bò', 2, 'Thịt bò Úc nướng than hoa, rau tươi, sốt đặc trưng, phô mai cheddar tan chảy', 'images/f2.png', 34505.81, 46582.85, 86, 'active', '2026-03-21 05:51:52', '2026-04-07 14:52:17', 35),
+(5, 'BG002', 'Burger gà chiên', 2, 'Ức gà chiên giòn, sốt bơ tỏi, rau tươi, phô mai, bánh mì mềm', 'images/f7.png', 33042.28, 44607.08, 68, 'active', '2026-03-21 05:51:52', '2026-04-07 14:52:17', 35),
+(6, 'BG003', 'Burger ức gà', 2, 'Burger ức gà mềm, sốt mật ong, rau tươi, phô mai, bánh mì đen', 'images/f8.png', 33136.36, 44734.09, 53, 'active', '2026-03-21 05:51:52', '2026-04-07 14:52:17', 35),
+(7, 'PA001', 'Pasta rau củ', 3, 'Sợi mì spaghetti mềm mịn hòa quyện sốt kem béo ngậy, rau củ tươi (bông cải, cà rốt, nấm)', 'images/f4.png', 56538.46, 79153.84, 63, 'active', '2026-03-21 05:51:52', '2026-04-07 14:52:17', 40),
+(8, 'PA002', 'Pasta phô mai', 3, 'Sợi mì fettuccine hòa quyện sốt kem phô mai Parmesan, thịt xông khói, hương vị Ý đậm đà', 'images/f9.png', 61090.91, 85527.27, 48, 'active', '2026-03-21 05:51:52', '2026-04-07 14:52:17', 40),
+(9, 'FR001', 'Khoai tây chiên', 4, 'Khoai tây chiên vàng giòn, muối vừa, thơm ngon, chấm sốt cà chua hoặc sốt mayonnaise', 'images/f5.png', 12166.67, 18858.34, 167, 'active', '2026-03-21 05:51:52', '2026-04-07 14:52:17', 55),
+(10, 'PZ004', 'Pizza thập cẩm', 1, 'Pizza thập cẩm, nhiều tâng hương vị', 'images/product_1774706669_69c7dfed5992f.png', 112500.00, 174375.00, 5, 'active', '2026-03-27 06:49:46', '2026-04-07 14:52:17', 55),
+(11, 'BG004', 'Burger tôm', 2, 'burger tôm với thịt tôm tươi, mềm mại mang đến hương vị thanh mát', 'images/product_1774706688_69c7e000bdf48.png', 30125.00, 42777.50, 20, 'active', '2026-03-27 14:24:37', '2026-04-07 14:52:17', 42);
 
 -- --------------------------------------------------------
 
@@ -569,31 +588,31 @@ ALTER TABLE `categories`
 -- AUTO_INCREMENT cho bảng `imports`
 --
 ALTER TABLE `imports`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=24;
 
 --
 -- AUTO_INCREMENT cho bảng `import_details`
 --
 ALTER TABLE `import_details`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=39;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=44;
 
 --
 -- AUTO_INCREMENT cho bảng `orders`
 --
 ALTER TABLE `orders`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=30;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=32;
 
 --
 -- AUTO_INCREMENT cho bảng `order_details`
 --
 ALTER TABLE `order_details`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=60;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=62;
 
 --
 -- AUTO_INCREMENT cho bảng `pricing_log`
 --
 ALTER TABLE `pricing_log`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=32;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=37;
 
 --
 -- AUTO_INCREMENT cho bảng `products`

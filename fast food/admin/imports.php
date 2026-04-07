@@ -241,54 +241,62 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
                 echo json_encode(['success' => true]);
                 exit;
 
-            case 'complete':
-                $import_id = (int)($_POST['import_id'] ?? 0);
-                $pdo->beginTransaction();
-                $stmt = $pdo->prepare("SELECT status, import_code FROM imports WHERE id = ?");
-                $stmt->execute([$import_id]);
-                $import = $stmt->fetch();
-                if (!$import || $import['status'] != 'pending') {
-                    throw new Exception('Không thể hoàn thành phiếu nhập này');
-                }
+           case 'complete':
+    $import_id = (int)($_POST['import_id'] ?? 0);
+    $pdo->beginTransaction();
+    $stmt = $pdo->prepare("SELECT status, import_code FROM imports WHERE id = ?");
+    $stmt->execute([$import_id]);
+    $import = $stmt->fetch();
+    if (!$import || $import['status'] != 'pending') {
+        throw new Exception('Không thể hoàn thành phiếu nhập này');
+    }
 
-                $stmt = $pdo->prepare("SELECT product_id, quantity, unit_cost FROM import_details WHERE import_id = ?");
-                $stmt->execute([$import_id]);
-                $details = $stmt->fetchAll();
+    $stmt = $pdo->prepare("SELECT product_id, quantity, unit_cost FROM import_details WHERE import_id = ?");
+    $stmt->execute([$import_id]);
+    $details = $stmt->fetchAll();
 
-                foreach ($details as $det) {
-                    $product_id = $det['product_id'];
-                    $new_qty = (int)$det['quantity'];
-                    $new_cost = (float)$det['unit_cost'];
+    foreach ($details as $det) {
+        $product_id = $det['product_id'];
+        $new_qty = (int)$det['quantity'];
+        $new_cost = (float)$det['unit_cost'];
 
-                    $stmtProd = $pdo->prepare("SELECT stock_quantity, cost_price FROM products WHERE id = ?");
-                    $stmtProd->execute([$product_id]);
-                    $prod = $stmtProd->fetch();
+        $stmtProd = $pdo->prepare("SELECT stock_quantity, cost_price, selling_price, profit_percentage FROM products WHERE id = ?");
+        $stmtProd->execute([$product_id]);
+        $prod = $stmtProd->fetch();
 
-                    $current_stock = $prod ? (int)$prod['stock_quantity'] : 0;
-                    $current_cost = $prod ? (float)$prod['cost_price'] : 0;
+        $current_stock = $prod ? (int)$prod['stock_quantity'] : 0;
+        $current_cost = $prod ? (float)$prod['cost_price'] : 0;
+        $current_profit_percent = $prod ? (float)$prod['profit_percentage'] : 0;
+        $current_selling_price = $prod ? (float)$prod['selling_price'] : 0;
 
-                    $total_stock = $current_stock + $new_qty;
-                    if ($total_stock > 0) {
-                        $avg_cost = ($current_stock * $current_cost + $new_qty * $new_cost) / $total_stock;
-                    } else {
-                        $avg_cost = $new_cost;
-                    }
+        $total_stock = $current_stock + $new_qty;
+        if ($total_stock > 0) {
+            $avg_cost = ($current_stock * $current_cost + $new_qty * $new_cost) / $total_stock;
+        } else {
+            $avg_cost = $new_cost;
+        }
+        
+        // Tính giá bán mới dựa trên giá vốn bình quân và tỷ lệ lợi nhuận hiện tại
+        $new_selling_price = $avg_cost * (1 + $current_profit_percent / 100);
 
-                    $stmtLog = $pdo->prepare("INSERT INTO pricing_log (product_id, old_cost_price, new_cost_price, changed_by, change_reason) 
-                                              VALUES (?, ?, ?, ?, ?)");
-                    $reason = "Cập nhật từ phiếu nhập {$import['import_code']}";
-                    $stmtLog->execute([$product_id, $current_cost, $avg_cost, $admin_id, $reason]);
+        // Ghi log thay đổi giá vốn
+        $stmtLog = $pdo->prepare("INSERT INTO pricing_log (product_id, old_cost_price, new_cost_price, old_selling_price, new_selling_price, changed_by, change_reason) 
+                                  VALUES (?, ?, ?, ?, ?, ?, ?)");
+        $reason = "Cập nhật từ phiếu nhập {$import['import_code']}";
+        $stmtLog->execute([$product_id, $current_cost, $avg_cost, $current_selling_price, $new_selling_price, $admin_id, $reason]);
 
-                    $stmtUpdate = $pdo->prepare("UPDATE products SET stock_quantity = stock_quantity + ?, cost_price = ? WHERE id = ?");
-                    $stmtUpdate->execute([$new_qty, $avg_cost, $product_id]);
-                }
+        // Cập nhật tồn kho, giá vốn VÀ giá bán mới
+        $stmtUpdate = $pdo->prepare("UPDATE products SET stock_quantity = stock_quantity + ?, cost_price = ?, selling_price = ? WHERE id = ?");
+        $stmtUpdate->execute([$new_qty, $avg_cost, $new_selling_price, $product_id]);
+    }
 
-                $stmt = $pdo->prepare("UPDATE imports SET status = 'completed' WHERE id = ?");
-                $stmt->execute([$import_id]);
+    $stmt = $pdo->prepare("UPDATE imports SET status = 'completed' WHERE id = ?");
+    $stmt->execute([$import_id]);
 
-                $pdo->commit();
-                echo json_encode(['success' => true]);
-                exit;
+    $pdo->commit();
+
+    echo json_encode(['success' => true]);
+    exit;
 
             case 'getProducts':
                 $stmt = $pdo->query("SELECT id, name FROM products ORDER BY name");
@@ -762,7 +770,7 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
                         <td>${escapeHtml(item.supplier || '')}</td>
                         <td>${item.product_count || 0}</td>
                         <td>${item.total_quantity || 0}</td>
-                        <td>${totalValue} ₫</span></td>
+                        <td>${totalValue} ₫</td>
                         <td><span class="badge ${statusClass}">${statusText}</span></td>
                         <td>
                             <div class="action-buttons">

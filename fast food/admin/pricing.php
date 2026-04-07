@@ -60,25 +60,77 @@ if (isset($_GET['ajax']) || isset($_POST['ajax'])) {
                 if (!$product) throw new Exception('Không tìm thấy sản phẩm');
                 
                 $old_selling_price = $product['selling_price'];
+                $old_cost_price = $product['cost_price'];
                 $old_profit_rate = $product['profit_percentage'] ?? 0;
                 
-                // Tính giá bán mới
+                // Tính giá bán mới = giá vốn * (1 + tỷ lệ lợi nhuận/100) - KHÔNG LÀM TRÒN
                 $new_selling_price = $product['cost_price'] * (1 + $profit_percent / 100);
-                $new_selling_price = round($new_selling_price / 1000) * 1000;
                 
                 // Cập nhật sản phẩm
                 $stmt = $pdo->prepare("UPDATE products SET selling_price = ?, profit_percentage = ?, updated_at = NOW() WHERE id = ?");
                 $stmt->execute([$new_selling_price, $profit_percent, $product_id]);
                 
-                // Ghi log vào pricing_log
+                // Ghi log đầy đủ vào pricing_log
                 $user_id = $_SESSION['admin_id'];
                 $change_reason = "Cập nhật tỷ lệ lợi nhuận từ " . $old_profit_rate . "% lên " . $profit_percent . "%";
-                $stmt = $pdo->prepare("INSERT INTO pricing_log (product_id, old_selling_price, new_selling_price, changed_by, change_reason, changed_at) 
-                                       VALUES (?, ?, ?, ?, ?, NOW())");
-                $stmt->execute([$product_id, $old_selling_price, $new_selling_price, $user_id, $change_reason]);
+                $stmt = $pdo->prepare("INSERT INTO pricing_log (product_id, old_cost_price, new_cost_price, old_selling_price, new_selling_price, changed_by, change_reason, changed_at) 
+                                       VALUES (?, ?, ?, ?, ?, ?, ?, NOW())");
+                $stmt->execute([
+                    $product_id, 
+                    $old_cost_price, 
+                    $old_cost_price,
+                    $old_selling_price, 
+                    $new_selling_price, 
+                    $user_id, 
+                    $change_reason
+                ]);
                 
                 echo json_encode([
                     'success' => true, 
+                    'new_selling_price' => $new_selling_price,
+                    'new_selling_price_formatted' => formatVND($new_selling_price)
+                ]);
+                break;
+
+            case 'updateSellingPriceFromCost':
+                $product_id = (int)($_POST['product_id'] ?? 0);
+                
+                if (!$product_id) throw new Exception('Thiếu ID sản phẩm');
+                
+                // Lấy thông tin sản phẩm hiện tại
+                $stmt = $pdo->prepare("SELECT cost_price, selling_price, profit_percentage FROM products WHERE id = ?");
+                $stmt->execute([$product_id]);
+                $product = $stmt->fetch();
+                if (!$product) throw new Exception('Không tìm thấy sản phẩm');
+                
+                $old_selling_price = $product['selling_price'];
+                $old_profit_rate = $product['profit_percentage'] ?? 0;
+                $current_cost = $product['cost_price'];
+                
+                // Tính giá bán mới = giá vốn * (1 + tỷ lệ lợi nhuận/100) - KHÔNG LÀM TRÒN
+                $new_selling_price = $current_cost * (1 + $old_profit_rate / 100);
+                
+                // Cập nhật sản phẩm
+                $stmt = $pdo->prepare("UPDATE products SET selling_price = ?, updated_at = NOW() WHERE id = ?");
+                $stmt->execute([$new_selling_price, $product_id]);
+                
+                // Ghi log vào pricing_log
+                $user_id = $_SESSION['admin_id'];
+                $change_reason = "Tự động cập nhật giá bán do giá vốn thay đổi";
+                $stmt = $pdo->prepare("INSERT INTO pricing_log (product_id, old_cost_price, new_cost_price, old_selling_price, new_selling_price, changed_by, change_reason, changed_at) 
+                                       VALUES (?, ?, ?, ?, ?, ?, ?, NOW())");
+                $stmt->execute([
+                    $product_id, 
+                    $current_cost, 
+                    $current_cost,
+                    $old_selling_price, 
+                    $new_selling_price, 
+                    $user_id, 
+                    $change_reason
+                ]);
+                
+                echo json_encode([
+                    'success' => true,
                     'new_selling_price' => $new_selling_price,
                     'new_selling_price_formatted' => formatVND($new_selling_price)
                 ]);
@@ -132,10 +184,19 @@ $stmt = $pdo->query("
 ");
 $import_lots = $stmt->fetchAll();
 
-// Tính % lợi nhuận cho từng lô hàng
+// Tính % lợi nhuận cho từng lô hàng (dựa trên giá vốn hiện tại của sản phẩm)
 foreach ($import_lots as &$lot) {
-    $lot['profit_percent'] = $lot['unit_cost'] > 0 ? 
-        (($lot['selling_price'] - $lot['unit_cost']) / $lot['unit_cost'] * 100) : 0;
+    // Lấy giá vốn hiện tại của sản phẩm
+    $stmt = $pdo->prepare("SELECT cost_price FROM products WHERE id = ?");
+    $stmt->execute([$lot['product_id']]);
+    $current_cost = $stmt->fetchColumn();
+    
+    // Tính lợi nhuận dựa trên giá vốn HIỆN TẠI (giá bình quân)
+    $lot['profit_percent'] = $current_cost > 0 ? 
+        (($lot['selling_price'] - $current_cost) / $current_cost * 100) : 0;
+    
+    // Lưu lại giá vốn hiện tại để hiển thị
+    $lot['current_cost_price'] = $current_cost;
 }
 
 // Lấy danh sách categories cho dropdown
@@ -516,10 +577,9 @@ $profit_stats = $stmt->fetch();
                 <div class="card card-custom mt-4">
                     <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
                         <h5 class="card-title mb-0">Tỷ lệ lợi nhuận theo sản phẩm</h5>
-                        
                     </div>
                     <div class="card-body">
-                        <!-- Khung tìm kiếm đã được đưa vào đây -->
+                        <!-- Khung tìm kiếm -->
                         <div class="global-search-container">
                             <h5 class="mb-3"><i class="fas fa-search me-2"></i>Tra cứu sản phẩm</h5>
                             <form class="search-form" id="global-search-form">
@@ -564,7 +624,7 @@ $profit_stats = $stmt->fetch();
                                         <td class="selling-price text-end"><?php echo formatVND($product['selling_price']); ?></td>
                                         <td class="text-center">
                                             <div id="profit-cell-<?php echo $product['id']; ?>">
-                                                <span class="profit-percentage"><?php echo $product['profit_percentage']; ?>%</span>
+                                                <span class="profit-percentage"><?php echo number_format($product['profit_percentage'], 2); ?>%</span>
                                                 <button class="edit-profit-btn ms-2" data-id="<?php echo $product['id']; ?>" data-profit="<?php echo $product['profit_percentage']; ?>">
                                                     <i class="fas fa-edit"></i> Sửa
                                                 </button>
@@ -622,7 +682,7 @@ $profit_stats = $stmt->fetch();
                             </div>
                             <div class="row mt-3">
                                 <div class="col-md-12">
-                                    <label class="form-label">Lọc theo % lợi nhuận</label>
+                                    <label class="form-label">Lọc theo % lợi nhuận (dựa trên giá vốn hiện tại)</label>
                                     <div class="profit-range">
                                         <input type="number" id="min-profit" class="form-control" placeholder="Tối thiểu" step="5">
                                         <span>-</span>
@@ -642,6 +702,7 @@ $profit_stats = $stmt->fetch();
                                         <th>Sản phẩm</th>
                                         <th class="text-center">Số lượng</th>
                                         <th class="text-end">Giá nhập (VNĐ)</th>
+                                        <th class="text-end">Giá vốn hiện tại (VNĐ)</th>
                                         <th class="text-end">Giá bán hiện tại (VNĐ)</th>
                                         <th class="text-center">Lợi nhuận (%)</th>
                                     </tr>
@@ -654,6 +715,7 @@ $profit_stats = $stmt->fetch();
                                         <td><?php echo htmlspecialchars($lot['product_name']); ?></td>
                                         <td class="text-center"><?php echo number_format($lot['quantity']); ?></td>
                                         <td class="cost-price text-end"><?php echo formatVND($lot['unit_cost']); ?></td>
+                                        <td class="text-end"><?php echo formatVND($lot['current_cost_price']); ?></td>
                                         <td class="selling-price text-end"><?php echo formatVND($lot['selling_price']); ?></td>
                                         <td class="text-center">
                                             <?php 
@@ -906,7 +968,7 @@ $profit_stats = $stmt->fetch();
         $('#clear-profit-filter').click(function() {
             $('#min-profit').val('');
             $('#max-profit').val('');
-            filterImportLots(); // Gọi lại filter để cập nhật sau khi xóa
+            filterImportLots();
         });
         
         // Xem lô nhập của sản phẩm
@@ -915,7 +977,6 @@ $profit_stats = $stmt->fetch();
             const productName = $(this).data('name');
             $('#import-tab').tab('show');
             $('#product-filter-import').val(productId);
-            // Gọi filter ngay sau khi chuyển tab để hiển thị kết quả
             filterImportLots();
             showNotification(`Đang hiển thị lô nhập của sản phẩm: ${productName}`, 'success');
         });
