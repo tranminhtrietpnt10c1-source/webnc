@@ -689,12 +689,11 @@ $existing_products = $stmt->fetchAll();
                 <div class="table-responsive">
                     <table class="table table-hover">
                         <thead>
+                            <tr>
                                 <th>Mã SP</th>
                                 <th>Tên sản phẩm</th>
                                 <th>Loại</th>
                                 <th>Hình ảnh</th>
-                                <th>Giá nhập</th>
-                                <th>Giá bán</th>
                                 <th>Tồn kho</th>
                                 <th>Lợi nhuận</th>
                                 <th>Trạng thái</th>
@@ -702,7 +701,7 @@ $existing_products = $stmt->fetchAll();
                             </tr>
                         </thead>
                         <tbody id="productsTableBody">
-                            <tr><td colspan="10" class="text-center">Đang tải...</td></tr>
+                            <tr><td colspan="8" class="text-center">Đang tải...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -943,17 +942,17 @@ $existing_products = $stmt->fetchAll();
                     renderProducts(response.data);
                     renderPagination(response.pagination);
                 } else {
-                    $('#productsTableBody').html('<tr><td colspan="10" class="text-center text-danger">Lỗi tải dữ liệu: ' + response.error + '</td></tr>');
+                    $('#productsTableBody').html('<tr><td colspan="8" class="text-center text-danger">Lỗi tải dữ liệu: ' + response.error + '</td></tr>');
                 }
             }).fail(function() {
-                $('#productsTableBody').html('<tr><td colspan="10" class="text-center text-danger">Lỗi kết nối máy chủ</td></tr>');
+                $('#productsTableBody').html('<tr><td colspan="8" class="text-center text-danger">Lỗi kết nối máy chủ</td></tr>');
             });
         }
 
         function renderProducts(products) {
             const tbody = $('#productsTableBody');
             if (!products.length) {
-                tbody.html('<tr><td colspan="10" class="text-center">Không có sản phẩm nào</td></tr>');
+                tbody.html('<tr><td colspan="8" class="text-center">Không có sản phẩm nào</td></tr>');
                 return;
             }
             
@@ -969,8 +968,6 @@ $existing_products = $stmt->fetchAll();
                         <td><strong>${escapeHtml(p.name)}</strong></td>
                         <td>${escapeHtml(p.category_name || '---')}</td>
                         <td><img src="${imageUrl}" class="product-img" onerror="this.src='../images/placeholder.png'"></td>
-                        <td>${formatVND(p.cost_price)}</td>
-                        <td>${formatVND(p.selling_price)}</td>
                         <td>${p.stock_quantity}</td>
                         <td>${p.profit_percentage || 0}%</td>
                         <td><span class="${statusClass}">${statusText}</span></td>

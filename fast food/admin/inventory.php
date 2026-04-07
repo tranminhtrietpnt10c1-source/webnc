@@ -21,7 +21,61 @@ try {
     die("Database connection failed: " . $e->getMessage());
 }
 
-// Lấy thông tin admin từ database
+// Hàm tính tồn kho thực tế từ import_details và order_details
+function getActualStock($pdo, $product_id, $as_of_date = null) {
+    if ($as_of_date) {
+        // Tính tổng nhập đến ngày
+        $stmt = $pdo->prepare("SELECT COALESCE(SUM(d.quantity), 0) as total_import
+                               FROM import_details d
+                               JOIN imports i ON d.import_id = i.id
+                               WHERE d.product_id = ? AND i.status = 'completed' AND DATE(i.import_date) <= ?");
+        $stmt->execute([$product_id, $as_of_date]);
+        $total_import = $stmt->fetch()['total_import'];
+
+        // Tính tổng xuất đến ngày (chỉ đơn chưa hủy)
+        $stmt = $pdo->prepare("SELECT COALESCE(SUM(od.quantity), 0) as total_export
+                               FROM order_details od
+                               JOIN orders o ON od.order_id = o.id
+                               WHERE od.product_id = ? AND o.status != 'cancelled' AND DATE(o.order_date) <= ?");
+        $stmt->execute([$product_id, $as_of_date]);
+        $total_export = $stmt->fetch()['total_export'];
+    } else {
+        // Tính tổng nhập
+        $stmt = $pdo->prepare("SELECT COALESCE(SUM(d.quantity), 0) as total_import
+                               FROM import_details d
+                               JOIN imports i ON d.import_id = i.id
+                               WHERE d.product_id = ? AND i.status = 'completed'");
+        $stmt->execute([$product_id]);
+        $total_import = $stmt->fetch()['total_import'];
+
+        // Tính tổng xuất (chỉ đơn chưa hủy)
+        $stmt = $pdo->prepare("SELECT COALESCE(SUM(od.quantity), 0) as total_export
+                               FROM order_details od
+                               JOIN orders o ON od.order_id = o.id
+                               WHERE od.product_id = ? AND o.status != 'cancelled'");
+        $stmt->execute([$product_id]);
+        $total_export = $stmt->fetch()['total_export'];
+    }
+    
+    return $total_import - $total_export;
+}
+
+// Hàm tự động cập nhật trạng thái sản phẩm dựa trên tồn kho thực tế
+function autoUpdateProductStatus($pdo, $product_id) {
+    $current_stock = getActualStock($pdo, $product_id);
+    $new_status = ($current_stock <= 0) ? 'inactive' : 'active';
+    
+    $stmt = $pdo->prepare("UPDATE products SET status = :status, updated_at = NOW() WHERE id = :id");
+    $stmt->execute([':status' => $new_status, ':id' => $product_id]);
+    
+    // Cũng cập nhật stock_quantity trong bảng products để đồng bộ
+    $stmt = $pdo->prepare("UPDATE products SET stock_quantity = :stock WHERE id = :id");
+    $stmt->execute([':stock' => $current_stock, ':id' => $product_id]);
+    
+    return ['stock' => $current_stock, 'status' => $new_status];
+}
+
+// Lấy thông tin admin
 $admin_id = $_SESSION['admin_id'];
 $stmt = $pdo->prepare("SELECT id, full_name, username, email, phone, address, birthday, register_date, role, status, last_login FROM users WHERE id = ?");
 $stmt->execute([$admin_id]);
@@ -33,7 +87,7 @@ if (!$admin_info) {
     exit;
 }
 
-// Lấy ngưỡng sắp hết hàng từ database (mặc định 10 nếu chưa có)
+// Lấy ngưỡng sắp hết hàng từ database
 $low_stock_threshold = 10;
 $stmt = $pdo->prepare("SELECT setting_value FROM system_settings WHERE setting_key = 'low_stock_threshold'");
 $stmt->execute();
@@ -43,7 +97,7 @@ if ($threshold_row) {
 }
 
 // Lấy ngày nhập kho đầu tiên
-$first_import_date = '2026-03-21'; // Ngày đầu tiên nhập sản phẩm
+$first_import_date = '2026-03-21';
 $stmt = $pdo->prepare("SELECT MIN(DATE(import_date)) as first_date FROM imports WHERE status = 'completed'");
 $stmt->execute();
 $result = $stmt->fetch();
@@ -52,9 +106,10 @@ if ($result && $result['first_date']) {
 }
 
 // Lấy ngày hiện tại
+date_default_timezone_set('Asia/Ho_Chi_Minh');
 $current_date = date('Y-m-d');
 
-// Xử lý cập nhật ngưỡng sắp hết hàng
+// Xử lý cập nhật ngưỡng
 if (isset($_POST['update_threshold'])) {
     $new_threshold = (int)$_POST['low_stock_threshold'];
     if ($new_threshold >= 0) {
@@ -69,7 +124,7 @@ if (isset($_POST['update_threshold'])) {
     }
 }
 
-// Xử lý ẩn sản phẩm (cập nhật status thành inactive)
+// Xử lý ẩn sản phẩm thủ công
 if (isset($_POST['hide_product'])) {
     $product_id = (int)$_POST['product_id'];
     $stmt = $pdo->prepare("UPDATE products SET status = 'inactive', updated_at = NOW() WHERE id = ?");
@@ -79,7 +134,7 @@ if (isset($_POST['hide_product'])) {
     exit;
 }
 
-// Xử lý hiển thị lại sản phẩm (cập nhật status thành active)
+// Xử lý hiển thị lại sản phẩm thủ công
 if (isset($_POST['show_product'])) {
     $product_id = (int)$_POST['product_id'];
     $stmt = $pdo->prepare("UPDATE products SET status = 'active', updated_at = NOW() WHERE id = ?");
@@ -89,13 +144,12 @@ if (isset($_POST['show_product'])) {
     exit;
 }
 
-// Lấy thông báo từ session
 $success_message = isset($_SESSION['success']) ? $_SESSION['success'] : '';
 $error_message = isset($_SESSION['error']) ? $_SESSION['error'] : '';
 unset($_SESSION['success']);
 unset($_SESSION['error']);
 
-// Xử lý AJAX request
+// Xử lý AJAX
 if (isset($_REQUEST['action'])) {
     header('Content-Type: application/json');
     $action = $_REQUEST['action'];
@@ -116,7 +170,6 @@ if (isset($_REQUEST['action'])) {
                     $params[':search'] = "%$search%";
                 }
                 
-                // Đếm tổng số
                 $countSql = "SELECT COUNT(*) as total FROM products p $whereClause";
                 $stmt = $pdo->prepare($countSql);
                 foreach ($params as $key => $val) {
@@ -125,10 +178,7 @@ if (isset($_REQUEST['action'])) {
                 $stmt->execute();
                 $total = $stmt->fetch()['total'];
                 
-                // Lấy danh sách
-                $sql = "SELECT p.id, p.code, p.name, p.status,
-                               COALESCE((SELECT SUM(d.quantity) FROM import_details d JOIN imports i ON d.import_id = i.id WHERE d.product_id = p.id AND i.status = 'completed'), 0) as total_import,
-                               COALESCE((SELECT SUM(od.quantity) FROM order_details od JOIN orders o ON od.order_id = o.id WHERE od.product_id = p.id AND o.status != 'cancelled' AND o.status != 'new'), 0) as total_export
+                $sql = "SELECT p.id, p.code, p.name, p.status
                         FROM products p
                         $whereClause
                         ORDER BY p.name
@@ -143,9 +193,8 @@ if (isset($_REQUEST['action'])) {
                 $stmt->execute();
                 $products = $stmt->fetchAll();
                 
-                // Tính tồn kho cho từng sản phẩm
                 foreach ($products as &$product) {
-                    $product['stock_quantity'] = $product['total_import'] - $product['total_export'];
+                    $product['stock_quantity'] = getActualStock($pdo, $product['id']);
                     $product['text'] = $product['name'] . ' (' . $product['code'] . ')';
                 }
                 
@@ -169,22 +218,18 @@ if (isset($_REQUEST['action'])) {
                 $offset = ($page - 1) * $limit;
                 
                 $threshold = $low_stock_threshold;
-                $current_date_obj = new DateTime($current_date);
                 $is_past_date = false;
                 
-                // Kiểm tra nếu ngày tra cứu là ngày quá khứ
                 if ($stock_date && $stock_date !== '' && $stock_date < $current_date) {
                     $is_past_date = true;
                 }
 
-                // Lấy danh sách sản phẩm
                 $sql = "SELECT p.id, p.code, p.name, p.category_id, p.status,
                                c.name as category_name
                         FROM products p
                         LEFT JOIN categories c ON p.category_id = c.id";
                 $params = [];
 
-                // Nếu có chọn sản phẩm cụ thể từ select2
                 if ($selected_product_id) {
                     $sql .= " WHERE p.id = :selected_id";
                     $params[':selected_id'] = $selected_product_id;
@@ -202,46 +247,17 @@ if (isset($_REQUEST['action'])) {
                 $stmt->execute();
                 $all_products = $stmt->fetchAll();
 
-                // Tính tồn kho cho từng sản phẩm
                 $filtered_products = [];
                 foreach ($all_products as $product) {
+                    // Tính tồn kho thực tế dựa trên ngày được chọn
                     if ($stock_date && $stock_date !== '') {
-                        // Tính tổng nhập đến ngày
-                        $stmt_import = $pdo->prepare("SELECT COALESCE(SUM(d.quantity), 0) as total_import
-                                                       FROM import_details d
-                                                       JOIN imports i ON d.import_id = i.id
-                                                       WHERE d.product_id = ? AND i.status = 'completed' AND DATE(i.import_date) <= ?");
-                        $stmt_import->execute([$product['id'], $stock_date]);
-                        $total_import = $stmt_import->fetch()['total_import'];
-
-                        // Tính tổng xuất đến ngày
-                        $stmt_export = $pdo->prepare("SELECT COALESCE(SUM(od.quantity), 0) as total_export
-                                                       FROM order_details od
-                                                       JOIN orders o ON od.order_id = o.id
-                                                       WHERE od.product_id = ? AND o.status != 'cancelled' AND o.status != 'new' AND DATE(o.order_date) <= ?");
-                        $stmt_export->execute([$product['id'], $stock_date]);
-                        $total_export = $stmt_export->fetch()['total_export'];
+                        $actual_stock = getActualStock($pdo, $product['id'], $stock_date);
                     } else {
-                        // Tính tồn kho hiện tại
-                        $stmt_import = $pdo->prepare("SELECT COALESCE(SUM(d.quantity), 0) as total_import
-                                                       FROM import_details d
-                                                       JOIN imports i ON d.import_id = i.id
-                                                       WHERE d.product_id = ? AND i.status = 'completed'");
-                        $stmt_import->execute([$product['id']]);
-                        $total_import = $stmt_import->fetch()['total_import'];
-
-                        $stmt_export = $pdo->prepare("SELECT COALESCE(SUM(od.quantity), 0) as total_export
-                                                       FROM order_details od
-                                                       JOIN orders o ON od.order_id = o.id
-                                                       WHERE od.product_id = ? AND o.status != 'cancelled' AND o.status != 'new'");
-                        $stmt_export->execute([$product['id']]);
-                        $total_export = $stmt_export->fetch()['total_export'];
+                        $actual_stock = getActualStock($pdo, $product['id']);
                     }
-
-                    $actual_stock = $total_import - $total_export;
                     $product['stock_quantity'] = $actual_stock;
                     
-                    // Xác định trạng thái tồn kho
+                    // Xác định trạng thái tồn kho dựa trên tồn thực tế
                     if ($product['status'] === 'inactive') {
                         $product['stock_status'] = 'inactive';
                     } elseif ($actual_stock <= 0) {
@@ -252,7 +268,6 @@ if (isset($_REQUEST['action'])) {
                         $product['stock_status'] = 'sufficient';
                     }
                     
-                    // Lọc theo trạng thái
                     $include = true;
                     if ($stock_status !== 'all') {
                         if ($stock_status === 'sufficient' && $product['stock_status'] !== 'sufficient') $include = false;
@@ -260,7 +275,6 @@ if (isset($_REQUEST['action'])) {
                         if ($stock_status === 'out' && $product['stock_status'] !== 'out') $include = false;
                     }
                     
-                    // Lọc theo số lượng tồn <= max_stock
                     if ($include && $max_stock !== null && $max_stock > 0) {
                         if ($actual_stock > $max_stock) $include = false;
                     }
@@ -270,11 +284,8 @@ if (isset($_REQUEST['action'])) {
                     }
                 }
 
-                // Tính tổng số bản ghi sau khi lọc
                 $total_records = count($filtered_products);
                 $total_pages = ceil($total_records / $limit);
-                
-                // Lấy dữ liệu cho trang hiện tại
                 $products = array_slice($filtered_products, $offset, $limit);
 
                 echo json_encode([
@@ -301,9 +312,7 @@ if (isset($_REQUEST['action'])) {
                 if (!$product_id) throw new Exception('Missing product ID');
                 
                 $stmt = $pdo->prepare("SELECT p.id, p.code, p.name, p.category_id, p.status, c.name as category_name, 
-                                              p.cost_price, p.selling_price,
-                                              COALESCE((SELECT SUM(d.quantity) FROM import_details d JOIN imports i ON d.import_id = i.id WHERE d.product_id = p.id AND i.status = 'completed'), 0) as total_import,
-                                              COALESCE((SELECT SUM(od.quantity) FROM order_details od JOIN orders o ON od.order_id = o.id WHERE od.product_id = p.id AND o.status != 'cancelled' AND o.status != 'new'), 0) as total_export
+                                              p.cost_price, p.selling_price
                                        FROM products p 
                                        LEFT JOIN categories c ON p.category_id = c.id 
                                        WHERE p.id = ?");
@@ -311,7 +320,9 @@ if (isset($_REQUEST['action'])) {
                 $product = $stmt->fetch();
                 if (!$product) throw new Exception('Product not found');
                 
-                $product['stock_quantity'] = $product['total_import'] - $product['total_export'];
+                $product['stock_quantity'] = getActualStock($pdo, $product_id);
+                $product['total_import'] = getTotalImport($pdo, $product_id);
+                $product['total_export'] = getTotalExport($pdo, $product_id);
                 
                 echo json_encode(['success' => true, 'product' => $product]);
                 break;
@@ -337,6 +348,34 @@ if (isset($_REQUEST['action'])) {
     }
     exit;
 }
+
+// Hàm helper để lấy tổng nhập
+function getTotalImport($pdo, $product_id) {
+    $stmt = $pdo->prepare("SELECT COALESCE(SUM(d.quantity), 0) as total
+                           FROM import_details d
+                           JOIN imports i ON d.import_id = i.id
+                           WHERE d.product_id = ? AND i.status = 'completed'");
+    $stmt->execute([$product_id]);
+    return $stmt->fetch()['total'];
+}
+
+// Hàm helper để lấy tổng xuất
+function getTotalExport($pdo, $product_id) {
+    $stmt = $pdo->prepare("SELECT COALESCE(SUM(od.quantity), 0) as total
+                           FROM order_details od
+                           JOIN orders o ON od.order_id = o.id
+                           WHERE od.product_id = ? AND o.status != 'cancelled'");
+    $stmt->execute([$product_id]);
+    return $stmt->fetch()['total'];
+}
+
+// Tự động đồng bộ trạng thái và tồn kho cho tất cả sản phẩm khi load trang
+$stmt = $pdo->prepare("SELECT id FROM products");
+$stmt->execute();
+$all_products = $stmt->fetchAll();
+foreach ($all_products as $product) {
+    autoUpdateProductStatus($pdo, $product['id']);
+}
 ?>
 <!DOCTYPE html>
 <html lang="vi">
@@ -346,10 +385,8 @@ if (isset($_REQUEST['action'])) {
     <title>Quản lý Tồn kho - Feane Restaurant</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <!-- Select2 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
-    <!-- Flatpickr CSS for date picker -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <style>
         :root {
@@ -411,9 +448,6 @@ if (isset($_REQUEST['action'])) {
             }
             .sidebar .nav-link span {
                 display: none;
-            }
-            .sidebar .nav-link i {
-                margin-right: 0;
             }
             .main-content {
                 margin-left: 70px;
@@ -678,7 +712,6 @@ if (isset($_REQUEST['action'])) {
             transform: scale(1.02);
         }
         
-        /* Select2 Custom Styles */
         .select2-container--bootstrap-5 .select2-selection {
             border-radius: 0.375rem;
             border-color: #dee2e6;
@@ -731,7 +764,6 @@ if (isset($_REQUEST['action'])) {
             color: #383d41;
         }
         
-        /* Date picker custom styles */
         .date-filter-group {
             display: flex;
             align-items: center;
@@ -753,6 +785,7 @@ if (isset($_REQUEST['action'])) {
             outline: none;
             cursor: pointer;
             background: transparent;
+            min-width: 150px;
         }
         .date-filter-group input:focus {
             box-shadow: none;
@@ -766,8 +799,13 @@ if (isset($_REQUEST['action'])) {
         .date-range-info i {
             margin-right: 3px;
         }
+        .current-date-info {
+            font-size: 0.75rem;
+            color: var(--primary-color);
+            margin-top: 5px;
+            margin-left: 5px;
+        }
         
-        /* Flatpickr customization */
         .flatpickr-day.disabled {
             opacity: 0.3;
             cursor: not-allowed;
@@ -776,7 +814,6 @@ if (isset($_REQUEST['action'])) {
             background: transparent;
         }
         
-        /* Bảng styles */
         .table-responsive {
             overflow-x: auto;
             -webkit-overflow-scrolling: touch;
@@ -797,10 +834,9 @@ if (isset($_REQUEST['action'])) {
         .table thead th:nth-child(1) { width: 8%; }
         .table thead th:nth-child(2) { width: 20%; }
         .table thead th:nth-child(3) { width: 10%; }
-        .table thead th:nth-child(4) { width: 10%; }
-        .table thead th:nth-child(5) { width: 12%; }
-        .table thead th:nth-child(6) { width: 27%; }
-        .table thead th:nth-child(7) { width: 13%; }
+        .table thead th:nth-child(4) { width: 12%; }
+        .table thead th:nth-child(5) { width: 27%; }
+        .table thead th:nth-child(6) { width: 13%; }
         
         .table td {
             vertical-align: middle;
@@ -808,7 +844,6 @@ if (isset($_REQUEST['action'])) {
             word-break: break-word;
         }
         
-        /* Căn chỉnh trạng thái */
         .status-cell {
             display: inline-flex;
             align-items: center;
@@ -820,7 +855,6 @@ if (isset($_REQUEST['action'])) {
             white-space: nowrap;
         }
         
-        /* Căn chỉnh action buttons */
         .action-buttons {
             display: flex;
             gap: 8px;
@@ -828,7 +862,6 @@ if (isset($_REQUEST['action'])) {
             align-items: center;
         }
         
-        /* Date filter row */
         .date-filter-row {
             display: flex;
             align-items: flex-end;
@@ -846,14 +879,25 @@ if (isset($_REQUEST['action'])) {
             margin-left: 10px;
         }
         
+        .auto-status-note {
+            background-color: #e7f3ff;
+            border-left: 4px solid #2196F3;
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin-top: 8px;
+        }
+        .auto-status-note i {
+            color: #2196F3;
+            margin-right: 8px;
+        }
+        
         @media (max-width: 992px) {
             .table thead th:nth-child(1) { width: 10%; }
             .table thead th:nth-child(2) { width: 22%; }
             .table thead th:nth-child(3) { width: 10%; }
-            .table thead th:nth-child(4) { width: 10%; }
-            .table thead th:nth-child(5) { width: 12%; }
-            .table thead th:nth-child(6) { width: 24%; }
-            .table thead th:nth-child(7) { width: 12%; }
+            .table thead th:nth-child(4) { width: 12%; }
+            .table thead th:nth-child(5) { width: 24%; }
+            .table thead th:nth-child(6) { width: 12%; }
         }
         
         @media (max-width: 768px) {
@@ -915,7 +959,6 @@ if (isset($_REQUEST['action'])) {
 
             <h2 class="mb-4">Quản lý Tồn kho</h2>
 
-            <!-- Tab Navigation -->
             <ul class="nav nav-tabs stock-tabs" id="stockTabs" role="tablist">
                 <li class="nav-item" role="presentation">
                     <a class="nav-link active" href="inventory.php">Danh sách tồn kho</a>
@@ -925,7 +968,6 @@ if (isset($_REQUEST['action'])) {
                 </li>
             </ul>
 
-            <!-- Threshold Setting Section -->
             <div class="threshold-section">
                 <div class="d-flex justify-content-between align-items-center flex-wrap">
                     <div class="d-flex align-items-center mb-2 mb-md-0">
@@ -937,13 +979,13 @@ if (isset($_REQUEST['action'])) {
                         <i class="fas fa-edit me-1"></i> Cập nhật ngưỡng
                     </button>
                 </div>
-                <div class="warning-box mt-2">
-                    <i class="fas fa-info-circle"></i>
-                    <span class="warning-text">Sản phẩm có số lượng tồn ≤ <strong id="threshold-value-text"><?php echo $low_stock_threshold; ?></strong> sẽ được đánh dấu là <strong class="status-warning">"Sắp hết hàng"</strong>. Sản phẩm có số lượng tồn = 0 sẽ được đánh dấu là <strong class="status-danger">"Hết hàng"</strong> và có thể ẩn khỏi menu.</span>
+                
+                <div class="auto-status-note mt-2">
+                    <i class="fas fa-robot"></i>
+                    <span class="warning-text"><strong>Tự động:</strong> Sản phẩm hết hàng (tồn kho = 0) sẽ tự động ẩn khỏi menu. Khi nhập hàng mới, sản phẩm sẽ tự động hiển thị lại.</span>
                 </div>
             </div>
 
-            <!-- Filter Section -->
             <div class="filter-section">
                 <h3><i class="fas fa-filter me-2"></i>Bộ lọc tồn kho</h3>
                 <form id="stock-filter-form">
@@ -985,6 +1027,10 @@ if (isset($_REQUEST['action'])) {
                                 <i class="fas fa-info-circle"></i>
                                 <span>Khoảng ngày tra cứu: <strong id="min-date-display"><?php echo date('d/m/Y', strtotime($first_import_date)); ?></strong> → <strong id="max-date-display"><?php echo date('d/m/Y', strtotime($current_date)); ?></strong></span>
                             </div>
+                            <div class="current-date-info" id="current-date-info">
+                                <i class="fas fa-calendar-day me-1"></i>
+                                <span>Ngày hiện tại trên máy chủ: <strong><?php echo date('d/m/Y', strtotime($current_date)); ?></strong></span>
+                            </div>
                             <small class="text-muted mt-2 d-block" id="date-hint">
                                 <i class="fas fa-info-circle me-1"></i>Để trống để xem tồn kho hiện tại. Chọn ngày trong khoảng cho phép để xem tồn kho tại thời điểm đó.
                             </small>
@@ -993,7 +1039,6 @@ if (isset($_REQUEST['action'])) {
                 </form>
             </div>
 
-            <!-- Bảng tồn kho -->
             <div class="card card-custom">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="card-title mb-0">
@@ -1010,13 +1055,12 @@ if (isset($_REQUEST['action'])) {
                                     <th>Tên sản phẩm</th>
                                     <th>Loại</th>
                                     <th class="text-center">Số lượng tồn</th>
-                                    <th class="text-center">Trạng thái</th>
                                     <th>Cảnh báo</th>
                                     <th class="text-center">Thao tác</th>
                                 </tr>
                             </thead>
                             <tbody id="stock-table-body">
-                                <tr><td colspan="7" class="text-center">Đang tải...</td></tr>
+                                <tr><td colspan="6" class="text-center">Đang tải...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -1055,7 +1099,7 @@ if (isset($_REQUEST['action'])) {
         </div>
     </div>
 
-    <!-- Modal cập nhật ngưỡng sắp hết hàng -->
+    <!-- Modal cập nhật ngưỡng -->
     <div class="modal fade" id="thresholdModal" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
@@ -1072,7 +1116,7 @@ if (isset($_REQUEST['action'])) {
                         </div>
                         <div class="alert alert-info">
                             <i class="fas fa-info-circle me-2"></i>
-                            Lưu ý: Sản phẩm có số lượng tồn = 0 sẽ được đánh dấu là "Hết hàng" và có thể ẩn khỏi menu.
+                            Lưu ý: Sản phẩm có số lượng tồn = 0 sẽ tự động ẩn khỏi menu. Khi nhập hàng mới, sản phẩm sẽ tự động hiển thị lại.
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -1102,9 +1146,7 @@ if (isset($_REQUEST['action'])) {
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- Select2 JS -->
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-    <!-- Flatpickr JS -->
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/vn.js"></script>
     <script>
@@ -1114,12 +1156,10 @@ if (isset($_REQUEST['action'])) {
         let selectedProductId = null;
         let isPastDate = false;
         
-        // Date range variables
         let minDate = '<?php echo $first_import_date; ?>';
         let maxDate = '<?php echo $current_date; ?>';
         let currentDate = '<?php echo $current_date; ?>';
 
-        // Khởi tạo Flatpickr cho date picker
         const datePicker = flatpickr("#stock-date", {
             dateFormat: "Y-m-d",
             locale: "vn",
@@ -1130,7 +1170,6 @@ if (isset($_REQUEST['action'])) {
             onChange: function(selectedDates, dateStr, instance) {
                 if (dateStr) {
                     currentFilters.stock_date = dateStr;
-                    // Kiểm tra nếu là ngày quá khứ
                     if (dateStr < currentDate) {
                         isPastDate = true;
                     } else {
@@ -1142,25 +1181,9 @@ if (isset($_REQUEST['action'])) {
                 }
                 currentPage = 1;
                 loadStock();
-            },
-            onReady: function(selectedDates, dateStr, instance) {
-                // Custom style for disabled dates
-                const style = document.createElement('style');
-                style.textContent = `
-                    .flatpickr-day.disabled {
-                        opacity: 0.3;
-                        cursor: not-allowed;
-                        background: #f0f0f0;
-                    }
-                    .flatpickr-day.disabled:hover {
-                        background: #f0f0f0;
-                    }
-                `;
-                document.head.appendChild(style);
             }
         });
         
-        // Update date range display
         function formatDateDisplay(dateStr) {
             if (!dateStr) return '';
             const parts = dateStr.split('-');
@@ -1173,7 +1196,6 @@ if (isset($_REQUEST['action'])) {
         $('#min-date-display').text(formatDateDisplay(minDate));
         $('#max-date-display').text(formatDateDisplay(maxDate));
         
-        // Optional: fetch date range from server to ensure accuracy
         $.getJSON('inventory.php', { action: 'get_date_range' }, function(response) {
             if (response.success) {
                 minDate = response.min_date;
@@ -1218,7 +1240,6 @@ if (isset($_REQUEST['action'])) {
             $('#thresholdModal').modal('show');
         });
 
-        // Khởi tạo Select2
         $('#product-search').select2({
             theme: 'bootstrap-5',
             placeholder: '-- Tìm kiếm và chọn sản phẩm --',
@@ -1239,25 +1260,15 @@ if (isset($_REQUEST['action'])) {
                     if (!data.success) {
                         return { results: [] };
                     }
-                    
                     params.page = params.page || 1;
-                    
                     return {
                         results: data.results.map(function(product) {
-                            let statusHtml = '';
-                            if (product.status === 'active') {
-                                statusHtml = '<span class="product-option-status active">Đang bán</span>';
-                            } else {
-                                statusHtml = '<span class="product-option-status inactive">Đã ẩn</span>';
-                            }
-                            
                             let stockStatus = '';
                             if (product.stock_quantity <= 0) {
                                 stockStatus = ' <span class="text-danger">(Hết hàng)</span>';
                             } else if (product.stock_quantity <= currentThreshold) {
                                 stockStatus = ' <span class="text-warning">(Sắp hết)</span>';
                             }
-                            
                             return {
                                 id: product.id,
                                 text: product.name + ' (' + product.code + ')' + stockStatus,
@@ -1276,72 +1287,33 @@ if (isset($_REQUEST['action'])) {
             },
             templateResult: formatProductResult,
             templateSelection: formatProductSelection,
-            minimumInputLength: 0,
-            language: {
-                inputTooShort: function() {
-                    return "Nhập ít nhất 1 ký tự để tìm kiếm";
-                },
-                noResults: function() {
-                    return "Không tìm thấy sản phẩm";
-                },
-                searching: function() {
-                    return "Đang tìm kiếm...";
-                }
-            }
+            minimumInputLength: 0
         });
 
-        // Custom template for product results
         function formatProductResult(product) {
-            if (product.loading) {
-                return product.text;
-            }
-            
-            var $container = $(
-                '<div class="product-option">' +
-                    '<div>' +
-                        '<span class="product-option-name">' + product.name + '</span>' +
-                        '<span class="product-option-code">(' + product.code + ')</span>' +
-                    '</div>' +
-                '</div>'
-            );
-            
-            if (product.status === 'active') {
-                $container.find('div:first-child').append('<span class="product-option-status active">Đang bán</span>');
-            } else {
-                $container.find('div:first-child').append('<span class="product-option-status inactive">Đã ẩn</span>');
-            }
-            
+            if (product.loading) return product.text;
+            var $container = $('<div class="product-option"><div><span class="product-option-name">' + product.name + '</span><span class="product-option-code">(' + product.code + ')</span></div></div>');
             if (product.stock <= 0) {
                 $container.append('<div class="text-danger small">Hết hàng</div>');
             } else if (product.stock <= currentThreshold) {
                 $container.append('<div class="text-warning small">Sắp hết hàng (còn ' + product.stock + ')</div>');
             }
-            
             return $container;
         }
         
         function formatProductSelection(product) {
-            if (!product.id) {
-                return product.text;
-            }
+            if (!product.id) return product.text;
             return product.name + ' (' + product.code + ')';
         }
 
-        // Xử lý khi chọn sản phẩm - KHÔNG TÌM KIẾM LIỀN, chỉ lưu lại ID
         $('#product-search').on('select2:select', function(e) {
-            const data = e.params.data;
-            selectedProductId = data.id;
+            selectedProductId = e.params.data.id;
             currentFilters.product_id = selectedProductId;
-            currentFilters.search = '';
-            // KHÔNG gọi loadStock() ở đây - chờ người dùng nhấn Tìm kiếm
         });
         
-        // Xử lý khi xóa chọn sản phẩm
         $('#product-search').on('select2:clear', function(e) {
             selectedProductId = null;
             currentFilters.product_id = '';
-            currentFilters.search = '';
-            // KHÔNG gọi loadStock() ở đây - chờ người dùng nhấn Tìm kiếm
         });
 
         function loadStock() {
@@ -1355,20 +1327,16 @@ if (isset($_REQUEST['action'])) {
                 stock_date: currentFilters.stock_date
             };
             
-            $('#stock-table-body').html('<tr><td colspan="7" class="text-center"><div class="spinner-border spinner-border-sm text-primary me-2"></div>Đang tải...</td></tr>');
+            $('#stock-table-body').html('<tr><td colspan="6" class="text-center"><div class="spinner-border spinner-border-sm text-primary me-2"></div>Đang tải...</td></tr>');
             
             $.getJSON('inventory.php', params, function(response) {
                 if (response.success) {
                     if (response.threshold) {
                         currentThreshold = response.threshold;
                         $('#threshold-display').text('≤ ' + currentThreshold);
-                        $('#threshold-value-text').text(currentThreshold);
                     }
-                    
-                    // Cập nhật isPastDate từ response
                     isPastDate = response.is_past_date || false;
                     
-                    // Update date range info if provided
                     if (response.date_range) {
                         minDate = response.date_range.min;
                         maxDate = response.date_range.max;
@@ -1378,11 +1346,8 @@ if (isset($_REQUEST['action'])) {
                         datePicker.set('maxDate', maxDate);
                     }
                     
-                    // Update date badge
                     if (response.stock_date && response.stock_date !== '') {
-                        const dateObj = new Date(response.stock_date);
-                        const formattedDate = dateObj.toLocaleDateString('vi-VN');
-                        $('#stock-date-badge').html(`<i class="fas fa-calendar-alt me-1"></i>Tồn tại ngày: ${formattedDate}`).show();
+                        $('#stock-date-badge').html(`<i class="fas fa-calendar-alt me-1"></i>Tồn tại ngày: ${formatDateDisplay(response.stock_date)}`).show();
                     } else {
                         $('#stock-date-badge').hide();
                     }
@@ -1390,52 +1355,38 @@ if (isset($_REQUEST['action'])) {
                     renderStockTable(response.data);
                     renderPagination(response.pagination);
                 } else {
-                    $('#stock-table-body').html('<tr><td colspan="7" class="text-center text-danger">Lỗi: ' + (response.error || 'Không thể tải dữ liệu') + '</td></tr>');
+                    $('#stock-table-body').html('<tr><td colspan="6" class="text-center text-danger">Lỗi: ' + (response.error || 'Không thể tải dữ liệu') + '</td></tr>');
                 }
             }).fail(function() {
-                $('#stock-table-body').html('<tr><td colspan="7" class="text-center text-danger">Không thể kết nối đến máy chủ</td></tr>');
+                $('#stock-table-body').html('<tr><td colspan="6" class="text-center text-danger">Không thể kết nối đến máy chủ</td></tr>');
             });
         }
 
         function getStockStatus(stock, productStatus = 'active') {
             if (productStatus === 'inactive') {
-                return {
-                    text: 'Đã ẩn',
-                    class: 'status-inactive',
-                    icon: 'fa-eye-slash'
-                };
+                return { text: 'Đã ẩn', class: 'status-inactive', icon: 'fa-eye-slash' };
             }
             if (stock <= 0) {
-                return {
-                    text: 'Hết hàng',
-                    class: 'status-danger',
-                    icon: 'fa-times-circle'
-                };
+                return { text: 'Hết hàng', class: 'status-danger', icon: 'fa-times-circle' };
             } else if (stock <= currentThreshold) {
-                return {
-                    text: 'Sắp hết hàng',
-                    class: 'status-warning',
-                    icon: 'fa-exclamation-triangle'
-                };
+                return { text: 'Sắp hết hàng', class: 'status-warning', icon: 'fa-exclamation-triangle' };
             } else {
-                return {
-                    text: 'Đủ hàng',
-                    class: 'status-success',
-                    icon: 'fa-check-circle'
-                };
+                return { text: 'Đủ hàng', class: 'status-success', icon: 'fa-check-circle' };
             }
         }
 
         function getWarningMessage(stock, productStatus) {
-            // Nếu là ngày quá khứ, không hiển thị cảnh báo
             if (isPastDate) {
                 return '<span class="text-muted"><i class="fas fa-info-circle me-1"></i>Chỉ xem tồn kho</span>';
             }
             if (productStatus === 'inactive') {
-                return '<span class="text-muted"><i class="fas fa-eye-slash me-1"></i>Sản phẩm đã bị ẩn khỏi menu</span>';
+                if (stock <= 0) {
+                    return '<span class="text-danger"><i class="fas fa-exclamation-circle me-1"></i>Sản phẩm đã hết hàng và tự động ẩn. Vui lòng nhập kho để hiển thị lại.</span>';
+                }
+                return '<span class="text-muted"><i class="fas fa-eye-slash me-1"></i>Sản phẩm đã bị ẩn thủ công</span>';
             }
             if (stock <= 0) {
-                return '<span class="text-danger"><i class="fas fa-exclamation-circle me-1"></i>Sản phẩm đã hết hàng! Vui lòng nhập kho hoặc ẩn sản phẩm.</span>';
+                return '<span class="text-danger"><i class="fas fa-exclamation-circle me-1"></i>Sản phẩm đã hết hàng! Sẽ tự động ẩn. Vui lòng nhập kho để hiển thị lại.</span>';
             } else if (stock <= currentThreshold) {
                 return '<span class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>Cần nhập hàng ngay! Tồn kho chỉ còn ' + stock + ' sản phẩm.</span>';
             }
@@ -1443,45 +1394,26 @@ if (isset($_REQUEST['action'])) {
         }
 
         function getActionButtons(product) {
-            // Nếu là ngày quá khứ, không hiển thị nút thao tác
-            if (isPastDate) {
-                return '<div class="action-buttons">—</div>';
-            }
-            
+            if (isPastDate) return '<div class="action-buttons">—</div>';
             const stock = product.stock_quantity;
             const productStatus = product.status || 'active';
             
             if (productStatus === 'inactive') {
-                return `
-                    <div class="action-buttons">
-                        <form method="POST" style="display: inline-block;" onsubmit="return confirm('Bạn có chắc muốn hiển thị lại sản phẩm này?');">
-                            <input type="hidden" name="show_product" value="1">
-                            <input type="hidden" name="product_id" value="${product.id}">
-                            <button type="submit" class="btn-show"><i class="fas fa-eye me-1"></i>Hiển thị</button>
-                        </form>
-                    </div>
-                `;
+                return `<div class="action-buttons">
+                            <form method="POST" style="display: inline-block;" onsubmit="return confirm('Bạn có chắc muốn hiển thị lại sản phẩm này?');">
+                                <input type="hidden" name="show_product" value="1">
+                                <input type="hidden" name="product_id" value="${product.id}">
+                                <button type="submit" class="btn-show"><i class="fas fa-eye me-1"></i>Hiển thị</button>
+                            </form>
+                        </div>`;
             }
-            
-            if (stock <= 0) {
-                return `
-                    <div class="action-buttons">
-                        <form method="POST" style="display: inline-block;" onsubmit="return confirm('Bạn có chắc muốn ẩn sản phẩm này khỏi menu?');">
-                            <input type="hidden" name="hide_product" value="1">
-                            <input type="hidden" name="product_id" value="${product.id}">
-                            <button type="submit" class="btn-hide"><i class="fas fa-eye-slash me-1"></i>Ẩn sản phẩm</button>
-                        </form>
-                    </div>
-                `;
-            }
-            
             return '<div class="action-buttons">—</div>';
         }
 
         function renderStockTable(products) {
             const tbody = $('#stock-table-body');
             if (!products.length) {
-                tbody.html('<tr><td colspan="7" class="text-center text-muted py-4"><i class="fas fa-box-open me-2"></i>Không tìm thấy sản phẩm nào</td></tr>');
+                tbody.html('<tr><td colspan="6" class="text-center text-muted py-4"><i class="fas fa-box-open me-2"></i>Không tìm thấy sản phẩm nào</td></tr>');
                 return;
             }
             let html = '';
@@ -1491,24 +1423,17 @@ if (isset($_REQUEST['action'])) {
                 const actionBtns = getActionButtons(p);
                 const rowClass = p.status === 'inactive' ? '' : (p.stock_quantity <= 0 ? 'out-stock' : (p.stock_quantity <= currentThreshold ? 'low-stock' : ''));
                 
-                html += `
-                    <tr class="${rowClass}">
-                        <td class="text-center align-middle">${escapeHtml(p.code)}</td>
-                        <td class="align-middle">
-                            <a href="#" class="product-link view-detail" data-id="${p.id}">${escapeHtml(p.name)}</a>
-                            ${p.status === 'inactive' ? '<span class="status-badge inactive ms-2"><i class="fas fa-eye-slash"></i> Đã ẩn</span>' : ''}
-                        </td>
-                        <td class="align-middle">${escapeHtml(p.category_name || '')}</td>
-                        <td class="text-center align-middle"><strong>${p.stock_quantity}</strong></td>
-                        <td class="text-center align-middle">
-                            <span class="status-cell ${status.class}">
-                                <i class="fas ${status.icon} me-1"></i>${status.text}
-                            </span>
-                        </td>
-                        <td class="align-middle">${warningMsg}</td>
-                        <td class="text-center align-middle">${actionBtns}</td>
-                    </tr>
-                `;
+                html += `<tr class="${rowClass}">
+                            <td class="text-center align-middle">${escapeHtml(p.code)}</td>
+                            <td class="align-middle">
+                                <a href="#" class="product-link view-detail" data-id="${p.id}">${escapeHtml(p.name)}</a>
+                                ${p.status === 'inactive' ? '<span class="status-badge inactive ms-2"><i class="fas fa-eye-slash"></i> Đã ẩn</span>' : ''}
+                            </td>
+                            <td class="align-middle">${escapeHtml(p.category_name || '')}</td>
+                            <td class="text-center align-middle"><strong>${p.stock_quantity}</strong></td>
+                            <td class="align-middle">${warningMsg}</td>
+                            <td class="text-center align-middle">${actionBtns}</td>
+                         </tr>`;
             });
             tbody.html(html);
         }
@@ -1523,30 +1448,14 @@ if (isset($_REQUEST['action'])) {
             html += `<li class="page-item ${pagination.current_page === 1 ? 'disabled' : ''}">
                         <a class="page-link" href="#" data-page="${pagination.current_page - 1}">« Trước</a>
                      </li>`;
-            
-            let startPage = Math.max(1, pagination.current_page - 2);
-            let endPage = Math.min(pagination.total_pages, pagination.current_page + 2);
-            
-            if (startPage > 1) {
-                html += `<li class="page-item"><a class="page-link" href="#" data-page="1">1</a></li>`;
-                if (startPage > 2) html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
-            }
-            
-            for (let i = startPage; i <= endPage; i++) {
+            for (let i = 1; i <= pagination.total_pages; i++) {
                 html += `<li class="page-item ${i === pagination.current_page ? 'active' : ''}">
                             <a class="page-link" href="#" data-page="${i}">${i}</a>
                          </li>`;
             }
-            
-            if (endPage < pagination.total_pages) {
-                if (endPage < pagination.total_pages - 1) html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
-                html += `<li class="page-item"><a class="page-link" href="#" data-page="${pagination.total_pages}">${pagination.total_pages}</a></li>`;
-            }
-            
             html += `<li class="page-item ${pagination.current_page === pagination.total_pages ? 'disabled' : ''}">
                         <a class="page-link" href="#" data-page="${pagination.current_page + 1}">Sau »</a>
                      </li>`;
-            
             container.html(html);
             container.find('.page-link').click(function(e) {
                 e.preventDefault();
@@ -1559,13 +1468,10 @@ if (isset($_REQUEST['action'])) {
             });
         }
 
-        // Handle filter form submit - khi nhấn Tìm kiếm mới load dữ liệu
         $('#stock-filter-form').submit(function(e) {
             e.preventDefault();
-            // Lấy giá trị từ các input
             currentFilters.max_stock = $('#max-stock').val();
             currentFilters.stock_status = $('#stock-status').val();
-            // Nếu có sản phẩm được chọn, giữ lại selectedProductId
             if (selectedProductId) {
                 currentFilters.product_id = selectedProductId;
             } else {
@@ -1575,7 +1481,6 @@ if (isset($_REQUEST['action'])) {
             loadStock();
         });
         
-        // Handle reset button
         $('#stock-filter-form button[type="reset"]').click(function() {
             $('#max-stock').val('');
             $('#stock-status').val('all');
@@ -1584,7 +1489,6 @@ if (isset($_REQUEST['action'])) {
             currentFilters.max_stock = '';
             currentFilters.stock_status = 'all';
             isPastDate = false;
-            // Reset selected product
             selectedProductId = null;
             currentFilters.product_id = '';
             $('#product-search').val(null).trigger('change');
@@ -1603,7 +1507,6 @@ if (isset($_REQUEST['action'])) {
                         return;
                     }
                     const product = productRes.product;
-                    
                     const formatMoney = (amount) => new Intl.NumberFormat('vi-VN').format(amount);
                     const status = getStockStatus(product.stock_quantity, product.status);
 
@@ -1624,7 +1527,10 @@ if (isset($_REQUEST['action'])) {
                             <div class="col-md-6"><div class="info-card"><div class="info-label">Trạng thái sản phẩm</div><div class="info-value">${product.status === 'active' ? '<span class="status-success">Đang bán</span>' : '<span class="status-inactive">Đã ẩn</span>'}</div></div></div>
                             <div class="col-md-6"><div class="info-card"><div class="info-label">Ngưỡng cảnh báo</div><div class="info-value">≤ ${currentThreshold}</div></div></div>
                         </div>
-                        <div class="stock-summary mb-4"><div class="row text-center"><div class="col-6"><div class="stock-summary-label">Tổng nhập</div><div class="stock-summary-value">${product.total_import}</div></div><div class="col-6"><div class="stock-summary-label">Tổng xuất</div><div class="stock-summary-value">${product.total_export}</div></div></div></div>
+                        <div class="alert alert-info">
+                            <i class="fas fa-robot me-2"></i>
+                            <strong>Lưu ý:</strong> Sản phẩm sẽ tự động ẩn khỏi menu khi tồn kho = 0 và tự động hiển thị lại khi được nhập hàng.
+                        </div>
                     `;
                     $('#product-detail-content').html(html);
                 }).fail(function() {
@@ -1648,7 +1554,6 @@ if (isset($_REQUEST['action'])) {
             });
         }
 
-        // Khởi tạo - load tồn kho hiện tại
         loadStock();
     </script>
 </body>
