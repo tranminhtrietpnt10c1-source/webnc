@@ -643,6 +643,11 @@ $display_max_price = formatNumberWithDots($display_max_price_raw);
         margin-bottom: 35px;
     }
     
+    /* TĂNG KHOẢNG CÁCH GIỮA PHÂN LOẠI (FORM-GROUP THỨ 2) VÀ KHOẢNG GIÁ (FORM-GROUP THỨ 3) */
+    .filter_sidebar .form-group:nth-child(2) {
+        margin-bottom: 60px; /* Từ 35px lên 60px - cách xa rõ rệt */
+    }
+    
     .filter_sidebar .form-group:last-of-type {
         margin-bottom: 25px;
     }
@@ -733,11 +738,18 @@ $display_max_price = formatNumberWithDots($display_max_price_raw);
     }
     
     .price-unit {
-        font-size: 11px;
+        font-size: 15px;
+        font-weight: 500;
         color: #eeeded;
         margin-top: 12px;
         display: block;
         text-align: center;
+        line-height: 1.6;
+    }
+    
+    .price-unit i {
+        margin-right: 6px;
+        font-size: 16px;
     }
     
     .btn-filter { 
@@ -834,6 +846,16 @@ $display_max_price = formatNumberWithDots($display_max_price_raw);
       .filter_sidebar {
         padding: 25px 20px;
       }
+      .price-unit {
+        font-size: 13px;
+      }
+      .price-unit i {
+        font-size: 14px;
+      }
+      /* Trên mobile vẫn giữ khoảng cách nhưng giảm nhẹ */
+      .filter_sidebar .form-group:nth-child(2) {
+        margin-bottom: 45px;
+      }
     }
   </style>
 </head>
@@ -893,7 +915,7 @@ $display_max_price = formatNumberWithDots($display_max_price_raw);
                 <div class="dropdown-menu-custom" id="userDropdownMenu">
                   <div class="dropdown-header">
                     <div class="dropdown-header-icon">
-                      <?= strtoupper(substr($user_info['full_name'] ?? $user_info['username'], 0, 1)) ?>
+                      <?= strtoupper(substr($user_info['full_name'] ?: $user_info['username'], 0, 1)) ?>
                     </div>
                     <div class="dropdown-header-info">
                       <h6><?= htmlspecialchars($user_info['full_name'] ?: $user_info['username']) ?></h6>
@@ -1025,7 +1047,7 @@ $display_max_price = formatNumberWithDots($display_max_price_raw);
             <div class="form-group">
               <label><i class="fa fa-tags"></i> Phân loại</label>
               <select name="category" class="form-control form-control-lg">
-                <option value="all">-- Tất cả danh mục --</option>
+                <option value="all">-- Tất cả  --</option>
                 <?php foreach ($categories as $cat): ?>
                   <option value="<?= $cat['id'] ?>" <?= $category_filter == $cat['id'] ? 'selected' : '' ?>>
                     <?= htmlspecialchars($cat['name']) ?>
@@ -1049,9 +1071,9 @@ $display_max_price = formatNumberWithDots($display_max_price_raw);
                          placeholder="Giá đến (nghìn đồng)" value="<?= htmlspecialchars($display_max_price) ?>" autocomplete="off">
                 </div>
               </div>
-              <small class="price-unit">
-                <i class="fa fa-info-circle"></i> Nhập giá theo nghìn đồng (Ví dụ: 50 = 50.000đ)
-              </small>
+              <div class="price-unit">
+                <i class="fa fa-info-circle"></i> Nhập giá theo nghìn đồng<br>(Ví dụ: 50 = 50.000đ)
+              </div>
             </div>
             
             <button type="submit" class="btn btn-filter w-100">
